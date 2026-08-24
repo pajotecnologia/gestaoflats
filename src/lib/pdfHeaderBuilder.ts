@@ -92,23 +92,32 @@ export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
   doc.text(infoLinha2.slice(0, 85), 42, 26);
 
   // 4. Faixa Secundária do Título do Documento (Sub-header)
+  const hasSub = Boolean(data.subtituloDocumento && data.subtituloDocumento.trim());
+  const subHeaderHeight = hasSub ? 15 : 13;
+
   doc.setFillColor(243, 244, 246);
-  doc.rect(0, 36, 210, 14, "F");
+  doc.rect(0, 36, 210, subHeaderHeight, "F");
 
   doc.setTextColor(30, 58, 138);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text((data.tituloDocumento || "DOCUMENTO").toUpperCase(), 105, 45, { align: "center" });
 
-  if (data.subtituloDocumento) {
+  const titleText = (data.tituloDocumento || "DOCUMENTO").toUpperCase();
+  const fontSize = titleText.length > 50 ? 9 : titleText.length > 38 ? 9.5 : 10.5;
+  doc.setFontSize(fontSize);
+
+  if (hasSub) {
+    doc.text(titleText, 105, 42.5, { align: "center" });
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(107, 114, 128);
-    doc.text(data.subtituloDocumento, 196, 45, { align: "right" });
+    doc.text(data.subtituloDocumento!.trim(), 105, 48, { align: "center" });
+  } else {
+    doc.text(titleText, 105, 44.5, { align: "center" });
   }
 
   // Linha Divisória de Acabamento
   doc.setLineWidth(0.5);
   doc.setDrawColor(209, 213, 219);
-  doc.line(0, 50, 210, 50);
+  doc.line(0, 36 + subHeaderHeight, 210, 36 + subHeaderHeight);
 }

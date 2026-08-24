@@ -47,20 +47,22 @@ export function getAppBaseUrl(req?: NextRequest | Request): string {
 export async function convertUrlToBase64(url?: string | null, maxWidth = 700, quality = 0.65): Promise<string> {
   if (!url || !url.trim()) return "";
   const cleanUrl = url.trim();
+  if (cleanUrl.startsWith("data:image")) return cleanUrl;
 
   try {
     const response = await fetch(cleanUrl);
-    const blob = await response.blob();
+    if (!response.ok) return cleanUrl;
 
-    if (typeof window === "undefined" || !blob.type.startsWith("image/")) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string) || cleanUrl);
-        reader.onerror = () => resolve(cleanUrl);
-        reader.readAsDataURL(blob);
-      });
+    // Ambiente do servidor (Node.js / Next.js API Routes)
+    if (typeof window === "undefined") {
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      return `data:${contentType};base64,${buffer.toString("base64")}`;
     }
 
+    // Ambiente do cliente (Navegador)
+    const blob = await response.blob();
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = "anonymous";

@@ -23,11 +23,26 @@ import {
   Edit3,
   X,
   ShieldCheck,
+  CreditCard,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 
 export default function ParametrosPage() {
-  const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios">("empresa");
+  const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas">("empresa");
   const [empresa, setEmpresa] = useState<any>(null);
+
+  // Sync tab on mount from URL query param ?aba=
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const search = new URLSearchParams(window.location.search);
+      const tabParam = search.get("aba");
+      if (tabParam && ["empresa", "evolution", "email", "funcionarios", "formas"].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      }
+    }
+  }, []);
 
   // Form Empresa
   const [nomeFantasia, setNomeFantasia] = useState("");
@@ -40,6 +55,15 @@ export default function ParametrosPage() {
   const [assinaturaUrl, setAssinaturaUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [savingEmpresa, setSavingEmpresa] = useState(false);
+
+  // Formas de Pagamento
+  const [formas, setFormas] = useState<any[]>([]);
+  const [loadingFormas, setLoadingFormas] = useState(false);
+  const [showFormaModal, setShowFormaModal] = useState(false);
+  const [editingForma, setEditingForma] = useState<any>(null);
+  const [formaNome, setFormaNome] = useState("");
+  const [formaAtivo, setFormaAtivo] = useState(true);
+  const [submittingForma, setSubmittingForma] = useState(false);
 
   // Form Evolution API (WhatsApp)
   const [evolutionApiUrl, setEvolutionApiUrl] = useState("");
@@ -128,15 +152,103 @@ export default function ParametrosPage() {
     }
   };
 
+  const loadFormas = async () => {
+    setLoadingFormas(true);
+    try {
+      const res = await fetch("/api/formas-pagamento");
+      const data = await res.json();
+      setFormas(data.formas || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingFormas(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
     loadFuncionarios();
+    loadFormas();
     if (typeof window !== "undefined" && window.location.hash) {
       if (window.location.hash.includes("evolution")) setActiveTab("evolution");
       if (window.location.hash.includes("smtp") || window.location.hash.includes("email")) setActiveTab("email");
-      if (window.location.hash.includes("funcionario") || window.location.hash.includes("equipe")) setActiveTab("funcionarios");
+      if (window.location.hash.includes("funcionarios")) setActiveTab("funcionarios");
+      if (window.location.hash.includes("formas")) setActiveTab("formas");
     }
   }, []);
+
+  const handleOpenNewFormaModal = () => {
+    setEditingForma(null);
+    setFormaNome("");
+    setFormaAtivo(true);
+    setShowFormaModal(true);
+  };
+
+  const handleOpenEditFormaModal = (f: any) => {
+    setEditingForma(f);
+    setFormaNome(f.nome);
+    setFormaAtivo(f.ativo);
+    setShowFormaModal(true);
+  };
+
+  const handleSaveForma = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formaNome.trim()) return;
+    setSubmittingForma(true);
+
+    try {
+      const method = editingForma ? "PUT" : "POST";
+      const res = await fetch("/api/formas-pagamento", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingForma?.id,
+          nome: formaNome,
+          ativo: formaAtivo,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setShowFormaModal(false);
+        await loadFormas();
+        setFeedback({ type: "success", message: "Forma de pagamento salva com sucesso!" });
+      } else {
+        alert(data.error || "Erro ao salvar forma de pagamento");
+      }
+    } catch (err: any) {
+      alert(`Erro: ${err.message || err}`);
+    } finally {
+      setSubmittingForma(false);
+    }
+  };
+
+  const handleToggleFormaAtivo = async (f: any) => {
+    try {
+      await fetch("/api/formas-pagamento", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: f.id, ativo: !f.ativo }),
+      });
+      await loadFormas();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteForma = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta forma de pagamento?")) return;
+    try {
+      const res = await fetch(`/api/formas-pagamento?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        await loadFormas();
+      } else {
+        alert("Não foi possível excluir esta forma de pagamento.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleOpenNewFuncModal = () => {
     setEditingFunc(null);
@@ -547,6 +659,19 @@ export default function ParametrosPage() {
             <UserCheck className="w-4 h-4" />
             <span>👥 Funcionários & Equipe</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("formas")}
+            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+              activeTab === "formas"
+                ? "border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-50/50 dark:bg-slate-900"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>💳 Formas de Pagamento</span>
+          </button>
         </div>
 
         {/* CONTEÚDO DA ABA 1: EMPRESA */}
@@ -632,12 +757,27 @@ export default function ParametrosPage() {
                   />
                 </div>
 
-                <div className="pt-2">
-                  <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{uploadingLogo ? "Enviando Logomarca..." : "Upload de Logomarca"}</span>
+                <div className="pt-2 space-y-3">
+                  <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition shadow-md">
+                    <Upload className="w-4 h-4" />
+                    <span>{uploadingLogo ? "Enviando Logomarca..." : "Upload de Logomarca (PNG/JPG)"}</span>
                     <input type="file" accept="image/*" onChange={handleUploadLogo} disabled={uploadingLogo} className="hidden" />
                   </label>
+
+                  {/* PREVIEW DA LOGOMARCA ABAIXO DO BOTÃO DE UPLOAD */}
+                  {logomarcaUrl ? (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-start space-y-2">
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center space-x-1">
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Logomarca Oficial Cadastrada:</span>
+                      </span>
+                      <div className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg max-w-[220px] shadow-sm">
+                        <img src={logomarcaUrl} alt="Logomarca da Empresa" className="max-h-24 max-w-full object-contain rounded" />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic">Nenhuma logomarca enviada. Um emblema com a inicial da empresa será gerado nos relatórios.</p>
+                  )}
                 </div>
               </div>
 
@@ -1096,6 +1236,155 @@ export default function ParametrosPage() {
                     className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md disabled:opacity-50"
                   >
                     {submittingFunc ? "Salvando..." : "Salvar Funcionário"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* CONTEÚDO DA ABA 5: FORMAS DE PAGAMENTO */}
+        {activeTab === "formas" && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <CreditCard className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Formas de Pagamento Cadastradas</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Cadastre e gerencie as formas de pagamento disponíveis no recebimento e lançamento financeiro
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenNewFormaModal}
+                className="py-2 px-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nova Forma de Pagamento</span>
+              </button>
+            </div>
+
+            {loadingFormas ? (
+              <div className="py-8 text-center text-xs text-slate-500">Carregando formas de pagamento...</div>
+            ) : formas.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500">Nenhuma forma de pagamento cadastrada.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-bold">
+                      <th className="py-3 px-4">Nome da Forma de Pagamento</th>
+                      <th className="py-3 px-4 text-center">Status</th>
+                      <th className="py-3 px-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {formas.map((f) => (
+                      <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                          <CreditCard className="w-4 h-4 text-cyan-500" />
+                          <span>{f.nome}</span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => handleToggleFormaAtivo(f)}
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition ${
+                              f.ativo
+                                ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 text-emerald-700 dark:text-emerald-300"
+                                : "bg-slate-100 dark:bg-slate-800 border-slate-300 text-slate-500"
+                            }`}
+                            title="Clique para Ativar/Desativar"
+                          >
+                            {f.ativo ? "ATIVO" : "INATIVO"}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-right space-x-1.5">
+                          <button
+                            onClick={() => handleOpenEditFormaModal(f)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title="Editar Forma de Pagamento"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteForma(f.id)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title="Excluir Forma de Pagamento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODAL ADICIONAR / EDITAR FORMA DE PAGAMENTO */}
+        {showFormaModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                  <CreditCard className="w-4 h-4 text-cyan-600" />
+                  <span>{editingForma ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowFormaModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveForma} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Nome da Forma de Pagamento *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: PIX, Cartão de Crédito, Boleto, Cheque..."
+                    value={formaNome}
+                    onChange={(e) => setFormaNome(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                  <select
+                    value={formaAtivo ? "true" : "false"}
+                    onChange={(e) => setFormaAtivo(e.target.value === "true")}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                  >
+                    <option value="true">Ativo</option>
+                    <option value="false">Inativo</option>
+                  </select>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFormaModal(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingForma}
+                    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold shadow-md disabled:opacity-50"
+                  >
+                    {submittingForma ? "Salvando..." : "Salvar Forma de Pagamento"}
                   </button>
                 </div>
               </form>

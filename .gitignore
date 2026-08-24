@@ -31,3 +31,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# database & temp test scripts
+prisma/*.db
+prisma/*.db-journal
+test-ots.js
+

@@ -70,22 +70,24 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "ID do lançamento é obrigatório." }, { status: 400 });
     }
 
-    const dateVenc = new Date(dataVencimento);
-    const mesRef = `${dateVenc.getFullYear()}-${String(dateVenc.getMonth() + 1).padStart(2, "0")}`;
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (formaPagamento !== undefined) updateData.formaPagamento = formaPagamento;
+    if (observacao !== undefined) updateData.observacao = observacao;
+    if (locatarioId) updateData.locatarioId = locatarioId;
+    if (valor) updateData.valor = parseFloat(valor);
+    if (valorPago !== undefined) updateData.valorPago = valorPago ? parseFloat(valorPago) : null;
+    if (dataPagamento !== undefined) updateData.dataPagamento = dataPagamento ? new Date(dataPagamento) : null;
+
+    if (dataVencimento) {
+      const dateVenc = new Date(dataVencimento);
+      updateData.dataVencimento = dateVenc;
+      updateData.mesReferencia = `${dateVenc.getFullYear()}-${String(dateVenc.getMonth() + 1).padStart(2, "0")}`;
+    }
 
     const updatedConta = await prisma.contaReceber.update({
       where: { id, empresaId: session.empresaId },
-      data: {
-        locatarioId: locatarioId || undefined,
-        valor: valor ? parseFloat(valor) : undefined,
-        dataVencimento: dateVenc,
-        mesReferencia: mesRef,
-        status,
-        formaPagamento,
-        valorPago: valorPago ? parseFloat(valorPago) : null,
-        dataPagamento: dataPagamento ? new Date(dataPagamento) : null,
-        observacao,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({ conta: updatedConta });

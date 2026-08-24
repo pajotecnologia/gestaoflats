@@ -69,18 +69,19 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "ID do lançamento é obrigatório." }, { status: 400 });
     }
 
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (descricao) updateData.descricao = descricao;
+    if (fornecedorId !== undefined) updateData.fornecedorId = fornecedorId || null;
+    if (localId !== undefined) updateData.localId = localId || null;
+    if (flatId !== undefined) updateData.flatId = flatId || null;
+    if (valor) updateData.valor = parseFloat(valor);
+    if (dataVencimento) updateData.dataVencimento = new Date(dataVencimento);
+    if (dataPagamento !== undefined) updateData.dataPagamento = dataPagamento ? new Date(dataPagamento) : null;
+
     const updatedConta = await prisma.contaPagar.update({
       where: { id, empresaId: session.empresaId },
-      data: {
-        fornecedorId: fornecedorId || null,
-        localId: localId || null,
-        flatId: flatId || null,
-        descricao,
-        valor: valor ? parseFloat(valor) : undefined,
-        dataVencimento: dataVencimento ? new Date(dataVencimento) : undefined,
-        status,
-        dataPagamento: dataPagamento ? new Date(dataPagamento) : null,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({ conta: updatedConta });

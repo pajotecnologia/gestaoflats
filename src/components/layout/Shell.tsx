@@ -20,6 +20,13 @@ import {
   FileCode,
   Truck,
   Building,
+  BarChart3,
+  ClipboardCheck,
+  ChevronDown,
+  ChevronRight,
+  CreditCard,
+  MessageSquare,
+  Mail,
 } from "lucide-react";
 
 interface ShellProps {
@@ -28,9 +35,32 @@ interface ShellProps {
 
 export default function Shell({ children }: ShellProps) {
   const pathname = usePathname();
+  const [currentAba, setCurrentAba] = useState("checklist");
+  const [currentParametrosAba, setCurrentParametrosAba] = useState("empresa");
+
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [relatoriosExpanded, setRelatoriosExpanded] = useState(true);
+  const [parametrosExpanded, setParametrosExpanded] = useState(true);
   const [user, setUser] = useState<{ nome: string; email: string; empresaNome: string; logomarcaUrl?: string } | null>(null);
+
+  // Auto-expandir relatórios/parâmetros e sincronizar aba ativa
+  useEffect(() => {
+    if (pathname.startsWith("/relatorios")) {
+      setRelatoriosExpanded(true);
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        setCurrentAba(urlParams.get("aba") || "checklist");
+      }
+    }
+    if (pathname.startsWith("/parametros")) {
+      setParametrosExpanded(true);
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        setCurrentParametrosAba(urlParams.get("aba") || "empresa");
+      }
+    }
+  }, [pathname]);
 
   // Sync state with HTML class / localStorage on mount
   useEffect(() => {
@@ -81,8 +111,25 @@ export default function Shell({ children }: ShellProps) {
     { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
     { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
     { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
-    { label: "Parâmetros do Sistema", href: "/parametros", icon: SlidersHorizontal },
   ];
+
+  const relatoriosSubItems = [
+    { label: "Checklist (Em Branco)", href: "/relatorios?aba=checklist", aba: "checklist", icon: ClipboardCheck },
+    { label: "Relatório - Contas a Receber", href: "/relatorios?aba=receber", aba: "receber", icon: TrendingUp },
+    { label: "Relatório - Contas a Pagar", href: "/relatorios?aba=pagar", aba: "pagar", icon: DollarSign },
+    { label: "Fluxo de Caixa Diário", href: "/relatorios?aba=fluxo", aba: "fluxo", icon: BarChart3 },
+  ];
+
+  const parametrosSubItems = [
+    { label: "Dados da Empresa", href: "/parametros?aba=empresa", aba: "empresa", icon: Building2 },
+    { label: "WhatsApp (Evolution API)", href: "/parametros?aba=evolution", aba: "evolution", icon: MessageSquare },
+    { label: "Servidor de E-mail", href: "/parametros?aba=email", aba: "email", icon: Mail },
+    { label: "Usuários & Permissões", href: "/parametros?aba=funcionarios", aba: "funcionarios", icon: Users },
+    { label: "Formas de Pagamento", href: "/parametros?aba=formas", aba: "formas", icon: CreditCard },
+  ];
+
+  const isRelatoriosActive = pathname.startsWith("/relatorios");
+  const isParametrosActive = pathname.startsWith("/parametros");
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
@@ -129,6 +176,100 @@ export default function Shell({ children }: ShellProps) {
               </Link>
             );
           })}
+
+          {/* MENU PAI DE RELATÓRIOS COM SUB-MENUS */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setRelatoriosExpanded(!relatoriosExpanded)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                isRelatoriosActive
+                  ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <BarChart3 className={`w-4 h-4 ${isRelatoriosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                <span>Relatórios</span>
+              </div>
+              {relatoriosExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              )}
+            </button>
+
+            {/* SUB-MENUS DE RELATÓRIOS */}
+            {relatoriosExpanded && (
+              <div className="ml-4 pl-3 border-l-2 border-slate-200 dark:border-slate-800 mt-1 space-y-1">
+                {relatoriosSubItems.map((sub) => {
+                  const SubIcon = sub.icon;
+                  const isSubActive = isRelatoriosActive && currentAba === sub.aba;
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
+                        isSubActive
+                          ? "bg-blue-600 text-white font-bold shadow-sm"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                      }`}
+                    >
+                      <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                      <span>{sub.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* MENU PAI DE PARÂMETROS DO SISTEMA COM SUB-MENUS */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setParametrosExpanded(!parametrosExpanded)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                isParametrosActive
+                  ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <SlidersHorizontal className={`w-4 h-4 ${isParametrosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                <span>Parâmetros do Sistema</span>
+              </div>
+              {parametrosExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              )}
+            </button>
+
+            {/* SUB-MENUS DE PARÂMETROS */}
+            {parametrosExpanded && (
+              <div className="ml-4 pl-3 border-l-2 border-slate-200 dark:border-slate-800 mt-1 space-y-1">
+                {parametrosSubItems.map((sub) => {
+                  const SubIcon = sub.icon;
+                  const isSubActive = isParametrosActive && currentParametrosAba === sub.aba;
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
+                        isSubActive
+                          ? "bg-blue-600 text-white font-bold shadow-sm"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                      }`}
+                    >
+                      <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                      <span>{sub.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
       </aside>
 
@@ -210,6 +351,52 @@ export default function Shell({ children }: ShellProps) {
                 </Link>
               );
             })}
+
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase px-3">Relatórios:</span>
+              {relatoriosSubItems.map((sub) => {
+                const SubIcon = sub.icon;
+                const isSubActive = isRelatoriosActive && currentAba === sub.aba;
+                return (
+                  <Link
+                    key={sub.href}
+                    href={sub.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium ${
+                      isSubActive
+                        ? "bg-blue-600 text-white font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <SubIcon className="w-4 h-4" />
+                    <span>{sub.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase px-3">Parâmetros do Sistema:</span>
+              {parametrosSubItems.map((sub) => {
+                const SubIcon = sub.icon;
+                const isSubActive = isParametrosActive && currentParametrosAba === sub.aba;
+                return (
+                  <Link
+                    key={sub.href}
+                    href={sub.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium ${
+                      isSubActive
+                        ? "bg-blue-600 text-white font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <SubIcon className="w-4 h-4" />
+                    <span>{sub.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
 

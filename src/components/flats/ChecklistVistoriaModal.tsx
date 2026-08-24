@@ -355,6 +355,7 @@ export default function ChecklistVistoriaModal({
           responsavelVistoria: responsavel,
           itens: items,
           observacoesGerais,
+          gerarNovoLink: true,
         }),
       });
 

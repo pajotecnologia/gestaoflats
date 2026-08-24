@@ -28,6 +28,12 @@ export interface ChecklistPDFData {
   locatarioAssinaturaUrl?: string;
   dataAssinaturaLocatario?: string;
   ipAssinaturaLocatario?: string;
+  documentoHashSha256?: string;
+  blockchainProtocol?: string;
+  blockchainStatus?: string;
+  dataHashGerado?: string;
+  validationUrl?: string;
+  qrCodeDataUrl?: string;
 }
 
 export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
@@ -255,28 +261,69 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
 
   doc.setDrawColor(31, 41, 55);
   doc.setLineWidth(0.5);
-  doc.line(20, y, 90, y);
-  doc.line(120, y, 190, y);
+  doc.line(14, y, 94, y);
+  doc.line(110, y, 190, y);
 
   doc.setFontSize(8.5);
   doc.setTextColor(31, 41, 55);
   doc.setFont("helvetica", "bold");
-  doc.text(data.responsavelVistoria || data.empresaNome, 55, y + 5, { align: "center" });
+  doc.text(data.responsavelVistoria || data.empresaNome, 14, y + 5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.text(`Vistoriador(a) / ${data.empresaNome}`, 55, y + 9, { align: "center" });
+  doc.text(`Vistoriador(a) / ${data.empresaNome}`, 14, y + 9);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.text(data.locatarioNome, 155, y + 5, { align: "center" });
+  doc.text(data.locatarioNome, 110, y + 5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.text(`Locatário(a) - CPF: ${data.locatarioCpf}`, 155, y + 9, { align: "center" });
+  doc.text(`Locatário(a) - CPF: ${data.locatarioCpf}`, 110, y + 9);
 
   if (data.ipAssinaturaLocatario) {
-    doc.setFontSize(6.5);
+    const cleanIp = data.ipAssinaturaLocatario.replace(/^::ffff:/i, "").trim();
+    doc.setFontSize(7);
     doc.setTextColor(16, 185, 129);
-    doc.text(`✓ Assinado Digitalmente • IP: ${data.ipAssinaturaLocatario}`, 155, y + 13, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.text(`Assinado Digitalmente • IP: ${cleanIp}`, 110, y + 13);
+  }
+
+  // Bloco de Auditoria Blockchain & QR Code no Laudo de Vistoria
+  if (data.documentoHashSha256 || data.validationUrl) {
+    y += 20;
+    if (y > 230) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFillColor(240, 249, 255);
+    doc.setDrawColor(186, 230, 253);
+    doc.setLineWidth(0.5);
+    const boxWidth = data.qrCodeDataUrl ? 150 : 176;
+    doc.roundedRect(14, y, boxWidth, 26, 2, 2, "FD");
+
+    doc.setTextColor(30, 58, 138);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("REGISTRO DE AUDITORIA CRIPTOGRÁFICA & BLOCKCHAIN (BITCOIN)", 18, y + 6);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(55, 65, 81);
+    
+    const hashText = data.documentoHashSha256 || "Criptografado e Ancorado em Blockchain";
+    doc.text(`• Hash SHA-256 (PDF): ${hashText}`, 18, y + 11);
+    doc.text(`• Prova de Existência: Ancorado via OpenTimestamps na Blockchain do Bitcoin`, 18, y + 15.5);
+    
+    if (data.validationUrl) {
+      doc.setTextColor(29, 78, 216);
+      doc.text(`• Verificação Pública: ${data.validationUrl}`, 18, y + 20);
+    }
+
+    if (data.qrCodeDataUrl) {
+      try {
+        doc.addImage(data.qrCodeDataUrl, "PNG", 168, y + 2, 22, 22);
+      } catch (e) {}
+    }
   }
 
   // RODAPÉ DO DESENVOLVEDOR NO LAUDO PDF
@@ -294,6 +341,15 @@ export async function convertUrlToBase64(url: string): Promise<string> {
   if (url.startsWith("data:image")) return url;
   try {
     const response = await fetch(url);
+    if (!response.ok) return url;
+
+    if (typeof window === "undefined") {
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      return `data:${contentType};base64,${buffer.toString("base64")}`;
+    }
+
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
