@@ -14,22 +14,15 @@ export interface PDFDocumentHeaderData {
 
 /**
  * Desenha o Cabeçalho Padrão Unificado com Logomarca e Dados da Empresa
- * Utilizado em Recibos, Contratos e Laudos de Vistoria (Checklist)
+ * Variante 100% White Clean (Sem Banner Azul de Fundo)
  */
 export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
-  const isWhite = data.variant === "white";
-
-  // 1. Banner Principal (Azul Marinho ou Branco)
-  if (isWhite) {
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 210, 36, "F");
-    doc.setDrawColor(229, 231, 235);
-    doc.setLineWidth(0.5);
-    doc.line(0, 36, 210, 36);
-  } else {
-    doc.setFillColor(30, 58, 138);
-    doc.rect(0, 0, 210, 36, "F");
-  }
+  // 1. Banner Principal (Sempre Branco / White Clean)
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, 210, 36, "F");
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(0.5);
+  doc.line(0, 36, 210, 36);
 
   // 2. Logomarca da Empresa ou Emblema com Inicial
   let hasLogo = false;
@@ -49,36 +42,22 @@ export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
 
   if (!hasLogo) {
     // Emblema da Empresa com a Inicial do Nome
-    if (isWhite) {
-      doc.setFillColor(30, 58, 138);
-      doc.roundedRect(12, 6, 24, 24, 2, 2, "F");
-      doc.setTextColor(255, 255, 255);
-    } else {
-      doc.setFillColor(255, 255, 255);
-      doc.roundedRect(12, 6, 24, 24, 2, 2, "F");
-      doc.setTextColor(30, 58, 138);
-    }
+    doc.setFillColor(30, 58, 138);
+    doc.roundedRect(12, 6, 24, 24, 2, 2, "F");
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     const initial = (data.empresaNome || "P").trim().charAt(0).toUpperCase();
     doc.text(initial, 24, 22, { align: "center" });
   }
 
-  // 3. Informações da Empresa (Adaptadas ao Fundo)
-  if (isWhite) {
-    doc.setTextColor(30, 58, 138);
-  } else {
-    doc.setTextColor(255, 255, 255);
-  }
+  // 3. Informações da Empresa (Tipografia Elegante em Azul Marinho e Cinza)
+  doc.setTextColor(30, 58, 138);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text((data.empresaNome || "EMPRESA").toUpperCase(), 42, 14);
 
-  if (isWhite) {
-    doc.setTextColor(75, 85, 99);
-  } else {
-    doc.setTextColor(255, 255, 255);
-  }
+  doc.setTextColor(75, 85, 99);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   const cnpjStr = data.empresaCnpj ? `CNPJ: ${data.empresaCnpj}` : "";
@@ -91,7 +70,7 @@ export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
   const infoLinha2 = [emailStr, endStr].filter(Boolean).join("  •  ");
   doc.text(infoLinha2.slice(0, 85), 42, 26);
 
-  // 4. Faixa Secundária do Título do Documento (Sub-header)
+  // 4. Faixa Secundária do Título do Documento (Sub-header Cinza Claro)
   const hasSub = Boolean(data.subtituloDocumento && data.subtituloDocumento.trim());
   const subHeaderHeight = hasSub ? 15 : 13;
 

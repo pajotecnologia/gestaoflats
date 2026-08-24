@@ -20,18 +20,22 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 ## 2. Padronização Visual de Documentos PDF
 
 - **Módulo Único de Cabeçalho**:
-  - Todos os relatórios PDF gerados no sistema (**Recibos**, **Contratos** e **Laudos de Vistoria/Checklist**) devem obrigatoriamente utilizar o construtor `drawStandardPDFHeader` localizado em `src/lib/pdfHeaderBuilder.ts`.
+  - Todos os relatórios PDF gerados no sistema (**Recibos**, **Contratos**, **Laudos de Vistoria/Checklist** e **Relatórios Financeiros**) devem obrigatoriamente utilizar o construtor `drawStandardPDFHeader` localizado em `src/lib/pdfHeaderBuilder.ts`.
 
-- **Estrutura do Cabeçalho**:
-  - **Banner Azul Marinho Escuro (`#1e3a8a`)**: Com o nome fantasia da empresa em destaque, CNPJ, telefone, e-mail e endereço físico completo.
+- **Proibição Estrita de Fundo Azul (White Clean Universal)**:
+  - **NENHUM relatório ou documento PDF deve conter fundo azul (blue background)**.
+  - O topo de todos os documentos utiliza **fundo 100% Branco Clean (`#ffffff`)** com o nome fantasia em azul marinho escuro (`#1e3a8a`), CNPJ, telefone, e-mail e endereço físico completo.
+  - Cabeçalhos de tabelas e categorias utilizam tom cinza claro de acabamento (`#f1f5f9`) com texto em azul marinho escuro.
   - **Logomarca**: Exibe a imagem da logomarca da empresa (`empresaLogomarcaUrl`). Caso não haja logomarca cadastrada, gera automaticamente um emblema com a inicial do nome da empresa.
-  - **Faixa de Título**: Faixa cinza clara com o título oficial do documento (ex: *RECIBO DE PAGAMENTO DE ALUGUEL*, *CONTRATO DE LOCAÇÃO RESIDENCIAL*, *LAUDO DE VISTORIA DE ENTRADA*) e subtítulo explicativo.
+  - **Faixa de Título**: Faixa cinza clara com o título oficial do documento (ex: *RECIBO DE PAGAMENTO DE ALUGUEL*, *CONTRATO DE LOCAÇÃO RESIDENCIAL*, *LAUDO DE VISTORIA DE ENTRADA*, *RELATÓRIO FINANCEIRO*) e subtítulo explicativo.
   - **Rodapé de Desenvolvimento**: Todos os documentos PDF devem conter a linha de créditos no rodapé: `Desenvolvimento: pajotecnologia.com.br (87)996540551`.
 
 - **Arquivos dos Geradores PDF**:
   - Recibos de Pagamento: `src/lib/pdfGenerator.ts`
   - Contratos de Locação: `src/lib/contractPdfGenerator.ts`
   - Laudos de Vistoria / Checklist: `src/lib/checklistPdfGenerator.ts`
+  - Relatórios Financeiros: `src/lib/reportsPdfGenerator.ts`
+  - Ficha de Vistoria em Branco: `src/lib/blankChecklistPdfGenerator.ts`
 
 ---
 

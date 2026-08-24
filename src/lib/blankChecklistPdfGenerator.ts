@@ -129,12 +129,15 @@ export function buildBlankChecklistPDFDoc(data: BlankChecklistPDFData): jsPDF {
       y = 15;
     }
 
-    // Cabeçalho da Categoria
-    doc.setFillColor(30, 58, 138);
-    doc.rect(14, y, 182, 6, "F");
+    // Cabeçalho da Categoria (Cinza Claro Clean sem Fundo Azul)
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y, 182, 6.5, "F");
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, y, 182, 6.5, "S");
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(30, 58, 138);
     doc.text(catGroup.categoria.toUpperCase(), 18, y + 4.5);
 
     y += 6;

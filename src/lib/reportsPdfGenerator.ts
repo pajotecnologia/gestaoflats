@@ -85,21 +85,24 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
 
   let y = 54;
 
-  // Cabeçalho da Tabela
-  doc.setFillColor(30, 58, 138);
-  doc.rect(14, y, 182, 6, "F");
+  // Cabeçalho da Tabela (Cinza Claro Clean sem Fundo Azul)
+  doc.setFillColor(241, 245, 249);
+  doc.rect(14, y, 182, 6.5, "F");
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(14, y, 182, 6.5, "S");
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 58, 138);
 
-  doc.text("LOCATÁRIO", 18, y + 4.2);
-  doc.text("FLAT / COND.", 75, y + 4.2);
-  doc.text("VENCIMENTO", 115, y + 4.2);
-  doc.text("PAGAMENTO", 142, y + 4.2);
-  doc.text("VALOR (R$)", 168, y + 4.2);
-  doc.text("STATUS", 185, y + 4.2);
+  doc.text("LOCATÁRIO", 18, y + 4.5);
+  doc.text("FLAT / COND.", 75, y + 4.5);
+  doc.text("VENCIMENTO", 115, y + 4.5);
+  doc.text("PAGAMENTO", 142, y + 4.5);
+  doc.text("VALOR (R$)", 168, y + 4.5);
+  doc.text("STATUS", 185, y + 4.5);
 
-  y += 6;
+  y += 6.5;
 
   // Linhas da Tabela
   data.itens.forEach((item, index) => {
@@ -108,18 +111,20 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
       y = 15;
 
       // Redesenha cabeçalho da tabela na nova página
-      doc.setFillColor(30, 58, 138);
-      doc.rect(14, y, 182, 6, "F");
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, y, 182, 6.5, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, y, 182, 6.5, "S");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
-      doc.setTextColor(255, 255, 255);
-      doc.text("LOCATÁRIO", 18, y + 4.2);
-      doc.text("FLAT / COND.", 75, y + 4.2);
-      doc.text("VENCIMENTO", 115, y + 4.2);
-      doc.text("PAGAMENTO", 142, y + 4.2);
-      doc.text("VALOR (R$)", 168, y + 4.2);
-      doc.text("STATUS", 185, y + 4.2);
-      y += 6;
+      doc.setTextColor(30, 58, 138);
+      doc.text("LOCATÁRIO", 18, y + 4.5);
+      doc.text("FLAT / COND.", 75, y + 4.5);
+      doc.text("VENCIMENTO", 115, y + 4.5);
+      doc.text("PAGAMENTO", 142, y + 4.5);
+      doc.text("VALOR (R$)", 168, y + 4.5);
+      doc.text("STATUS", 185, y + 4.5);
+      y += 6.5;
     }
 
     if (index % 2 === 1) {
@@ -214,21 +219,24 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
 
   let y = 54;
 
-  // Cabeçalho da Tabela
-  doc.setFillColor(30, 58, 138);
-  doc.rect(14, y, 182, 6, "F");
+  // Cabeçalho da Tabela (Cinza Claro Clean sem Fundo Azul)
+  doc.setFillColor(241, 245, 249);
+  doc.rect(14, y, 182, 6.5, "F");
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(14, y, 182, 6.5, "S");
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 58, 138);
 
-  doc.text("DESCRIÇÃO", 18, y + 4.2);
-  doc.text("FORNECEDOR / FLAT", 75, y + 4.2);
-  doc.text("VENCIMENTO", 120, y + 4.2);
-  doc.text("PAGAMENTO", 145, y + 4.2);
-  doc.text("VALOR (R$)", 168, y + 4.2);
-  doc.text("STATUS", 185, y + 4.2);
+  doc.text("DESCRIÇÃO", 18, y + 4.5);
+  doc.text("FORNECEDOR / FLAT", 75, y + 4.5);
+  doc.text("VENCIMENTO", 120, y + 4.5);
+  doc.text("PAGAMENTO", 145, y + 4.5);
+  doc.text("VALOR (R$)", 168, y + 4.5);
+  doc.text("STATUS", 185, y + 4.5);
 
-  y += 6;
+  y += 6.5;
 
   // Linhas da Tabela
   data.itens.forEach((item, index) => {
@@ -237,18 +245,20 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
       y = 15;
 
       // Redesenha cabeçalho da tabela na nova página
-      doc.setFillColor(30, 58, 138);
-      doc.rect(14, y, 182, 6, "F");
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, y, 182, 6.5, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, y, 182, 6.5, "S");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
-      doc.setTextColor(255, 255, 255);
-      doc.text("DESCRIÇÃO", 18, y + 4.2);
-      doc.text("FORNECEDOR / FLAT", 75, y + 4.2);
-      doc.text("VENCIMENTO", 120, y + 4.2);
-      doc.text("PAGAMENTO", 145, y + 4.2);
-      doc.text("VALOR (R$)", 168, y + 4.2);
-      doc.text("STATUS", 185, y + 4.2);
-      y += 6;
+      doc.setTextColor(30, 58, 138);
+      doc.text("DESCRIÇÃO", 18, y + 4.5);
+      doc.text("FORNECEDOR / FLAT", 75, y + 4.5);
+      doc.text("VENCIMENTO", 120, y + 4.5);
+      doc.text("PAGAMENTO", 145, y + 4.5);
+      doc.text("VALOR (R$)", 168, y + 4.5);
+      doc.text("STATUS", 185, y + 4.5);
+      y += 6.5;
     }
 
     if (index % 2 === 1) {
@@ -375,13 +385,15 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
 
   let y = 54;
 
-  // 2. Cabeçalho da Tabela
-  doc.setFillColor(30, 58, 138); // Azul Marinho
+  // 2. Cabeçalho da Tabela (Cinza Claro Clean sem Fundo Azul)
+  doc.setFillColor(241, 245, 249);
   doc.rect(14, y, 182, 7, "F");
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(14, y, 182, 7, "S");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 58, 138);
   doc.text("DATA DO FLUXO / LANÇAMENTO", 18, y + 4.8);
   doc.text("ORIGEM / VÍNCULO", 90, y + 4.8);
   doc.text("CRÉDITO (R$)", 140, y + 4.8);
@@ -397,11 +409,13 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
       y = 15;
 
       // Re-desenhar cabeçalho da tabela
-      doc.setFillColor(30, 58, 138);
+      doc.setFillColor(241, 245, 249);
       doc.rect(14, y, 182, 7, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, y, 182, 7, "S");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(30, 58, 138);
       doc.text("DATA DO FLUXO / LANÇAMENTO", 18, y + 4.8);
       doc.text("ORIGEM / VÍNCULO", 90, y + 4.8);
       doc.text("CRÉDITO (R$)", 140, y + 4.8);
@@ -410,7 +424,7 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
     }
 
     // Cabecalho do Dia
-    doc.setFillColor(241, 245, 249);
+    doc.setFillColor(248, 250, 252);
     doc.rect(14, y, 182, 6.5, "F");
     doc.setDrawColor(226, 232, 240);
     doc.rect(14, y, 182, 6.5, "S");
@@ -436,11 +450,13 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
         if (y > 265) {
           doc.addPage();
           y = 15;
-          doc.setFillColor(30, 58, 138);
+          doc.setFillColor(241, 245, 249);
           doc.rect(14, y, 182, 7, "F");
+          doc.setDrawColor(226, 232, 240);
+          doc.rect(14, y, 182, 7, "S");
           doc.setFont("helvetica", "bold");
           doc.setFontSize(7.5);
-          doc.setTextColor(255, 255, 255);
+          doc.setTextColor(30, 58, 138);
           doc.text("DATA DO FLUXO / LANÇAMENTO", 18, y + 4.8);
           doc.text("ORIGEM / VÍNCULO", 90, y + 4.8);
           doc.text("CRÉDITO (R$)", 140, y + 4.8);
@@ -544,4 +560,3 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
 
   doc.save(`Relatorio_Fluxo_Caixa_Diario_${data.dataInicio}_a_${data.dataFim}.pdf`);
 }
-
