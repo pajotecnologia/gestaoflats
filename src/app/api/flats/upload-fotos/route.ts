@@ -26,11 +26,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const publicUploadsDir = path.join(process.cwd(), "public", "uploads", "flats");
-    const rootUploadsDir = path.join(process.cwd(), "uploads", "flats");
-
-    await mkdir(publicUploadsDir, { recursive: true });
-    await mkdir(rootUploadsDir, { recursive: true });
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", "flats");
+    await mkdir(uploadsDir, { recursive: true });
 
     const newFotoUrls: string[] = [];
 
@@ -39,15 +36,10 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer());
         const ext = path.extname(file.name) || ".jpg";
         const filename = `flat-${flatId || "upload"}-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-        
-        const publicFilePath = path.join(publicUploadsDir, filename);
-        const rootFilePath = path.join(rootUploadsDir, filename);
+        const filePath = path.join(uploadsDir, filename);
 
-        await writeFile(publicFilePath, buffer);
-        await writeFile(rootFilePath, buffer);
-
-        await chmod(publicFilePath, 0o777).catch(() => {});
-        await chmod(rootFilePath, 0o777).catch(() => {});
+        await writeFile(filePath, buffer);
+        await chmod(filePath, 0o755).catch(() => {});
 
         newFotoUrls.push(`/uploads/flats/${filename}`);
       }
