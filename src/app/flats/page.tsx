@@ -742,10 +742,10 @@ export default function FlatsPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveFoto(i)}
-                          className="absolute top-1 right-1 p-1 rounded-md bg-rose-600 text-white opacity-0 group-hover:opacity-100 transition shadow-md"
+                          className="absolute top-1 right-1 p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-700 transition shadow-md z-10"
                           title="Remover Foto"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
