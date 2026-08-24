@@ -18,7 +18,9 @@ export interface ContratoPDFData {
   flatNumero: string;
   localNome?: string;
   valorMensal: number;
+  tipoValidade?: string;
   validadeMeses: number;
+  validadeDias?: number;
   dataEmissao: string;
   dataFinal: string;
   conteudoHtml?: string;
@@ -95,6 +97,10 @@ function parseContractBlocks(rawHtml: string): TextBlock[] {
 
 export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
   const doc = new jsPDF();
+  const isDias = data.tipoValidade === "DIAS";
+  const duracaoLabel = isDias
+    ? `${data.validadeDias || data.validadeMeses} Dias (Temporada)`
+    : `${data.validadeMeses} Meses`;
 
   // 1. Cabeçalho Padrão sem Fundo Azul (Variante White Clean)
   drawStandardPDFHeader(doc, {
@@ -105,7 +111,7 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
     empresaEmail: data.empresaEmail,
     empresaLogomarcaUrl: data.empresaLogomarcaUrl,
     tituloDocumento: "CONTRATO DE LOCAÇÃO RESIDENCIAL",
-    subtituloDocumento: `Vigência: ${data.validadeMeses} Meses`,
+    subtituloDocumento: `Vigência: ${duracaoLabel}`,
     variant: "white",
   });
 
@@ -126,7 +132,7 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
   doc.text(`• LOCADOR: ${data.empresaNome} (CNPJ: ${data.empresaCnpj})`, 18, 66);
   doc.text(`• LOCATÁRIO: ${data.locatarioNome} (CPF: ${data.locatarioCpf}${data.locatarioRg ? ` | RG: ${data.locatarioRg}` : ""})`, 18, 72);
   doc.text(`• IMÓVEL / UNIDADE: ${data.localNome ? `${data.localNome} - ` : ""}Flat ${data.flatNumero}`, 18, 78);
-  doc.text(`• ALUGUEL MENSAL: ${formatCurrency(data.valorMensal)}   •   VIGÊNCIA: ${data.validadeMeses} Meses (${data.dataEmissao} a ${data.dataFinal})`, 18, 84);
+  doc.text(`• VALOR DO ALUGUEL: ${formatCurrency(data.valorMensal)}   •   VIGÊNCIA: ${duracaoLabel} (${data.dataEmissao} a ${data.dataFinal})`, 18, 84);
 
   // 3. Cláusulas e Termos do Contrato com Formatação Estruturada
   let y = 98;

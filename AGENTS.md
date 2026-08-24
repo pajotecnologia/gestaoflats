@@ -49,9 +49,10 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - **Locatário**: `nome`, `cpf`, `rg`, `dataNascimento`, `email`, `telefone`, `endereco`.
   - **Contrato**: `id`, `valorMensal` (R$), `valorExtenso` (por extenso em BRL via `numberToWordsBRL`), `validadeMeses`, `dataEmissao`, `dataFinal`, `status`, `statusAssinatura`, `dataAssinatura`, `ipAssinatura`.
   - **Imóvel / Flat**: `numero`, `status`, `descricao`, `valorPadrao`, `local.nome` (condomínio), `local.endereco`.
-- **Restrição de Emissão de Contratos Apenas para Imóveis DISPONÍVEIS**:
-  - Apenas flats com o status **`DISPONIVEL`** podem ser selecionados para a emissão de novos contratos.
-  - Tanto no frontend (`src/app/contratos/page.tsx`) quanto no backend (`POST /api/contratos`), caso um imóvel com status `OCUPADO` ou `MANUTENCAO` seja selecionado, a emissão é bloqueada e uma caixa de alerta em formato de caixa explicativa é apresentada ao usuário.
+- **Opção de Vigência do Contrato (Meses ou Dias)**:
+  - Na emissão de contratos (`src/app/contratos/page.tsx` e `POST /api/contratos`), o usuário pode selecionar o `tipoValidade` entre **`MESES`** (padrão) e **`DIAS`** (para locações por temporada/diárias).
+  - Quando a opção **`DIAS`** for selecionada, o prazo final (`dataFinal`) é calculated somando o número de dias à `dataEmissao` (`setDate`), e é gerada 1 única parcela no Contas a Receber com o valor total do período.
+  - As variáveis de substituição de modelo (`replaceContractVariables`) disponibilizam `{{duracao}}`, `{{vigencia}}` e `{{validade_dias}}` exibindo dinamicamente a duração formatada (ex: `15 dias` ou `12 meses`).
 
 ---
 

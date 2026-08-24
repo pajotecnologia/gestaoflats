@@ -41,6 +41,9 @@ export interface GridMesesProps {
   flatId?: string;
   tokenAssinatura?: string | null;
   statusAssinatura?: string | null;
+  tipoValidade?: string | null;
+  validadeMeses?: number | null;
+  validadeDias?: number | null;
   locatarioId?: string;
   locatarioNome: string;
   locatarioCpf: string;
@@ -65,6 +68,9 @@ export default function GridMeses({
   flatId,
   tokenAssinatura,
   statusAssinatura = "PENDENTE",
+  tipoValidade = "MESES",
+  validadeMeses,
+  validadeDias,
   locatarioId,
   locatarioNome,
   locatarioCpf,
@@ -365,8 +371,11 @@ export default function GridMeses({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              CPF: {locatarioCpf} • {flatNumero}
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              CPF: {locatarioCpf} • {flatNumero} •{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {tipoValidade === "DIAS" ? `☀️ ${validadeDias || validadeMeses} dias (Temporada)` : `📅 ${validadeMeses || 12} meses`}
+              </span>
             </p>
           </div>
         </div>

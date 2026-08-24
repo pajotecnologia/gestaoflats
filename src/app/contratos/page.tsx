@@ -20,7 +20,8 @@ export default function ContratosPage() {
   const [flatId, setFlatId] = useState("");
   const [modeloContratoId, setModeloContratoId] = useState("");
   const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split("T")[0]);
-  const [validadeMeses, setValidadeMeses] = useState("12");
+  const [tipoValidade, setTipoValidade] = useState<"MESES" | "DIAS">("MESES");
+  const [validadeValor, setValidadeValor] = useState("12");
   const [valorMensal, setValorMensal] = useState("");
 
   // Fotos Anexadas do Flat
@@ -110,7 +111,9 @@ export default function ContratosPage() {
           flatId,
           modeloContratoId,
           dataEmissao,
-          validadeMeses,
+          tipoValidade,
+          validadeValor,
+          validadeMeses: validadeValor,
           valorMensal,
           fotosAnexadasUrl: JSON.stringify(selectedFotosToAttach),
         }),
@@ -181,6 +184,9 @@ export default function ContratosPage() {
                 flatId={contrato.flatId}
                 tokenAssinatura={contrato.tokenAssinatura}
                 statusAssinatura={contrato.statusAssinatura}
+                tipoValidade={contrato.tipoValidade}
+                validadeMeses={contrato.validadeMeses}
+                validadeDias={contrato.validadeDias}
                 locatarioId={contrato.locatarioId}
                 locatarioNome={contrato.locatario.nome}
                 locatarioCpf={contrato.locatario.cpf}
@@ -314,7 +320,7 @@ export default function ContratosPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Data de Emissão
@@ -330,22 +336,44 @@ export default function ContratosPage() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Vigência (Meses)
+                      Tipo de Vigência
+                    </label>
+                    <select
+                      value={tipoValidade}
+                      onChange={(e) => {
+                        const nextType = e.target.value as "MESES" | "DIAS";
+                        setTipoValidade(nextType);
+                        if (nextType === "DIAS" && parseInt(validadeValor, 10) > 365) {
+                          setValidadeValor("30");
+                        } else if (nextType === "MESES" && parseInt(validadeValor, 10) > 48) {
+                          setValidadeValor("12");
+                        }
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="MESES">📅 Meses</option>
+                      <option value="DIAS">☀️ Dias (Diárias / Temporada)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {tipoValidade === "MESES" ? "Prazo (Meses)" : "Prazo (Dias)"}
                     </label>
                     <input
                       type="number"
                       min="1"
-                      max="48"
+                      max={tipoValidade === "MESES" ? "48" : "365"}
                       required
-                      value={validadeMeses}
-                      onChange={(e) => setValidadeMeses(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                      value={validadeValor}
+                      onChange={(e) => setValidadeValor(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Valor Mensal (R$)
+                      {tipoValidade === "MESES" ? "Valor Mensal (R$)" : "Valor do Período (R$)"}
                     </label>
                     <input
                       type="number"

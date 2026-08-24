@@ -186,6 +186,10 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     ? new Date(contrato.dataAssinaturaLocatario).toLocaleDateString("pt-BR")
     : "";
 
+  const isDias = contrato.tipoValidade === "DIAS";
+  const duracaoTexto = isDias
+    ? `${contrato.validadeDias || contrato.validadeMeses} ${contrato.validadeDias === 1 ? "dia" : "dias"}`
+    : `${contrato.validadeMeses || 1} ${contrato.validadeMeses === 1 ? "mês" : "meses"}`;
   const validadeMeses = contrato.validadeMeses ? `${contrato.validadeMeses} meses` : "";
   const flatDesc = flat.numero ? (local.nome ? `${local.nome} - Flat ${flat.numero}` : `Flat ${flat.numero}`) : "";
 
@@ -196,6 +200,7 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "nome_locatario": locatario.nome || "",
     "locatario": locatario.nome || "",
     "nome": locatario.nome || "",
+    "inquilino": locatario.nome || "",
 
     "locatario.cpf": locatario.cpf || "",
     "locatario_cpf": locatario.cpf || "",
@@ -269,10 +274,18 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "valor_extenso": valorExtenso,
     "valor_mensal_extenso": `${valorFormatado} (${valorExtenso})`,
 
+    "contrato.tipoValidade": contrato.tipoValidade || "MESES",
+    "tipo_validade": contrato.tipoValidade || "MESES",
+
     "contrato.validadeMeses": validadeMeses,
     "validade_meses": validadeMeses,
-    "vigencia": validadeMeses,
-    "prazo_meses": validadeMeses,
+    "contrato.validadeDias": contrato.validadeDias ? `${contrato.validadeDias} dias` : "",
+    "validade_dias": contrato.validadeDias ? `${contrato.validadeDias} dias` : "",
+
+    "duracao": duracaoTexto,
+    "duracao_contrato": duracaoTexto,
+    "vigencia": duracaoTexto,
+    "prazo_meses": duracaoTexto,
 
     "contrato.dataEmissao": dataEmissaoFormatada,
     "data_emissao": dataEmissaoFormatada,

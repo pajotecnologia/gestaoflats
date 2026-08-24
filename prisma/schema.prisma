@@ -162,7 +162,9 @@ model Contrato {
   modeloContratoId        String?
   modeloContrato          ModeloContrato? @relation(fields: [modeloContratoId], references: [id], onDelete: SetNull)
   dataEmissao             DateTime
+  tipoValidade            String          @default("MESES") // MESES, DIAS
   validadeMeses           Int
+  validadeDias            Int?
   dataFinal               DateTime
   valorMensal             Float
   status                  String          @default("ATIVO") // ATIVO, FINALIZADO, CANCELADO

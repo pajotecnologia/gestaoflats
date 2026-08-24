@@ -44,17 +44,27 @@ export async function POST(request: NextRequest) {
       flatId,
       modeloContratoId,
       dataEmissao,
-      validadeMeses,
+      tipoValidade = "MESES",
+      validadeValor,
+      validadeMeses = "12",
       valorMensal,
       fotosAnexadasUrl,
     } = await request.json();
 
     const dtEmissao = new Date(dataEmissao);
-    const mesesInt = parseInt(validadeMeses, 10);
     const vlrMensalNum = parseFloat(valorMensal);
+    const isDias = tipoValidade === "DIAS";
+    const duracaoValor = parseInt(validadeValor || validadeMeses || (isDias ? "30" : "12"), 10);
+
+    const mesesInt = isDias ? Math.max(1, Math.ceil(duracaoValor / 30)) : duracaoValor;
+    const diasInt: number | null = isDias ? duracaoValor : null;
 
     const dtFinal = new Date(dtEmissao);
-    dtFinal.setMonth(dtFinal.getMonth() + mesesInt);
+    if (isDias) {
+      dtFinal.setDate(dtFinal.getDate() + duracaoValor);
+    } else {
+      dtFinal.setMonth(dtFinal.getMonth() + duracaoValor);
+    }
 
     const flatObj = await prisma.flat.findUnique({
       where: { id: flatId },
@@ -81,7 +91,9 @@ export async function POST(request: NextRequest) {
         flatId,
         modeloContratoId: modeloContratoId || null,
         dataEmissao: dtEmissao,
+        tipoValidade: isDias ? "DIAS" : "MESES",
         validadeMeses: mesesInt,
+        validadeDias: diasInt,
         dataFinal: dtFinal,
         valorMensal: vlrMensalNum,
         fotosAnexadasUrl: fotosAnexadasUrl || null,
@@ -99,22 +111,37 @@ export async function POST(request: NextRequest) {
 
     // Gerar parcelas no Contas a Receber
     const parcelasData = [];
-    for (let i = 1; i <= mesesInt; i++) {
-      const vencimento = new Date(dtEmissao);
-      vencimento.setMonth(vencimento.getMonth() + (i - 1));
-
-      const mesRef = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, "0")}`;
-
+    if (isDias) {
+      const mesRef = `${dtEmissao.getFullYear()}-${String(dtEmissao.getMonth() + 1).padStart(2, "0")}`;
       parcelasData.push({
         empresaId: session.empresaId,
         contratoId: newContrato.id,
         locatarioId,
         mesReferencia: mesRef,
-        numeroParcela: i,
+        numeroParcela: 1,
         valor: vlrMensalNum,
-        dataVencimento: vencimento,
+        dataVencimento: dtEmissao,
         status: "PENDENTE",
+        observacao: `Locação por temporada/diária (${duracaoValor} dias)`,
       });
+    } else {
+      for (let i = 1; i <= duracaoValor; i++) {
+        const vencimento = new Date(dtEmissao);
+        vencimento.setMonth(vencimento.getMonth() + (i - 1));
+
+        const mesRef = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, "0")}`;
+
+        parcelasData.push({
+          empresaId: session.empresaId,
+          contratoId: newContrato.id,
+          locatarioId,
+          mesReferencia: mesRef,
+          numeroParcela: i,
+          valor: vlrMensalNum,
+          dataVencimento: vencimento,
+          status: "PENDENTE",
+        });
+      }
     }
 
     await prisma.contaReceber.createMany({
