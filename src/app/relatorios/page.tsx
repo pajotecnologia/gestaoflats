@@ -354,6 +354,7 @@ function RelatoriosContent() {
         totalSaidas: d.totalSaidas,
         saldoDia: d.saldoDia,
         saldoAcumulado: d.saldoAcumulado,
+        detalhes: d.detalhes || [],
       })),
     });
   };

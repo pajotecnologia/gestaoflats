@@ -313,12 +313,20 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
   doc.save(`Relatorio_Contas_a_Pagar_${data.dataInicio}_a_${data.dataFim}.pdf`);
 }
 
+export interface ReportItemFluxoDetalhe {
+  tipo: "ENTRADA" | "SAIDA";
+  descricao: string;
+  referencia: string;
+  valor: number;
+}
+
 export interface ReportItemFluxoDiario {
   data: string; // DD/MM/AAAA
   totalEntradas: number;
   totalSaidas: number;
   saldoDia: number;
   saldoAcumulado: number;
+  detalhes?: ReportItemFluxoDetalhe[];
 }
 
 export interface FluxoCaixaReportData {
@@ -342,7 +350,7 @@ export interface FluxoCaixaReportData {
 export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
   const doc = new jsPDF();
 
-  // 1. Cabeçalho Padronizado
+  // 1. Cabeçalho Padronizado (Com Fundo Branco)
   drawStandardPDFHeader(doc, {
     empresaNome: data.empresaNome,
     empresaCnpj: data.empresaCnpj,
@@ -352,6 +360,7 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
     empresaLogomarcaUrl: data.empresaLogomarcaUrl,
     tituloDocumento: "RELATÓRIO FINANCEIRO - FLUXO DE CAIXA DIÁRIO",
     subtituloDocumento: `Período: ${data.dataInicio} a ${data.dataFim} ${data.filtrosTexto ? "(" + data.filtrosTexto + ")" : ""}`,
+    variant: "white",
   });
 
   let y = 58;
@@ -364,16 +373,16 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
 
-  // Entradas
+  // Entradas (Crédito)
   doc.setTextColor(16, 185, 129);
-  doc.text("TOTAL ENTRADAS:", 18, y + 6);
+  doc.text("TOTAL ENTRADAS (CRÉDITO):", 18, y + 6);
   doc.setFontSize(9);
   doc.text(`R$ ${data.totais.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 18, y + 12);
 
-  // Saídas
+  // Saídas (Débito)
   doc.setFontSize(8);
   doc.setTextColor(239, 68, 68);
-  doc.text("TOTAL SAÍDAS:", 80, y + 6);
+  doc.text("TOTAL SAÍDAS (DÉBITO):", 80, y + 6);
   doc.setFontSize(9);
   doc.text(`R$ ${data.totais.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 80, y + 12);
 
@@ -394,71 +403,121 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(255, 255, 255);
-  doc.text("DATA DO FLUXO", 18, y + 4.8);
-  doc.text("ENTRADAS (R$)", 65, y + 4.8);
-  doc.text("SAÍDAS (R$)", 105, y + 4.8);
-  doc.text("SALDO DO DIA (R$)", 140, y + 4.8);
-  doc.text("SALDO ACUMULADO (R$)", 172, y + 4.8);
+  doc.text("DATA DO FLUXO / LANÇAMENTO", 18, y + 4.8);
+  doc.text("ORIGEM / VÍNCULO", 90, y + 4.8);
+  doc.text("CRÉDITO (R$)", 140, y + 4.8);
+  doc.text("DÉBITO (R$)", 168, y + 4.8);
 
   y += 7;
 
-  // Linhas da Tabela
-  data.itens.forEach((item, index) => {
-    if (y > 265) {
+  // Renderizar Dias e Lançamentos Detalhados
+  data.itens.forEach((item) => {
+    // Checar quebra de página para o bloco do dia
+    if (y > 255) {
       doc.addPage();
       y = 15;
 
-      // Redesenha cabeçalho da tabela na nova página
+      // Re-desenhar cabeçalho da tabela
       doc.setFillColor(30, 58, 138);
       doc.rect(14, y, 182, 7, "F");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       doc.setTextColor(255, 255, 255);
-      doc.text("DATA DO FLUXO", 18, y + 4.8);
-      doc.text("ENTRADAS (R$)", 65, y + 4.8);
-      doc.text("SAÍDAS (R$)", 105, y + 4.8);
-      doc.text("SALDO DO DIA (R$)", 140, y + 4.8);
-      doc.text("SALDO ACUMULADO (R$)", 172, y + 4.8);
+      doc.text("DATA DO FLUXO / LANÇAMENTO", 18, y + 4.8);
+      doc.text("ORIGEM / VÍNCULO", 90, y + 4.8);
+      doc.text("CRÉDITO (R$)", 140, y + 4.8);
+      doc.text("DÉBITO (R$)", 168, y + 4.8);
       y += 7;
     }
 
-    if (index % 2 === 1) {
-      doc.setFillColor(249, 250, 251);
-      doc.rect(14, y, 182, 6.5, "F");
-    }
+    // Cabecalho do Dia
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y, 182, 6.5, "F");
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, y, 182, 6.5, "S");
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(31, 41, 55);
-
-    doc.text(item.data, 18, y + 4.5);
-
-    // Entradas
-    doc.setTextColor(16, 185, 129);
-    doc.text(item.totalEntradas > 0 ? `+ ${item.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-", 65, y + 4.5);
-
-    // Saídas
-    doc.setTextColor(239, 68, 68);
-    doc.text(item.totalSaidas > 0 ? `- ${item.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-", 105, y + 4.5);
-
-    // Saldo do dia
-    if (item.saldoDia >= 0) {
-      doc.setTextColor(16, 185, 129);
-    } else {
-      doc.setTextColor(239, 68, 68);
-    }
-    doc.text(item.saldoDia.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 140, y + 4.5);
-
-    // Saldo Acumulado
-    if (item.saldoAcumulado >= 0) {
-      doc.setTextColor(30, 58, 138);
-    } else {
-      doc.setTextColor(239, 68, 68);
-    }
     doc.setFont("helvetica", "bold");
-    doc.text(item.saldoAcumulado.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 172, y + 4.5);
+    doc.setFontSize(8);
+    doc.setTextColor(30, 58, 138);
+    doc.text(`📅  ${item.data}`, 18, y + 4.5);
+
+    // Entradas do Dia
+    doc.setTextColor(16, 185, 129);
+    doc.text(item.totalEntradas > 0 ? `+ R$ ${item.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-", 140, y + 4.5);
+
+    // Saídas do Dia
+    doc.setTextColor(239, 68, 68);
+    doc.text(item.totalSaidas > 0 ? `- R$ ${item.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-", 168, y + 4.5);
 
     y += 6.5;
+
+    // Lançamentos Detalhados do Dia (Créditos e Débitos)
+    if (item.detalhes && item.detalhes.length > 0) {
+      item.detalhes.forEach((det, dIdx) => {
+        if (y > 265) {
+          doc.addPage();
+          y = 15;
+          doc.setFillColor(30, 58, 138);
+          doc.rect(14, y, 182, 7, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text("DATA DO FLUXO / LANÇAMENTO", 18, y + 4.8);
+          doc.text("ORIGEM / VÍNCULO", 90, y + 4.8);
+          doc.text("CRÉDITO (R$)", 140, y + 4.8);
+          doc.text("DÉBITO (R$)", 168, y + 4.8);
+          y += 7;
+        }
+
+        if (dIdx % 2 === 1) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(14, y, 182, 6, "F");
+        }
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+
+        // Indicador de Crédito (+) ou Débito (-)
+        const isEntrada = det.tipo === "ENTRADA";
+        if (isEntrada) {
+          doc.setTextColor(16, 185, 129);
+        } else {
+          doc.setTextColor(239, 68, 68);
+        }
+
+        const badgeTipo = isEntrada ? "[CRÉDITO]" : "[DÉBITO]";
+        doc.setFont("helvetica", "bold");
+        doc.text(badgeTipo, 22, y + 4.2);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(31, 41, 55);
+
+        const descText = det.descricao.length > 36 ? det.descricao.substring(0, 34) + ".." : det.descricao;
+        const refText = det.referencia.length > 28 ? det.referencia.substring(0, 26) + ".." : det.referencia;
+
+        doc.text(descText, 40, y + 4.2);
+        doc.text(refText, 90, y + 4.2);
+
+        if (isEntrada) {
+          doc.setTextColor(16, 185, 129);
+          doc.setFont("helvetica", "bold");
+          doc.text(det.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 140, y + 4.2);
+        } else {
+          doc.setTextColor(239, 68, 68);
+          doc.setFont("helvetica", "bold");
+          doc.text(det.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 168, y + 4.2);
+        }
+
+        y += 6;
+      });
+    }
+
+    // Linha de Saldo Acumulado ao final do dia
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Saldo do Dia: R$ ${item.saldoDia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}   |   Saldo Acumulado: R$ ${item.saldoAcumulado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 22, y + 3.5);
+    y += 5.5;
   });
 
   // Rodapé do Desenvolvedor
