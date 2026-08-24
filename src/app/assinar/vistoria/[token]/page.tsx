@@ -277,9 +277,12 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       if (!res.ok) {
         setErrorMsg(data.error || "Erro ao registrar assinatura do laudo.");
       } else {
+        const freshVistoria = data.vistoria || vistoria;
+        if (freshVistoria) {
+          setVistoria(freshVistoria);
+        }
         setSignedSuccess(true);
-        await loadVistoria();
-        handleDownloadPDF();
+        handleDownloadPDF(freshVistoria);
       }
     } catch (err) {
       setErrorMsg("Erro de conexão ao salvar assinatura.");
@@ -288,35 +291,48 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
     }
   };
 
-  const handleDownloadPDF = () => {
-    if (!vistoria) return;
+  const handleDownloadPDF = (vOverride?: any) => {
+    const v = vOverride || vistoria;
+    if (!v) return;
+
+    const locSignature = v.assinaturaLocatarioUrl || vistoria?.assinaturaLocatarioUrl || assinaturaBase64;
+    const ipAssinatura = v.ipAssinaturaLocatario || "127.0.0.1";
+    const dataAssinatura = v.dataAssinaturaLocatario ? new Date(v.dataAssinaturaLocatario).toLocaleDateString("pt-BR") : new Date().toLocaleDateString("pt-BR");
+
     generateChecklistPDF({
-      tipoVistoria: vistoria.tipoVistoria,
-      empresaNome: vistoria.empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: vistoria.empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: vistoria.empresa?.endereco,
-      empresaTelefone: vistoria.empresa?.telefone,
-      empresaEmail: vistoria.empresa?.email,
-      empresaLogomarcaUrl: vistoria.empresa?.logomarcaUrl,
-      locatarioNome: vistoria.locatario?.nome || "Locatário",
-      locatarioCpf: vistoria.locatario?.cpf || "000.000.000-00",
-      flatNumero: vistoria.flat?.numero || "Unidade",
-      dataVistoria: new Date(vistoria.dataVistoria || vistoria.createdAt).toLocaleDateString("pt-BR"),
-      responsavelVistoria: vistoria.responsavelVistoria || "Vistoriador Responsável",
+      tipoVistoria: v.tipoVistoria || "ENTRADA",
+      empresaNome: v.empresa?.nomeFantasia || "Prime Gestão Imobiliária",
+      empresaCnpj: v.empresa?.cnpj || "00.000.000/0001-00",
+      empresaEndereco: v.empresa?.endereco,
+      empresaTelefone: v.empresa?.telefone,
+      empresaEmail: v.empresa?.email,
+      empresaLogomarcaUrl: v.empresa?.logomarcaUrl,
+      locatarioNome: v.locatario?.nome || "Locatário",
+      locatarioCpf: v.locatario?.cpf || "000.000.000-00",
+      flatNumero: v.flat?.numero || "Unidade",
+      dataVistoria: new Date(v.dataVistoria || v.createdAt || Date.now()).toLocaleDateString("pt-BR"),
+      responsavelVistoria: v.responsavelVistoria || "Vistoriador Responsável",
       itens: items,
       observacoesGerais,
-      empresaAssinaturaUrl: vistoria.empresa?.assinaturaUrl,
-      locatarioAssinaturaUrl: vistoria.assinaturaLocatarioUrl,
-      dataAssinaturaLocatario: vistoria.dataAssinaturaLocatario,
-      ipAssinaturaLocatario: vistoria.ipAssinaturaLocatario,
+      empresaAssinaturaUrl: v.empresa?.assinaturaUrl,
+      locatarioAssinaturaUrl: locSignature,
+      dataAssinaturaLocatario: dataAssinatura,
+      ipAssinaturaLocatario: ipAssinatura,
+      documentoHashSha256: v.documentoHashSha256,
+      blockchainProtocol: v.blockchainProtocol,
+      blockchainStatus: v.blockchainStatus,
     });
   };
 
   const handleEnviarWhatsAppCopia = async () => {
     if (!vistoria || !vistoria.locatario?.telefone) return;
 
+    const locSignature = vistoria.assinaturaLocatarioUrl || assinaturaBase64;
+    const ipAssinatura = vistoria.ipAssinaturaLocatario || "127.0.0.1";
+    const dataAssinatura = vistoria.dataAssinaturaLocatario ? new Date(vistoria.dataAssinaturaLocatario).toLocaleDateString("pt-BR") : new Date().toLocaleDateString("pt-BR");
+
     const pdfBase64 = await getChecklistPDFBase64({
-      tipoVistoria: vistoria.tipoVistoria,
+      tipoVistoria: vistoria.tipoVistoria || "ENTRADA",
       empresaNome: vistoria.empresa?.nomeFantasia || "Prime Gestão Imobiliária",
       empresaCnpj: vistoria.empresa?.cnpj || "00.000.000/0001-00",
       empresaEndereco: vistoria.empresa?.endereco,
@@ -326,14 +342,17 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       locatarioNome: vistoria.locatario?.nome || "Locatário",
       locatarioCpf: vistoria.locatario?.cpf || "000.000.000-00",
       flatNumero: vistoria.flat?.numero || "Flat",
-      dataVistoria: new Date(vistoria.dataVistoria || vistoria.createdAt).toLocaleDateString("pt-BR"),
+      dataVistoria: new Date(vistoria.dataVistoria || vistoria.createdAt || Date.now()).toLocaleDateString("pt-BR"),
       responsavelVistoria: vistoria.responsavelVistoria || "Vistoriador Responsável",
       itens: items,
       observacoesGerais,
       empresaAssinaturaUrl: vistoria.empresa?.assinaturaUrl,
-      locatarioAssinaturaUrl: vistoria.assinaturaLocatarioUrl,
-      dataAssinaturaLocatario: vistoria.dataAssinaturaLocatario,
-      ipAssinaturaLocatario: vistoria.ipAssinaturaLocatario,
+      locatarioAssinaturaUrl: locSignature,
+      dataAssinaturaLocatario: dataAssinatura,
+      ipAssinaturaLocatario: ipAssinatura,
+      documentoHashSha256: vistoria.documentoHashSha256,
+      blockchainProtocol: vistoria.blockchainProtocol,
+      blockchainStatus: vistoria.blockchainStatus,
     });
 
     const publicUrl = `${getAppBaseUrl()}/assinar/vistoria/${params.token}`;

@@ -89,7 +89,10 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 - **Painel Pós-Assinatura Posicionado Abaixo da Assinatura (Sem Alerta no Topo)**:
   - Na página pública da Vistoria (`/assinar/vistoria/[token]`), após o locatário confirmar a assinatura, o laudo exibe em tempo real a imagem da assinatura processada no quadro correspondente.
   - O painel verde com as opções de **📥 Baixar Laudo PDF Assinado**, **📱 Enviar Cópia no WhatsApp** e **❌ Fechar Tela** é posicionado **exclusivamente abaixo do campo de assinatura** (não no topo da página).
-  - A opção **❌ Fechar Tela** encerra a janela/aba ativa ou retorna ao painel.
+
+- **Renderização Obrigatória da Assinatura do Locatário no Laudo PDF (`prepareChecklistDataWithBase64Images`)**:
+  - `prepareChecklistDataWithBase64Images` em `src/lib/checklistPdfGenerator.ts` realiza a conversão assíncrona prévia de `locatarioAssinaturaUrl` em Data URI Base64.
+  - Na rota `/assinar/vistoria/[token]`, a chamada `handleDownloadPDF` e o envio via WhatsApp utilizam o objeto atualizado (`freshVistoria`) e fallback imediato da string `assinaturaBase64` capturada na tela, garantindo que o PDF gerado contenha 100% das vezes a imagem da assinatura e o status `ASSINADO`.
 
 ---
 

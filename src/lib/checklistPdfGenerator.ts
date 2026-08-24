@@ -365,12 +365,16 @@ export async function convertUrlToBase64(url: string): Promise<string> {
 export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFData): Promise<ChecklistPDFData> {
   let logoUrl = data.empresaLogomarcaUrl;
   let assUrl = data.empresaAssinaturaUrl;
+  let locAssUrl = data.locatarioAssinaturaUrl;
 
   if (logoUrl && !logoUrl.startsWith("data:image")) {
     logoUrl = await convertUrlToBase64(logoUrl);
   }
   if (assUrl && !assUrl.startsWith("data:image")) {
     assUrl = await convertUrlToBase64(assUrl);
+  }
+  if (locAssUrl && !locAssUrl.startsWith("data:image")) {
+    locAssUrl = await convertUrlToBase64(locAssUrl);
   }
 
   const updatedItens = await Promise.all(
@@ -387,6 +391,7 @@ export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFDat
     ...data,
     empresaLogomarcaUrl: logoUrl,
     empresaAssinaturaUrl: assUrl,
+    locatarioAssinaturaUrl: locAssUrl,
     itens: updatedItens,
   };
 }

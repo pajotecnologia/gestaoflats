@@ -294,9 +294,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Busca a vistoria atualizada completa com as relações (empresa, locatario, flat)
+    const vistoriaFinal = await prisma.vistoriaChecklist.findUnique({
+      where: { id: vistoria.id },
+      include: { empresa: true, locatario: true, flat: true },
+    });
+
     return NextResponse.json({
       success: true,
-      vistoria,
+      vistoria: vistoriaFinal || vistoria,
       tokenAssinatura: vistoria.tokenAssinatura,
       documentoHashSha256: vistoria.documentoHashSha256,
     });
