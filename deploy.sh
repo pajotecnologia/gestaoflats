@@ -17,6 +17,10 @@ echo "🗄️ [3/5] Sincronizando banco de dados SQLite..."
 npx prisma db push
 npx prisma generate
 
+# Permissão total no banco SQLite para o usuário www do aaPanel conseguir salvar dados
+chmod -R 777 prisma 2>/dev/null || true
+chmod 666 prisma/dev.db 2>/dev/null || true
+
 echo "📁 [4/5] Configurando permissões de uploads e links..."
 # Remove trava do aaPanel caso exista
 chattr -i .user.ini 2>/dev/null || true
