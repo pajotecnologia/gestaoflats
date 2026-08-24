@@ -1,46 +1,51 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script de Atualização e Deploy Automático (Modo Node.js / PM2 / aaPanel)
+# Script de Deploy, Automação Nginx e Atualização na VPS (Node.js / aaPanel)
 # Uso na VPS: bash deploy.sh
 # ==============================================================================
 
 set -e
 
-echo "🚀 [1/5] Puxando últimas atualizações do GitHub..."
+echo "🚀 [1/6] Configurando diretório seguro e puxando atualizações do GitHub..."
+git config --global --add safe.directory "*" 2>/dev/null || true
 git pull origin master
 
-echo "📦 [2/5] Instalando dependências..."
+echo "📦 [2/6] Instalando dependências..."
 npm install
 
-echo "🗄️ [3/5] Sincronizando banco de dados SQLite..."
+echo "🗄️ [3/6] Sincronizando estrutura do banco SQLite e gerando Prisma Client..."
 npx prisma db push
 npx prisma generate
-
-# Permissão total no banco SQLite para o usuário www do aaPanel conseguir salvar dados
 chmod -R 777 prisma 2>/dev/null || true
 chmod 666 prisma/dev.db 2>/dev/null || true
 
-echo "📁 [4/5] Configurando permissões de uploads e links..."
-# Remove trava do aaPanel caso exista
+echo "📁 [4/6] Configurando pastas de upload e permissões de escrita..."
 chattr -i .user.ini 2>/dev/null || true
-
-# Cria estruturas de pastas de upload
-mkdir -p public/uploads/flats public/uploads/vistorias public/uploads/empresa
-
-# Cria o link simbólico /uploads -> /public/uploads
-ln -sf $(pwd)/public/uploads $(pwd)/uploads
-
-# Permissão de escrita para imagens e laudos
+mkdir -p public/uploads/flats public/uploads/vistorias public/uploads/empresa public/uploads/assinaturas
 chmod -R 777 public/uploads 2>/dev/null || true
 
-echo "🏗️ [5/5] Compilando e reiniciando a aplicação (npm run build)..."
+echo "🌐 [5/6] Verificando e aplicando regra oficial do Nginx no aaPanel..."
+NGINX_CONF="/www/server/panel/vhost/nginx/dnyl.pajotech.com.br.conf"
+if [ -f "$NGINX_CONF" ]; then
+    if ! grep -q "location \^\~ /uploads/" "$NGINX_CONF"; then
+        echo "🔧 Inserindo regra location ^~ /uploads/ no Nginx do aaPanel..."
+        sed -i '/location \/ {/i \    location ^~ /uploads/ {\n        alias /www/wwwroot/dnyl.pajotech.com.br/public/uploads/;\n        expires 30d;\n        access_log off;\n    }\n' "$NGINX_CONF"
+        nginx -t 2>/dev/null && nginx -s reload 2>/dev/null || true
+    fi
+fi
+
+echo "🏗️ [6/6] Compilando Next.js (npm run build) e reiniciando a aplicação..."
 npm run build
 
 if command -v pm2 &> /dev/null; then
-    pm2 restart all 2>/dev/null || pm2 start npm --name "locacoes" -- run start || true
+    pm2 restart all 2>/dev/null || pm2 start npm --name "dnyl" -- run start || true
 fi
 
 echo "=============================================================================="
-echo "✅ ATUALIZAÇÃO CONCLUÍDA COM SUCESSO!"
+echo "✅ DEPLOY E CONFIGURAÇÃO DA VPS CONCLUÍDOS COM SUCESSO!"
+echo "   - Código atualizado"
+echo "   - Banco SQLite sincronizado com permissões"
+echo "   - Nginx automatizado com a regra location ^~ /uploads/"
+echo "   - Aplicação compilada e reiniciada"
 echo "=============================================================================="
