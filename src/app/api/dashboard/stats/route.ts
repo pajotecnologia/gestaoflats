@@ -30,47 +30,84 @@ export async function GET() {
 
   const taxaOcupacao = totalFlats > 0 ? Math.round((flatsOcupados / totalFlats) * 100) : 0;
 
-  // 3. Receitas e Despesas do Mês Atual
-  const contasReceberMes = await prisma.contaReceber.findMany({
-    where: {
-      empresaId,
-      dataVencimento: { gte: primeiroDiaMes, lte: ultimoDiaMes },
-    },
-  });
-
-  const contasPagarMes = await prisma.contaPagar.findMany({
-    where: {
-      empresaId,
-      dataVencimento: { gte: primeiroDiaMes, lte: ultimoDiaMes },
-    },
-  });
-
-  const totalReceberMes = contasReceberMes.reduce((acc, item) => acc + item.valor, 0);
-  const totalRecebidoMes = contasReceberMes
-    .filter((item) => item.status === "PAGO")
-    .reduce((acc, item) => acc + (item.valorPago || item.valor), 0);
-
-  const totalPagarMes = contasPagarMes.reduce((acc, item) => acc + item.valor, 0);
-  const totalPagoMes = contasPagarMes
-    .filter((item) => item.status === "PAGO")
-    .reduce((acc, item) => acc + item.valor, 0);
-
-  const saldoOperacionalLiquido = totalRecebidoMes - totalPagoMes;
-
-  // 4. Alertas Rápidos: Inadimplências em Aberto
-  const inadimplencias = await prisma.contaReceber.findMany({
-    where: {
-      empresaId,
-      status: "ATRASADO",
-    },
+  // 3. CONTAS A RECEBER (Análise Abrangente)
+  const todasContasReceber = await prisma.contaReceber.findMany({
+    where: { empresaId },
     include: {
       locatario: true,
       contrato: { include: { flat: true } },
     },
-    orderBy: { dataVencimento: "asc" },
   });
 
-  // 5. Alertas Rápidos: Contratos Vencendo em até 30 Dias
+  let totalReceberMes = 0;
+  let totalRecebidoMes = 0;
+  let totalEmAbertoReceber = 0;
+
+  todasContasReceber.forEach((c) => {
+    const isPago = c.status === "PAGO";
+    const dtVenc = new Date(c.dataVencimento);
+    const dtPagto = c.dataPagamento ? new Date(c.dataPagamento) : null;
+    const isVencNoMes = dtVenc >= primeiroDiaMes && dtVenc <= ultimoDiaMes;
+    const isPagtoNoMes = dtPagto && dtPagto >= primeiroDiaMes && dtPagto <= ultimoDiaMes;
+
+    if (isVencNoMes) {
+      totalReceberMes += c.valor;
+    }
+
+    if (isPago && (isPagtoNoMes || isVencNoMes)) {
+      totalRecebidoMes += (c.valorPago || c.valor);
+    }
+
+    if (!isPago && (c.status === "PENDENTE" || c.status === "ATRASADO" || dtVenc <= ultimoDiaMes)) {
+      if (dtVenc <= ultimoDiaMes) {
+        totalEmAbertoReceber += c.valor;
+      }
+    }
+  });
+
+  // 4. CONTAS A PAGAR (Análise Abrangente)
+  const todasContasPagar = await prisma.contaPagar.findMany({
+    where: { empresaId },
+  });
+
+  let totalPagarMes = 0;
+  let totalPagoMes = 0;
+  let totalEmAbertoPagar = 0;
+
+  todasContasPagar.forEach((c) => {
+    const isPago = c.status === "PAGO";
+    const dtVenc = new Date(c.dataVencimento);
+    const dtPagto = c.dataPagamento ? new Date(c.dataPagamento) : null;
+    const isVencNoMes = dtVenc >= primeiroDiaMes && dtVenc <= ultimoDiaMes;
+    const isPagtoNoMes = dtPagto && dtPagto >= primeiroDiaMes && dtPagto <= ultimoDiaMes;
+
+    if (isVencNoMes) {
+      totalPagarMes += c.valor;
+    }
+
+    if (isPago && (isPagtoNoMes || isVencNoMes)) {
+      totalPagoMes += c.valor;
+    }
+
+    if (!isPago && (c.status === "PENDENTE" || c.status === "ATRASADO" || dtVenc <= ultimoDiaMes)) {
+      if (dtVenc <= ultimoDiaMes) {
+        totalEmAbertoPagar += c.valor;
+      }
+    }
+  });
+
+  const saldoOperacionalLiquido = totalRecebidoMes - totalPagoMes;
+
+  // 5. Alertas Rápidos: Inadimplências em Aberto (status = ATRASADO OU Vencimento < Hoje e não PAGO)
+  const inadimplencias = todasContasReceber
+    .filter((c) => {
+      if (c.status === "PAGO") return false;
+      const dtVenc = new Date(c.dataVencimento);
+      return c.status === "ATRASADO" || dtVenc < agora;
+    })
+    .sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime());
+
+  // 6. Alertas Rápidos: Contratos Vencendo em até 30 Dias
   const contratosVencendo = await prisma.contrato.findMany({
     where: {
       empresaId,
@@ -94,8 +131,10 @@ export async function GET() {
       taxaOcupacao,
       totalReceberMes,
       totalRecebidoMes,
+      totalEmAbertoReceber,
       totalPagarMes,
       totalPagoMes,
+      totalEmAbertoPagar,
       saldoOperacionalLiquido,
     },
     alertas: {

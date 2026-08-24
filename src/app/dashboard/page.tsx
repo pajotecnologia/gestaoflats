@@ -91,35 +91,35 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Card 3: Receber no Mês */}
+          {/* Card 3: Recebimentos do Mês */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-2 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">A Receber (Mês)</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Recebidos no Mês</span>
               <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400">
                 <TrendingUp className="w-4 h-4" />
               </div>
             </div>
             <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(kpis.totalReceberMes || 0)}
+              {formatCurrency(kpis.totalRecebidoMes || 0)}
             </div>
-            <p className="text-[11px] text-emerald-700 dark:text-emerald-500 font-medium">
-              Recebido: {formatCurrency(kpis.totalRecebidoMes || 0)}
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Em Aberto: <span className="font-bold text-amber-600 dark:text-amber-400">{formatCurrency(kpis.totalEmAbertoReceber || 0)}</span> (Previsto: {formatCurrency(kpis.totalReceberMes || 0)})
             </p>
           </div>
 
-          {/* Card 4: Pagar no Mês */}
+          {/* Card 4: Pagamentos do Mês */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-2 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">A Pagar (Mês)</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Pagos no Mês</span>
               <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-600/20 text-rose-600 dark:text-rose-400">
                 <DollarSign className="w-4 h-4" />
               </div>
             </div>
             <div className="text-xl font-bold text-rose-600 dark:text-rose-400">
-              {formatCurrency(kpis.totalPagarMes || 0)}
+              {formatCurrency(kpis.totalPagoMes || 0)}
             </div>
-            <p className="text-[11px] text-rose-700 dark:text-rose-500 font-medium">
-              Pago: {formatCurrency(kpis.totalPagoMes || 0)}
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Em Aberto: <span className="font-bold text-rose-600 dark:text-rose-400">{formatCurrency(kpis.totalEmAbertoPagar || 0)}</span> (Previsto: {formatCurrency(kpis.totalPagarMes || 0)})
             </p>
           </div>
 
@@ -148,7 +148,7 @@ export default function DashboardPage() {
             >
               {formatCurrency(kpis.saldoOperacionalLiquido || 0)}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-500">Entradas vs. Saídas operacionais</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Recebimentos vs. Pagamentos do mês</p>
           </div>
         </div>
 
