@@ -370,6 +370,17 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
     window.location.href = "/contratos";
   };
 
+  const handleFecharTela = () => {
+    try {
+      if (window.opener || window.history.length > 1) {
+        window.close();
+      }
+    } catch (e) {}
+    setTimeout(() => {
+      window.location.href = "/contratos";
+    }, 200);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 text-xs font-semibold text-slate-500">
@@ -425,40 +436,6 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
             </div>
           </div>
         </div>
-
-        {/* Alerta de Sucesso se Assinado */}
-        {signedSuccess && (
-          <div className="bg-emerald-600 text-white rounded-2xl p-5 shadow-xl space-y-3 animate-in fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center space-x-3">
-                <CheckCircle2 className="w-8 h-8 text-white flex-shrink-0" />
-                <div>
-                  <h3 className="text-base font-bold">Laudo de Vistoria Assinado com Sucesso!</h3>
-                  <p className="text-xs text-emerald-100">
-                    O laudo de vistoria de {vistoria.tipoVistoria} foi assinado e gravado com sucesso no banco de dados.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleDownloadPDF}
-                  className="py-2 px-3 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-xs shadow-md flex items-center space-x-1 transition"
-                >
-                  <FileDown className="w-4 h-4" />
-                  <span>Baixar PDF</span>
-                </button>
-                <button
-                  onClick={handleEnviarWhatsAppCopia}
-                  className="py-2 px-3 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-md flex items-center space-x-1 transition"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Enviar WhatsApp</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Tabela Interativa de Itens Vistoriados */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
@@ -731,14 +708,67 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
             </button>
           </form>
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center space-y-3 shadow-xl">
-            <button
-              onClick={handleVoltarPainel}
-              className="py-2.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md inline-flex items-center space-x-2 transition"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Voltar ao Sistema / Painel de Contratos</span>
-            </button>
+          <div className="bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 rounded-2xl p-6 sm:p-8 text-center space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                Laudo de Vistoria de {vistoria.tipoVistoria} Assinado e Concluído!
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                Sua assinatura foi processada e gravada com sucesso. Você pode fazer o download do documento assinado em PDF, enviar para seu WhatsApp ou fechar a tela.
+              </p>
+            </div>
+
+            {/* Exibição da Assinatura Processada */}
+            {(vistoria.assinaturaLocatarioUrl || assinaturaBase64) && (
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 inline-block space-y-1.5 shadow-sm">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Assinatura Processada do Locatário
+                </span>
+                <img
+                  src={vistoria.assinaturaLocatarioUrl || assinaturaBase64}
+                  alt="Assinatura do Locatário"
+                  className="h-16 max-w-[240px] mx-auto object-contain"
+                />
+                {vistoria.locatario?.nome && (
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    {vistoria.locatario.nome}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Painel de Ações: Download PDF, WhatsApp e Fechar Tela ABAIXO da Assinatura */}
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleDownloadPDF}
+                className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white text-xs shadow-lg flex items-center justify-center space-x-2 transition transform active:scale-95"
+              >
+                <FileDown className="w-4.5 h-4.5" />
+                <span>Baixar Laudo PDF Assinado</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleEnviarWhatsAppCopia}
+                className="py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-white text-xs shadow-lg flex items-center justify-center space-x-2 transition transform active:scale-95"
+              >
+                <Share2 className="w-4.5 h-4.5" />
+                <span>Enviar Cópia no WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFecharTela}
+                className="py-3 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shadow-lg flex items-center justify-center space-x-2 transition transform active:scale-95 border border-slate-700"
+              >
+                <X className="w-4.5 h-4.5 text-rose-400" />
+                <span>Fechar Tela</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

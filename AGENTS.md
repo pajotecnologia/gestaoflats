@@ -86,8 +86,10 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - Quando a vistoria assinada for do tipo **`SAIDA`**, o status do Flat no banco de dados é atualizado automaticamente para **`DISPONIVEL`**.
   - Quando a vistoria assinada for do tipo **`ENTRADA`**, o status do Flat no banco de dados é atualizado para **`OCUPADO`**.
 
-- **Download Automático Imediato após Assinatura (Contrato e Checklist)**:
-  - Tanto na página pública de assinatura do Contrato (`/assinar/contrato/[token]`) quanto da Vistoria (`/assinar/vistoria/[token]`), o momento exato da confirmação da assinatura dispara automaticamente o download do documento assinado em `.PDF` para o dispositivo do locatário, mantendo visível o painel verde com opções para baixar novamente, imprimir ou enviar via WhatsApp.
+- **Painel Pós-Assinatura Posicionado Abaixo da Assinatura (Sem Alerta no Topo)**:
+  - Na página pública da Vistoria (`/assinar/vistoria/[token]`), após o locatário confirmar a assinatura, o laudo exibe em tempo real a imagem da assinatura processada no quadro correspondente.
+  - O painel verde com as opções de **📥 Baixar Laudo PDF Assinado**, **📱 Enviar Cópia no WhatsApp** e **❌ Fechar Tela** é posicionado **exclusivamente abaixo do campo de assinatura** (não no topo da página).
+  - A opção **❌ Fechar Tela** encerra a janela/aba ativa ou retorna ao painel.
 
 ---
 
