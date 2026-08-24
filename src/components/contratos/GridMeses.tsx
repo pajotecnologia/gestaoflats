@@ -96,8 +96,15 @@ export default function GridMeses({
   const [loadingBaixa, setLoadingBaixa] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState("");
 
-  const vistoriaEntrada = vistoriasChecklist.find((v) => v.tipoVistoria === "ENTRADA");
-  const vistoriaSaida = vistoriasChecklist.find((v) => v.tipoVistoria === "SAIDA");
+  const vistoriasEntradaList = (vistoriasChecklist || []).filter((v: any) => v.tipoVistoria === "ENTRADA");
+  const vistoriaEntrada = vistoriasEntradaList.find((v: any) => v.statusAssinatura?.includes("ASSINADO"))
+    || vistoriasEntradaList[vistoriasEntradaList.length - 1]
+    || vistoriasEntradaList[0];
+
+  const vistoriasSaidaList = (vistoriasChecklist || []).filter((v: any) => v.tipoVistoria === "SAIDA");
+  const vistoriaSaida = vistoriasSaidaList.find((v: any) => v.statusAssinatura?.includes("ASSINADO"))
+    || vistoriasSaidaList[vistoriasSaidaList.length - 1]
+    || vistoriasSaidaList[0];
 
   const handleOpenModal = (parcela: ParcelaItem) => {
     setSelectedParcela(parcela);

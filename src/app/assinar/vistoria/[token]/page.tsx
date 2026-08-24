@@ -29,9 +29,22 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [observacoesGerais, setObservacoesGerais] = useState("");
   const [assinaturaBase64, setAssinaturaBase64] = useState("");
+  const [empresaAssinatura, setEmpresaAssinatura] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [signedSuccess, setSignedSuccess] = useState(false);
   const [uploadingItemIndex, setUploadingItemIndex] = useState<number | null>(null);
+
+  // Carregar assinatura da empresa fallback
+  useEffect(() => {
+    fetch("/api/empresa")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.empresa?.assinaturaUrl) {
+          setEmpresaAssinatura(data.empresa.assinaturaUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Estados para Câmera Ao Vivo / Webcam
   const [activeCameraItemIndex, setActiveCameraItemIndex] = useState<number | null>(null);
@@ -314,7 +327,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       responsavelVistoria: v.responsavelVistoria || "Vistoriador Responsável",
       itens: items,
       observacoesGerais,
-      empresaAssinaturaUrl: v.empresa?.assinaturaUrl,
+      empresaAssinaturaUrl: v.empresa?.assinaturaUrl || empresaAssinatura,
       locatarioAssinaturaUrl: locSignature,
       dataAssinaturaLocatario: dataAssinatura,
       ipAssinaturaLocatario: ipAssinatura,
@@ -346,7 +359,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       responsavelVistoria: vistoria.responsavelVistoria || "Vistoriador Responsável",
       itens: items,
       observacoesGerais,
-      empresaAssinaturaUrl: vistoria.empresa?.assinaturaUrl,
+      empresaAssinaturaUrl: vistoria.empresa?.assinaturaUrl || empresaAssinatura,
       locatarioAssinaturaUrl: locSignature,
       dataAssinaturaLocatario: dataAssinatura,
       ipAssinaturaLocatario: ipAssinatura,
@@ -656,9 +669,9 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
           <div className="pt-6 border-t-2 border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
             {/* ASSINATURA DA EMPRESA / VISTORIADOR */}
             <div className="flex flex-col items-center justify-end text-center space-y-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-              {vistoria.empresa?.assinaturaUrl ? (
+              {vistoria.empresa?.assinaturaUrl || empresaAssinatura ? (
                 <img
-                  src={vistoria.empresa.assinaturaUrl}
+                  src={vistoria.empresa?.assinaturaUrl || empresaAssinatura!}
                   alt="Assinatura da Empresa"
                   className="h-14 max-w-[200px] object-contain mb-1"
                 />

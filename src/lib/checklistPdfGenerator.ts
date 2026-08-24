@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { getAppBaseUrl } from "./baseUrl";
 
 export interface ChecklistItem {
   categoria: string;
@@ -340,7 +341,15 @@ export async function convertUrlToBase64(url: string): Promise<string> {
   if (!url) return "";
   if (url.startsWith("data:image")) return url;
   try {
-    const response = await fetch(url);
+    let fullUrl = url;
+    if (url.startsWith("/")) {
+      if (typeof window !== "undefined") {
+        fullUrl = window.location.origin + url;
+      } else {
+        fullUrl = `${getAppBaseUrl()}${url}`;
+      }
+    }
+    const response = await fetch(fullUrl);
     if (!response.ok) return url;
 
     if (typeof window === "undefined") {

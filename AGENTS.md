@@ -90,9 +90,11 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - Na página pública da Vistoria (`/assinar/vistoria/[token]`), após o locatário confirmar a assinatura, o laudo exibe em tempo real a imagem da assinatura processada no quadro correspondente.
   - O painel verde com as opções de **📥 Baixar Laudo PDF Assinado**, **📱 Enviar Cópia no WhatsApp** e **❌ Fechar Tela** é posicionado **exclusivamente abaixo do campo de assinatura** (não no topo da página).
 
-- **Renderização Obrigatória da Assinatura do Locatário no Laudo PDF (`prepareChecklistDataWithBase64Images`)**:
-  - `prepareChecklistDataWithBase64Images` em `src/lib/checklistPdfGenerator.ts` realiza a conversão assíncrona prévia de `locatarioAssinaturaUrl` em Data URI Base64.
-  - Na rota `/assinar/vistoria/[token]`, a chamada `handleDownloadPDF` e o envio via WhatsApp utilizam o objeto atualizado (`freshVistoria`) e fallback imediato da string `assinaturaBase64` capturada na tela, garantindo que o PDF gerado contenha 100% das vezes a imagem da assinatura e o status `ASSINADO`.
+- **Priorização de Vistoria Assinada no Grid de Contratos e APIs (`GridMeses.tsx` & `/api/assinar/vistoria`)**:
+  - Quando houver mais de um registro de vistoria para um imóvel/contrato, as consultas e listagens devem priorizar o registro com `statusAssinatura` igual/contendo `"ASSINADO"`. A busca em `GridMeses.tsx` e nas APIs ordena por `[{ statusAssinatura: "desc" }, { updatedAt: "desc" }]` para garantir que o botão do contrato exiba `✓ Ver Assinado` (em verde) e que o link público exiba o documento assinado.
+
+- **Resolução de URLs Relativas de Assinatura no PDF (`convertUrlToBase64`)**:
+  - `convertUrlToBase64` em `src/lib/checklistPdfGenerator.ts` resolve caminhos relativos de imagens (ex: `/uploads/...`) prependo `window.location.origin` no cliente e `getAppBaseUrl()` no servidor Node.js, garantindo que tanto a assinatura da empresa/vistoriador quanto a assinatura do locatário e fotos dos itens sejam sempre convertidas para Base64 e desenhadas no PDF.
 
 ---
 

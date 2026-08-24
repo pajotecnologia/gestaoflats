@@ -36,7 +36,11 @@ export async function GET(request: NextRequest) {
           include: { local: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { statusAssinatura: "desc" },
+        { updatedAt: "desc" },
+        { createdAt: "desc" },
+      ],
     });
 
     return NextResponse.json({ vistoria });
@@ -87,7 +91,11 @@ export async function POST(request: NextRequest) {
       if (conditions.length > 0) {
         vistoria = await prisma.vistoriaChecklist.findFirst({
           where: { OR: conditions },
-          orderBy: { createdAt: "desc" },
+          orderBy: [
+            { statusAssinatura: "desc" },
+            { updatedAt: "desc" },
+            { createdAt: "desc" },
+          ],
         });
       }
     }
