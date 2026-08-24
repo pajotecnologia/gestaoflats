@@ -85,29 +85,6 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
 
   let y = 54;
 
-  // Caixa de Totais e KPIs
-  doc.setFillColor(243, 244, 246);
-  doc.rect(14, y, 182, 14, "F");
-  doc.setDrawColor(209, 213, 219);
-  doc.rect(14, y, 182, 14, "S");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-
-  doc.setTextColor(31, 41, 55);
-  doc.text(`TÍTULOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
-
-  doc.setTextColor(30, 58, 138);
-  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 50, y + 8.5);
-
-  doc.setTextColor(16, 185, 129);
-  doc.text(`RECEBIDO: R$ ${data.totais.totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 105, y + 8.5);
-
-  doc.setTextColor(239, 68, 68);
-  doc.text(`PENDENTE/ATRAS.: R$ ${(data.totais.totalPendente + data.totais.totalAtrasado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 150, y + 8.5);
-
-  y += 18;
-
   // Cabeçalho da Tabela
   doc.setFillColor(30, 58, 138);
   doc.rect(14, y, 182, 6, "F");
@@ -126,7 +103,7 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
 
   // Linhas da Tabela
   data.itens.forEach((item, index) => {
-    if (y > 265) {
+    if (y > 255) {
       doc.addPage();
       y = 15;
 
@@ -179,6 +156,34 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
     y += 6;
   });
 
+  // Caixa de Totais e KPIs (NO FINAL DO RELATÓRIO / EMBAIXO)
+  if (y > 250) {
+    doc.addPage();
+    y = 15;
+  } else {
+    y += 4;
+  }
+
+  doc.setFillColor(243, 244, 246);
+  doc.rect(14, y, 182, 14, "F");
+  doc.setDrawColor(209, 213, 219);
+  doc.rect(14, y, 182, 14, "S");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+
+  doc.setTextColor(31, 41, 55);
+  doc.text(`TÍTULOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
+
+  doc.setTextColor(30, 58, 138);
+  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 50, y + 8.5);
+
+  doc.setTextColor(16, 185, 129);
+  doc.text(`RECEBIDO: R$ ${data.totais.totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 105, y + 8.5);
+
+  doc.setTextColor(239, 68, 68);
+  doc.text(`PENDENTE/ATRAS.: R$ ${(data.totais.totalPendente + data.totais.totalAtrasado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 150, y + 8.5);
+
   // Rodapé do Desenvolvedor
   doc.setDrawColor(229, 231, 235);
   doc.line(14, 280, 196, 280);
@@ -209,29 +214,6 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
 
   let y = 54;
 
-  // Caixa de Totais e KPIs
-  doc.setFillColor(243, 244, 246);
-  doc.rect(14, y, 182, 14, "F");
-  doc.setDrawColor(209, 213, 219);
-  doc.rect(14, y, 182, 14, "S");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-
-  doc.setTextColor(31, 41, 55);
-  doc.text(`LANCAMENTOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
-
-  doc.setTextColor(30, 58, 138);
-  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 55, y + 8.5);
-
-  doc.setTextColor(16, 185, 129);
-  doc.text(`PAGO: R$ ${data.totais.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 110, y + 8.5);
-
-  doc.setTextColor(239, 68, 68);
-  doc.text(`PENDENTE/ATRAS.: R$ ${(data.totais.totalPendente + data.totais.totalAtrasado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 150, y + 8.5);
-
-  y += 18;
-
   // Cabeçalho da Tabela
   doc.setFillColor(30, 58, 138);
   doc.rect(14, y, 182, 6, "F");
@@ -250,7 +232,7 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
 
   // Linhas da Tabela
   data.itens.forEach((item, index) => {
-    if (y > 265) {
+    if (y > 255) {
       doc.addPage();
       y = 15;
 
@@ -302,6 +284,34 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
 
     y += 6;
   });
+
+  // Caixa de Totais e KPIs (NO FINAL DO RELATÓRIO / EMBAIXO)
+  if (y > 250) {
+    doc.addPage();
+    y = 15;
+  } else {
+    y += 4;
+  }
+
+  doc.setFillColor(243, 244, 246);
+  doc.rect(14, y, 182, 14, "F");
+  doc.setDrawColor(209, 213, 219);
+  doc.rect(14, y, 182, 14, "S");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+
+  doc.setTextColor(31, 41, 55);
+  doc.text(`LANCAMENTOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
+
+  doc.setTextColor(30, 58, 138);
+  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 55, y + 8.5);
+
+  doc.setTextColor(16, 185, 129);
+  doc.text(`PAGO: R$ ${data.totais.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 110, y + 8.5);
+
+  doc.setTextColor(239, 68, 68);
+  doc.text(`PENDENTE/ATRAS.: R$ ${(data.totais.totalPendente + data.totais.totalAtrasado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 150, y + 8.5);
 
   // Rodapé do Desenvolvedor
   doc.setDrawColor(229, 231, 235);
@@ -363,40 +373,9 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
     variant: "white",
   });
 
-  let y = 58;
+  let y = 54;
 
-  // 2. Quadro Resumo dos Totais (KPIs)
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(14, y, 182, 16, 2, 2, "FD");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-
-  // Entradas (Crédito)
-  doc.setTextColor(16, 185, 129);
-  doc.text("TOTAL ENTRADAS (CRÉDITO):", 18, y + 6);
-  doc.setFontSize(9);
-  doc.text(`R$ ${data.totais.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 18, y + 12);
-
-  // Saídas (Débito)
-  doc.setFontSize(8);
-  doc.setTextColor(239, 68, 68);
-  doc.text("TOTAL SAÍDAS (DÉBITO):", 80, y + 6);
-  doc.setFontSize(9);
-  doc.text(`R$ ${data.totais.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 80, y + 12);
-
-  // Saldo Líquido
-  doc.setFontSize(8);
-  const saldoCor = data.totais.saldoPeriodo >= 0 ? [30, 58, 138] : [239, 68, 68];
-  doc.setTextColor(saldoCor[0], saldoCor[1], saldoCor[2]);
-  doc.text("SALDO DO PERÍODO:", 140, y + 6);
-  doc.setFontSize(9);
-  doc.text(`R$ ${data.totais.saldoPeriodo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 140, y + 12);
-
-  y += 22;
-
-  // 3. Cabeçalho da Tabela
+  // 2. Cabeçalho da Tabela
   doc.setFillColor(30, 58, 138); // Azul Marinho
   doc.rect(14, y, 182, 7, "F");
 
@@ -519,6 +498,42 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
     doc.text(`Saldo do Dia: R$ ${item.saldoDia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}   |   Saldo Acumulado: R$ ${item.saldoAcumulado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 22, y + 3.5);
     y += 5.5;
   });
+
+  // Quadro Resumo dos Totais (KPIs) NO FINAL DO RELATÓRIO (EMBAIXO)
+  if (y > 250) {
+    doc.addPage();
+    y = 15;
+  } else {
+    y += 4;
+  }
+
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(14, y, 182, 16, 2, 2, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+
+  // Entradas (Crédito)
+  doc.setTextColor(16, 185, 129);
+  doc.text("TOTAL ENTRADAS (CRÉDITO):", 18, y + 6);
+  doc.setFontSize(9);
+  doc.text(`R$ ${data.totais.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 18, y + 12);
+
+  // Saídas (Débito)
+  doc.setFontSize(8);
+  doc.setTextColor(239, 68, 68);
+  doc.text("TOTAL SAÍDAS (DÉBITO):", 80, y + 6);
+  doc.setFontSize(9);
+  doc.text(`R$ ${data.totais.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 80, y + 12);
+
+  // Saldo Líquido
+  doc.setFontSize(8);
+  const saldoCor = data.totais.saldoPeriodo >= 0 ? [30, 58, 138] : [239, 68, 68];
+  doc.setTextColor(saldoCor[0], saldoCor[1], saldoCor[2]);
+  doc.text("SALDO DO PERÍODO:", 140, y + 6);
+  doc.setFontSize(9);
+  doc.text(`R$ ${data.totais.saldoPeriodo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 140, y + 12);
 
   // Rodapé do Desenvolvedor
   doc.setDrawColor(229, 231, 235);
