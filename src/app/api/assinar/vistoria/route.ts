@@ -264,17 +264,33 @@ export async function POST(request: NextRequest) {
     // Se a vistoria foi assinada (digitalmente ou impresso):
     // 1. Se for Vistoria de SAÍDA: altera o status do flat para DISPONIVEL
     // 2. Se for Vistoria de ENTRADA: altera o status do flat para OCUPADO
-    if (isAssinado && vistoria.flatId) {
-      if (vistoria.tipoVistoria === "SAIDA") {
-        await prisma.flat.update({
-          where: { id: vistoria.flatId },
-          data: { status: "DISPONIVEL" },
-        });
-      } else if (vistoria.tipoVistoria === "ENTRADA") {
-        await prisma.flat.update({
-          where: { id: vistoria.flatId },
-          data: { status: "OCUPADO" },
-        });
+    if (isAssinado) {
+      if (vistoria.flatId) {
+        if (vistoria.tipoVistoria === "SAIDA") {
+          await prisma.flat.update({
+            where: { id: vistoria.flatId },
+            data: { status: "DISPONIVEL" },
+          });
+        } else if (vistoria.tipoVistoria === "ENTRADA") {
+          await prisma.flat.update({
+            where: { id: vistoria.flatId },
+            data: { status: "OCUPADO" },
+          });
+        }
+      }
+
+      if (vistoria.contratoId) {
+        if (vistoria.tipoVistoria === "ENTRADA") {
+          await prisma.contrato.update({
+            where: { id: vistoria.contratoId },
+            data: { anexoChecklistEntrada: vistoria.laudoImpressoUrl || vistoria.tokenAssinatura },
+          });
+        } else if (vistoria.tipoVistoria === "SAIDA") {
+          await prisma.contrato.update({
+            where: { id: vistoria.contratoId },
+            data: { anexoChecklistSaida: vistoria.laudoImpressoUrl || vistoria.tokenAssinatura },
+          });
+        }
       }
     }
 

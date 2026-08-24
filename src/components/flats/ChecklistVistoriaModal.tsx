@@ -75,6 +75,7 @@ export default function ChecklistVistoriaModal({
   onClose,
 }: ChecklistVistoriaModalProps) {
   const [tipoVistoria, setTipoVistoria] = useState<"ENTRADA" | "SAIDA">(initialTipoVistoria);
+  const [statusAssinatura, setStatusAssinatura] = useState<string>("PENDENTE");
   const [responsavel, setResponsavel] = useState(responsavelDefault || "Vistoriador Responsável");
   const [dataVistoria, setDataVistoria] = useState(new Date().toISOString().split("T")[0]);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
@@ -136,6 +137,7 @@ export default function ChecklistVistoriaModal({
       );
       setObservacoesGerais("");
       setLinkAssinatura("");
+      setStatusAssinatura("PENDENTE");
 
       try {
         const query = `contratoId=${contratoId || ""}&flatId=${flatId || ""}&tipoVistoria=${tipoVistoria}`;
@@ -146,6 +148,7 @@ export default function ChecklistVistoriaModal({
         if (isMounted && res.ok && data.vistoria) {
           const v = data.vistoria;
           if (v.responsavelVistoria) setResponsavel(v.responsavelVistoria);
+          if (v.statusAssinatura) setStatusAssinatura(v.statusAssinatura);
           if (v.laudoImpressoUrl) {
             setLaudoImpressoUrl(v.laudoImpressoUrl);
           }
@@ -409,6 +412,7 @@ export default function ChecklistVistoriaModal({
       }
 
       setLaudoImpressoUrl(dataUpload.laudoImpressoUrl);
+      setStatusAssinatura("ASSINADO (IMPRESSO)");
 
       // Gravar na vistoria
       await fetch("/api/assinar/vistoria", {
@@ -423,6 +427,7 @@ export default function ChecklistVistoriaModal({
           itens: items,
           observacoesGerais,
           laudoImpressoUrl: dataUpload.laudoImpressoUrl,
+          statusAssinatura: "ASSINADO (IMPRESSO)",
         }),
       });
 
@@ -513,6 +518,7 @@ export default function ChecklistVistoriaModal({
           responsavelVistoria: responsavel,
           itens: items,
           observacoesGerais,
+          statusAssinatura,
         }),
       });
 
@@ -521,7 +527,7 @@ export default function ChecklistVistoriaModal({
         setErrorMessage(data.error || "Erro ao salvar vistoria.");
         return false;
       } else {
-        setSuccessMessage(`✅ Vistoria (${tipoVistoria}) salva com sucesso no banco de dados!`);
+        setSuccessMessage(`✅ Vistoria (${tipoVistoria}) salva com sucesso com status "${statusAssinatura}"!`);
         return true;
       }
     } catch (err) {
@@ -605,19 +611,34 @@ export default function ChecklistVistoriaModal({
           </div>
         )}
 
-        {/* Tipo de Vistoria (Flag Entrada / Saida) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+        {/* Tipo e Status de Vistoria */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Flag do Tipo de Vistoria
+              Tipo de Vistoria
             </label>
             <select
               value={tipoVistoria}
               onChange={(e) => setTipoVistoria(e.target.value as "ENTRADA" | "SAIDA")}
               className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-bold"
             >
-              <option value="ENTRADA">🟢 Vistoria de ENTRADA (Entrega do Flat)</option>
-              <option value="SAIDA">🔴 Vistoria de SAÍDA (Devolução do Flat)</option>
+              <option value="ENTRADA">🟢 ENTRADA (Entrega)</option>
+              <option value="SAIDA">🔴 SAÍDA (Devolução)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Status da Assinatura
+            </label>
+            <select
+              value={statusAssinatura}
+              onChange={(e) => setStatusAssinatura(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-bold"
+            >
+              <option value="PENDENTE">⏳ PENDENTE (Em Aberto)</option>
+              <option value="ASSINADO">✅ ASSINADO (Digital / Concluído)</option>
+              <option value="ASSINADO (IMPRESSO)">📄 ASSINADO (Laudo Impresso)</option>
             </select>
           </div>
 
