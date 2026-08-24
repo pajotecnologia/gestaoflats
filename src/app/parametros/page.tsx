@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Shell from "@/components/layout/Shell";
 import SignaturePad from "@/components/common/SignaturePad";
 import { formatCNPJ, formatPhone } from "@/lib/validation";
@@ -29,20 +30,18 @@ import {
   ToggleRight,
 } from "lucide-react";
 
-export default function ParametrosPage() {
+function ParametrosContent() {
+  const searchParams = useSearchParams();
+  const abaParam = searchParams.get("aba");
   const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas">("empresa");
   const [empresa, setEmpresa] = useState<any>(null);
 
-  // Sync tab on mount from URL query param ?aba=
+  // Sync tab reativamente do parâmetro URL ?aba=
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const search = new URLSearchParams(window.location.search);
-      const tabParam = search.get("aba");
-      if (tabParam && ["empresa", "evolution", "email", "funcionarios", "formas"].includes(tabParam)) {
-        setActiveTab(tabParam as any);
-      }
+    if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas"].includes(abaParam)) {
+      setActiveTab(abaParam as any);
     }
-  }, []);
+  }, [abaParam]);
 
   // Form Empresa
   const [nomeFantasia, setNomeFantasia] = useState("");
@@ -1393,5 +1392,13 @@ export default function ParametrosPage() {
         )}
       </div>
     </Shell>
+  );
+}
+
+export default function ParametrosPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-xs text-slate-500">Carregando parâmetros...</div>}>
+      <ParametrosContent />
+    </Suspense>
   );
 }

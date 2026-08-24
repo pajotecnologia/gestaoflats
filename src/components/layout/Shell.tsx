@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
@@ -33,8 +33,11 @@ interface ShellProps {
   children: React.ReactNode;
 }
 
-export default function Shell({ children }: ShellProps) {
+function ShellContent({ children }: ShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const abaParam = searchParams?.get("aba");
+
   const [currentAba, setCurrentAba] = useState("checklist");
   const [currentParametrosAba, setCurrentParametrosAba] = useState("empresa");
 
@@ -44,23 +47,17 @@ export default function Shell({ children }: ShellProps) {
   const [parametrosExpanded, setParametrosExpanded] = useState(true);
   const [user, setUser] = useState<{ nome: string; email: string; empresaNome: string; logomarcaUrl?: string } | null>(null);
 
-  // Auto-expandir relatórios/parâmetros e sincronizar aba ativa
+  // Auto-expandir relatórios/parâmetros e sincronizar aba ativa reativamente
   useEffect(() => {
     if (pathname.startsWith("/relatorios")) {
       setRelatoriosExpanded(true);
-      if (typeof window !== "undefined") {
-        const urlParams = new URLSearchParams(window.location.search);
-        setCurrentAba(urlParams.get("aba") || "checklist");
-      }
+      setCurrentAba(abaParam || "checklist");
     }
     if (pathname.startsWith("/parametros")) {
       setParametrosExpanded(true);
-      if (typeof window !== "undefined") {
-        const urlParams = new URLSearchParams(window.location.search);
-        setCurrentParametrosAba(urlParams.get("aba") || "empresa");
-      }
+      setCurrentParametrosAba(abaParam || "empresa");
     }
-  }, [pathname]);
+  }, [pathname, abaParam]);
 
   // Sync state with HTML class / localStorage on mount
   useEffect(() => {
@@ -160,14 +157,18 @@ export default function Shell({ children }: ShellProps) {
         <nav className="flex-1 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === "/contratos"
+                ? pathname === "/contratos"
+                : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-sm font-semibold"
+                    ? "bg-blue-600 text-white shadow-sm font-bold"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
                 }`}
               >
@@ -209,6 +210,7 @@ export default function Shell({ children }: ShellProps) {
                     <Link
                       key={sub.href}
                       href={sub.href}
+                      onClick={() => setCurrentAba(sub.aba)}
                       className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
                         isSubActive
                           ? "bg-blue-600 text-white font-bold shadow-sm"
@@ -256,6 +258,7 @@ export default function Shell({ children }: ShellProps) {
                     <Link
                       key={sub.href}
                       href={sub.href}
+                      onClick={() => setCurrentParametrosAba(sub.aba)}
                       className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
                         isSubActive
                           ? "bg-blue-600 text-white font-bold shadow-sm"
@@ -273,50 +276,41 @@ export default function Shell({ children }: ShellProps) {
         </nav>
       </aside>
 
-      {/* Área Direita: Header Bar + Conteúdo + Rodapé */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header Bar Superior (Topo à Direita) */}
-        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur px-4 sm:px-6 flex items-center justify-between z-30 transition-colors duration-200">
+      {/* Area Conteúdo Mobile Header + Drawer */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header Mobile / Topo Desktop */}
+        <header className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <div className="hidden sm:flex items-center space-x-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>{user?.empresaNome || "Prime Gestão Imobiliária"}</span>
-            </div>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">
+              Painel de Gestão Imobiliária
+            </span>
           </div>
 
-          {/* Dados do Usuário, Alternância de Tema & Sair (Topo Direita) */}
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2.5 bg-slate-100 dark:bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
-              <div className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-600 dark:text-blue-400 font-semibold flex items-center justify-center text-xs">
-                {user?.nome ? user.nome.charAt(0) : "U"}
-              </div>
-              <div className="text-left hidden md:block">
-                <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs truncate max-w-[140px]">
-                  {user?.nome || "Carregando..."}
-                </p>
-                <p className="text-slate-500 dark:text-slate-400 text-[10px] truncate max-w-[140px]">
-                  {user?.email}
-                </p>
-              </div>
-            </div>
-
+            {/* Alternar Tema Escuro / Claro */}
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition border border-slate-200 dark:border-slate-700"
-              title={darkMode ? "Mudar para Tema Claro" : "Mudar para Tema Escuro"}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              title={darkMode ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
             >
-              {darkMode ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-slate-600" />
-              )}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
             </button>
+
+            {/* Perfil do Usuário */}
+            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50">
+              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+                {user?.nome ? user.nome.charAt(0).toUpperCase() : "U"}
+              </div>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
+                {user?.nome || "Carregando..."}
+              </span>
+            </div>
 
             <button
               onClick={handleLogout}
@@ -334,7 +328,11 @@ export default function Shell({ children }: ShellProps) {
           <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 space-y-1.5 z-40">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive =
+                item.href === "/contratos"
+                  ? pathname === "/contratos"
+                  : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+
               return (
                 <Link
                   key={item.href}
@@ -342,7 +340,7 @@ export default function Shell({ children }: ShellProps) {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-medium ${
                     isActive
-                      ? "bg-blue-600 text-white font-semibold"
+                      ? "bg-blue-600 text-white font-bold"
                       : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
@@ -361,7 +359,10 @@ export default function Shell({ children }: ShellProps) {
                   <Link
                     key={sub.href}
                     href={sub.href}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => {
+                      setCurrentAba(sub.aba);
+                      setMobileMenuOpen(false);
+                    }}
                     className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium ${
                       isSubActive
                         ? "bg-blue-600 text-white font-bold"
@@ -384,7 +385,10 @@ export default function Shell({ children }: ShellProps) {
                   <Link
                     key={sub.href}
                     href={sub.href}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => {
+                      setCurrentParametrosAba(sub.aba);
+                      setMobileMenuOpen(false);
+                    }}
                     className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium ${
                       isSubActive
                         ? "bg-blue-600 text-white font-bold"
@@ -411,5 +415,13 @@ export default function Shell({ children }: ShellProps) {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function Shell({ children }: ShellProps) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4">{children}</div>}>
+      <ShellContent>{children}</ShellContent>
+    </Suspense>
   );
 }
