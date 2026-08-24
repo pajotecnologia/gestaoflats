@@ -158,8 +158,9 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 ## 10. Preservação de Cache e Integridade dos Estilos CSS / Layout Tailwind
 
 - **Prevenção de Quebra de Estilos (`.next` Cache)**:
-  - Jamais executar compilação de produção (`npx next build`) concorrentemente com o servidor de desenvolvimento em execução (`next dev`) sem reiniciar imediatamente o processo do dev server.
-  - Quando houver alteração de compilação ou perda de estilos no navegador, deve-se realizar a limpeza limpa do cache executando:
+  - **REGRA ABSOLUTA E IMPRESCINDÍVEL**: **JAMAIS** executar o comando `npx next build` enquanto o servidor de desenvolvimento `next dev` estiver em execução em segundo plano no ambiente de desenvolvimento local.
+  - **Motivo Técnico**: O comando `next build` recompila e sobrescreve integralmente o diretório `.next`, invalidando os manifestos e chunks de folhas de estilo CSS (`TailwindCSS`) utilizados em tempo real pelo `next dev`, resultando no recarregamento de HTML sem formatação no navegador do usuário.
+  - **Restabelecimento Automático em Caso de Erro de Cache**: Se houver perda acidental de folhas de estilo ou arquivos 404 de CSS, executar imediatamente a reinicialização limpa:
     `taskkill /F /IM node.exe; Remove-Item -Recurse -Force .next; npm run dev`
   - Esta diretriz garante que os seletores Tailwind CSS e chunks do Webpack permaneçam perfeitamente sincronizados e que o layout jamais seja renderizado sem estilização visual.
 
