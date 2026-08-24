@@ -439,7 +439,7 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(30, 58, 138);
-    doc.text(`📅  ${item.data}`, 18, y + 4.5);
+    doc.text(`DIA: ${item.data}`, 18, y + 4.5);
 
     // Entradas do Dia
     doc.setTextColor(16, 185, 129);
