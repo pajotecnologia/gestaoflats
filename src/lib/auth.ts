@@ -68,15 +68,16 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 }
 
 /**
- * Define os cookies seguros HttpOnly no cliente (NUNCA expostos a LocalStorage/JS).
+ * Define os cookies seguros HttpOnly no cliente.
  */
 export async function setAuthCookies(accessToken: string, refreshToken: string) {
   const cookieStore = cookies();
-  const isProd = process.env.NODE_ENV === "production";
+  // Só define secure=true se a URL configurada iniciar explicitamente com https://
+  const isHttps = process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://") || false;
 
   cookieStore.set(ACCESS_TOKEN_NAME, accessToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: isHttps,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 8, // 8 horas
@@ -84,7 +85,7 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
 
   cookieStore.set(REFRESH_TOKEN_NAME, refreshToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: isHttps,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 dias
