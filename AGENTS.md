@@ -148,3 +148,14 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 
 - **Acesso Público aos Uploads de Vistoria (Celular e Links Públicos)**:
   - As rotas `/api/vistorias/upload-foto` e `/api/vistorias/upload-laudo` não exigem sessão de login administrativo (`getAuthSession`), permitindo que locatários e vistoriadores capturem e enviem fotos de itens diretamente do celular a partir do link público da vistoria (`/assinar/vistoria/[token]`).
+
+---
+
+## 10. Preservação de Cache e Integridade dos Estilos CSS / Layout Tailwind
+
+- **Prevenção de Quebra de Estilos (`.next` Cache)**:
+  - Jamais executar compilação de produção (`npx next build`) concorrentemente com o servidor de desenvolvimento em execução (`next dev`) sem reiniciar imediatamente o processo do dev server.
+  - Quando houver alteração de compilação ou perda de estilos no navegador, deve-se realizar a limpeza limpa do cache executando:
+    `taskkill /F /IM node.exe; Remove-Item -Recurse -Force .next; npm run dev`
+  - Esta diretriz garante que os seletores Tailwind CSS e chunks do Webpack permaneçam perfeitamente sincronizados e que o layout jamais seja renderizado sem estilização visual.
+
