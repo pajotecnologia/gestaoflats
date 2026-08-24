@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, chmod } from "fs/promises";
 import path from "path";
 
 export async function POST(request: NextRequest) {
@@ -31,17 +31,23 @@ export async function POST(request: NextRequest) {
     const fileExtension = path.extname(file.name) || ".png";
     const filename = `logo-${session.empresaId}-${Date.now()}${fileExtension}`;
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const publicUploadsDir = path.join(process.cwd(), "public", "uploads");
+    const rootUploadsDir = path.join(process.cwd(), "uploads");
 
-    // Garantir que o diretório public/uploads existe
-    await mkdir(uploadsDir, { recursive: true });
+    await mkdir(publicUploadsDir, { recursive: true });
+    await mkdir(rootUploadsDir, { recursive: true });
 
-    const filePath = path.join(uploadsDir, filename);
-    await writeFile(filePath, buffer);
+    const publicFilePath = path.join(publicUploadsDir, filename);
+    const rootFilePath = path.join(rootUploadsDir, filename);
+
+    await writeFile(publicFilePath, buffer);
+    await writeFile(rootFilePath, buffer);
+
+    await chmod(publicFilePath, 0o777).catch(() => {});
+    await chmod(rootFilePath, 0o777).catch(() => {});
 
     const logomarcaUrl = `/uploads/${filename}`;
 
-    // Atualizar no banco de dados
     const empresaAtualizada = await prisma.empresa.update({
       where: { id: session.empresaId },
       data: { logomarcaUrl },
