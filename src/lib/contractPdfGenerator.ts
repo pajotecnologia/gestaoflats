@@ -1,0 +1,297 @@
+import jsPDF from "jspdf";
+import { formatCurrency } from "./validation";
+import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { convertUrlToBase64 } from "./baseUrl";
+
+export interface ContratoPDFData {
+  empresaNome: string;
+  empresaCnpj: string;
+  empresaEndereco?: string;
+  empresaTelefone?: string;
+  empresaEmail?: string;
+  empresaLogomarcaUrl?: string;
+  empresaAssinaturaUrl?: string;
+  locatarioNome: string;
+  locatarioCpf: string;
+  locatarioRg?: string;
+  locatarioTelefone?: string;
+  flatNumero: string;
+  localNome?: string;
+  valorMensal: number;
+  validadeMeses: number;
+  dataEmissao: string;
+  dataFinal: string;
+  conteudoHtml?: string;
+  statusAssinatura?: string;
+  locatarioAssinaturaUrl?: string;
+  dataAssinaturaLocatario?: string;
+  ipAssinaturaLocatario?: string;
+}
+
+interface TextBlock {
+  type: "heading" | "subheading" | "paragraph";
+  text: string;
+}
+
+function parseContractBlocks(rawHtml: string): TextBlock[] {
+  if (!rawHtml || !rawHtml.trim()) return [];
+
+  // Substitui tags de cabeçalho por marcadores internos
+  let processed = rawHtml
+    .replace(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/gi, "\n###HEADING### $1 \n")
+    .replace(/<h[4-6][^>]*>(.*?)<\/h[4-6]>/gi, "\n###SUBHEADING### $1 \n")
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, "\n$1\n")
+    .replace(/<div[^>]*>(.*?)<\/div>/gi, "\n$1\n")
+    .replace(/<br\s*\/?>/gi, "\n");
+
+  // Remove tags HTML remanescentes e decodifica entidades comuns
+  processed = processed
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+
+  const lines = processed.split("\n").map((l) => l.trim()).filter(Boolean);
+  const blocks: TextBlock[] = [];
+
+  lines.forEach((line) => {
+    if (line.startsWith("###HEADING###")) {
+      blocks.push({
+        type: "heading",
+        text: line.replace("###HEADING###", "").trim(),
+      });
+    } else if (line.startsWith("###SUBHEADING###")) {
+      blocks.push({
+        type: "subheading",
+        text: line.replace("###SUBHEADING###", "").trim(),
+      });
+    } else {
+      // Identifica linhas de cláusula (ex: CLÁUSULA PRIMEIRA, CLÁUSULA 1ª)
+      const isClauseHeader = /^CLÁUSULA\s+[A-Z0-9ªº]+/i.test(line) && line.length < 90;
+      if (isClauseHeader) {
+        blocks.push({
+          type: "heading",
+          text: line,
+        });
+      } else {
+        blocks.push({
+          type: "paragraph",
+          text: line,
+        });
+      }
+    }
+  });
+
+  return blocks;
+}
+
+export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
+  const doc = new jsPDF();
+
+  // 1. Cabeçalho Padrão sem Fundo Azul (Variante White Clean)
+  drawStandardPDFHeader(doc, {
+    empresaNome: data.empresaNome,
+    empresaCnpj: data.empresaCnpj,
+    empresaEndereco: data.empresaEndereco,
+    empresaTelefone: data.empresaTelefone,
+    empresaEmail: data.empresaEmail,
+    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    tituloDocumento: "CONTRATO DE LOCAÇÃO RESIDENCIAL",
+    subtituloDocumento: `Vigência: ${data.validadeMeses} Meses`,
+    variant: "white",
+  });
+
+  // 2. Quadro Resumo do Contrato em Card Elegante
+  doc.setFillColor(249, 250, 251);
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(14, 54, 182, 36, 2, 2, "FD");
+
+  doc.setTextColor(30, 58, 138);
+  doc.setFontSize(9.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("Resumo do Contrato de Locação:", 18, 60);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(55, 65, 81);
+  doc.text(`• LOCADOR: ${data.empresaNome} (CNPJ: ${data.empresaCnpj})`, 18, 66);
+  doc.text(`• LOCATÁRIO: ${data.locatarioNome} (CPF: ${data.locatarioCpf}${data.locatarioRg ? ` | RG: ${data.locatarioRg}` : ""})`, 18, 72);
+  doc.text(`• IMÓVEL / UNIDADE: ${data.localNome ? `${data.localNome} - ` : ""}Flat ${data.flatNumero}`, 18, 78);
+  doc.text(`• ALUGUEL MENSAL: ${formatCurrency(data.valorMensal)}   •   VIGÊNCIA: ${data.validadeMeses} Meses (${data.dataEmissao} a ${data.dataFinal})`, 18, 84);
+
+  // 3. Cláusulas e Termos do Contrato com Formatação Estruturada
+  let y = 98;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10.5);
+  doc.setTextColor(31, 41, 55);
+  doc.text("Termos e Cláusulas Contratuais:", 14, y);
+  y += 6;
+
+  let rawContent = data.conteudoHtml || "";
+
+  if (!rawContent.trim()) {
+    rawContent = `<h3>CLÁUSULA PRIMEIRA - DO OBJETO</h3><p>Pelo presente instrumento de locação residencial, a LOCADORA disponibiliza ao LOCATÁRIO a unidade habitacional Flat nº ${data.flatNumero}, totalmente mobiliada e equipada.</p>` +
+      `<h3>CLÁUSULA SEGUNDA - DO VALOR</h3><p>O aluguel mensal é de ${formatCurrency(data.valorMensal)}, com vencimento na data pactuada.</p>` +
+      `<h3>CLÁUSULA TERCEIRA - DA VIGÊNCIA</h3><p>Este contrato vigora por ${data.validadeMeses} meses, iniciando em ${data.dataEmissao} e terminando em ${data.dataFinal}.</p>` +
+      `<h3>CLÁUSULA QUARTA - DA CONSERVAÇÃO</h3><p>O locatário compromete-se a manter o imóvel nas mesmas condições descritas no laudo de vistoria.</p>`;
+  }
+
+  const blocks = parseContractBlocks(rawContent);
+
+  blocks.forEach((block) => {
+    if (block.type === "heading" || block.type === "subheading") {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(block.type === "heading" ? 9.5 : 9);
+      doc.setTextColor(30, 58, 138);
+
+      const headingLines: string[] = doc.splitTextToSize(block.text, 182);
+      const headingHeight = headingLines.length * 4.5;
+
+      // Previne cabeçalhos de cláusulas órfãos no fim da página
+      if (y + headingHeight + 8 > 260) {
+        doc.addPage();
+        y = 20;
+      } else {
+        y += 2;
+      }
+
+      headingLines.forEach((line: string) => {
+        doc.text(line, 14, y);
+        y += 4.5;
+      });
+
+      y += 1;
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(55, 65, 81);
+
+      const paraLines: string[] = doc.splitTextToSize(block.text, 182);
+      const paraHeight = paraLines.length * 4.2;
+
+      if (y + paraHeight > 260) {
+        doc.addPage();
+        y = 20;
+      }
+
+      paraLines.forEach((line: string) => {
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, 14, y);
+        y += 4.2;
+      });
+
+      y += 3; // Espaçamento entre parágrafos
+    }
+  });
+
+  // 4. Assinaturas das Partes
+  y += 14;
+  if (y > 230) {
+    doc.addPage();
+    y = 35;
+  }
+
+  // Imagem Assinatura Empresa (se houver)
+  if (data.empresaAssinaturaUrl && data.empresaAssinaturaUrl.startsWith("data:image")) {
+    try {
+      const format = data.empresaAssinaturaUrl.includes("image/jpeg") || data.empresaAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
+      doc.addImage(data.empresaAssinaturaUrl, format, 32, y - 16, 46, 14);
+    } catch (e) {}
+  }
+
+  // Imagem Assinatura Locatário (se houver)
+  if (data.locatarioAssinaturaUrl && data.locatarioAssinaturaUrl.startsWith("data:image")) {
+    try {
+      const format = data.locatarioAssinaturaUrl.includes("image/jpeg") || data.locatarioAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
+      doc.addImage(data.locatarioAssinaturaUrl, format, 132, y - 16, 46, 14);
+    } catch (e) {}
+  }
+
+  doc.setDrawColor(31, 41, 55);
+  doc.setLineWidth(0.5);
+  doc.line(20, y, 90, y);
+  doc.line(120, y, 190, y);
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(31, 41, 55);
+  doc.setFont("helvetica", "bold");
+  doc.text(data.empresaNome, 55, y + 5, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text("Locador(a) / Administração", 55, y + 9, { align: "center" });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.text(data.locatarioNome, 155, y + 5, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text(`Locatário(a) - CPF: ${data.locatarioCpf}`, 155, y + 9, { align: "center" });
+
+  if (data.ipAssinaturaLocatario) {
+    doc.setFontSize(6.5);
+    doc.setTextColor(16, 185, 129);
+    doc.text(`✓ Assinado Digitalmente • IP: ${data.ipAssinaturaLocatario}`, 155, y + 13, { align: "center" });
+  }
+
+  // RODAPÉ DO DESENVOLVEDOR NO CONTRATO PDF
+  doc.setDrawColor(229, 231, 235);
+  doc.line(14, 280, 196, 280);
+  doc.setTextColor(107, 114, 128);
+  doc.setFontSize(8);
+  doc.text("Desenvolvimento: pajotecnologia.com.br (87)996540551", 105, 286, { align: "center" });
+
+  return doc;
+}
+
+export async function prepareContratoDataWithBase64Images(data: ContratoPDFData): Promise<ContratoPDFData> {
+  let logoUrl = data.empresaLogomarcaUrl;
+  let assUrl = data.empresaAssinaturaUrl;
+
+  if (logoUrl && !logoUrl.startsWith("data:image")) {
+    logoUrl = await convertUrlToBase64(logoUrl);
+  }
+  if (assUrl && !assUrl.startsWith("data:image")) {
+    assUrl = await convertUrlToBase64(assUrl);
+  }
+
+  return {
+    ...data,
+    empresaLogomarcaUrl: logoUrl,
+    empresaAssinaturaUrl: assUrl,
+  };
+}
+
+export async function generateContratoPDF(data: ContratoPDFData) {
+  try {
+    const preparedData = await prepareContratoDataWithBase64Images(data);
+    const doc = buildContratoPDFDoc(preparedData);
+    const fileName = `Contrato_Locacao_Flat_${data.flatNumero.replace(/\s+/g, "_")}.pdf`;
+    const pdfBlob = doc.output("blob");
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+      window.open(blobUrl, "_blank");
+    }, 100);
+  } catch (err) {
+    console.error("Erro ao gerar PDF do Contrato:", err);
+  }
+}
+
+export async function getContratoPDFBase64(data: ContratoPDFData): Promise<string> {
+  const preparedData = await prepareContratoDataWithBase64Images(data);
+  const doc = buildContratoPDFDoc(preparedData);
+  return doc.output("datauristring");
+}

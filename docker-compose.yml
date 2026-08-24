@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: locacoes-app
+    restart: always
+    ports:
+      - "3010:3010"
+    environment:
+      - PORT=3010
+      - NODE_ENV=production
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=super-secret-jwt-key-gestao-flats-saas-2026-production-ready
+      - NEXT_PUBLIC_APP_URL=http://localhost:3010
+    volumes:
+      - ./prisma/dev.db:/app/prisma/dev.db
+      - ./public/uploads:/app/public/uploads

@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  const session = await getAuthSession();
+  if (!session) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  const empresa = await prisma.empresa.findUnique({
+    where: { id: session.empresaId },
+  });
+
+  return NextResponse.json({ empresa });
+}
+
+export async function PUT(request: NextRequest) {
+  const session = await getAuthSession();
+  if (!session) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  try {
+    const { nomeFantasia, razaoSocial, cnpj, email, telefone, endereco, logomarcaUrl, assinaturaUrl } =
+      await request.json();
+
+    if (!nomeFantasia || !razaoSocial || !cnpj) {
+      return NextResponse.json(
+        { error: "Nome Fantasia, Razão Social e CNPJ são obrigatórios." },
+        { status: 400 }
+      );
+    }
+
+    const empresaAtualizada = await prisma.empresa.update({
+      where: { id: session.empresaId },
+      data: {
+        nomeFantasia,
+        razaoSocial,
+        cnpj,
+        email,
+        telefone,
+        endereco,
+        logomarcaUrl: logomarcaUrl || null,
+        assinaturaUrl: assinaturaUrl || null,
+      },
+    });
+
+    return NextResponse.json({ success: true, empresa: empresaAtualizada });
+  } catch (error: any) {
+    return NextResponse.json({ error: "Erro ao atualizar dados da empresa." }, { status: 500 });
+  }
+}

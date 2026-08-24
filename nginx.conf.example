@@ -1,0 +1,34 @@
+# Arquivo de Exemplo para Configuração do Nginx no Servidor VPS
+# Salve este arquivo em: /etc/nginx/sites-available/locacoes
+# E crie o link simbólico: sudo ln -s /etc/nginx/sites-available/locacoes /etc/nginx/sites-enabled/
+
+server {
+    listen 80;
+    server_name seu-dominio.com.br www.seu-dominio.com.br; # Altere para seu domínio ou IP da VPS
+
+    # Permite upload de fotos e laudos PDF de até 25MB
+    client_max_body_size 25M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3010; # Redireciona para a aplicação rodando na porta 3010
+        proxy_http_version 1.1;
+
+        # Suporte a WebSockets / Next.js
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Repassa os cabeçalhos originais da requisição (crucial para getAppBaseUrl())
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeouts estendidos para relatórios e uploads pesados
+        proxy_connect_timeout 90;
+        proxy_send_timeout 90;
+        proxy_read_timeout 90;
+    }
+}
+
+# Para ativar HTTPS com SSL Gratuito (Let's Encrypt / Certbot):
+# Execute na VPS: sudo certbot --nginx -d seu-dominio.com.br
