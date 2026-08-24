@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script de Atualização, Permissões de Upload e Deploy Automático na VPS
+# Script de Atualização, Permissões de Upload e Deploy Automático na VPS (Node.js / PM2)
 # Uso na VPS: bash deploy.sh
 # ==============================================================================
 
@@ -30,24 +30,20 @@ ln -sf $(pwd)/public/uploads $(pwd)/uploads
 # Aplica permissões totais de escrita para uploads de imagens e PDFs
 chmod -R 777 public/uploads 2>/dev/null || true
 
-echo "🏗️ [5/6] Gerando compilação de produção (npm run build)..."
-if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
-    echo "🐳 Reconstruindo via Docker Compose..."
-    docker compose up -d --build
-else
-    echo "⚡ Compilando Next.js para produção..."
-    npm run build
-fi
+echo "🏗️ [5/6] Gerando compilação de produção Next.js (npm run build)..."
+npm run build
 
 echo "🔄 [6/6] Reiniciando processo no servidor (PM2 / Node)..."
 if command -v pm2 &> /dev/null; then
     pm2 restart all 2>/dev/null || pm2 start npm --name "locacoes" -- run start || true
+else
+    echo "ℹ️ Aplicação compilada! Caso use o Node Project do aaPanel, basta clicar em Restart na tela do aaPanel."
 fi
 
 echo "=============================================================================="
-echo "✅ ATUALIZAÇÃO CONCLUÍDA COM SUCESSO!"
+echo "✅ ATUALIZAÇÃO CONCLUÍDA COM SUCESSO! (Modo Node.js / PM2 Nativo)"
 echo "   - Código atualizado do GitHub"
 echo "   - Banco SQLite sincronizado"
 echo "   - Pastas de upload e permissões 777 corrigidas (Link simbólico ativo)"
-echo "   - Aplicação compilada e reiniciada"
+echo "   - Aplicação compilada (npm run build) e reiniciada"
 echo "=============================================================================="
