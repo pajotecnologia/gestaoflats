@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, memo, forwardRef } from "react";
 import Shell from "@/components/layout/Shell";
 import { replaceContractVariables } from "@/lib/validation";
 import {
@@ -26,29 +26,85 @@ import {
   GripVertical,
   Move,
   Search,
-  Check,
   Paintbrush,
-  Sparkles,
-  ChevronRight,
-  ChevronDown,
+  Code,
+  Edit3,
   Info,
-  Layers,
 } from "lucide-react";
+
+// Sanitiza qualquer HTML removendo cores azuis ou coloridas antigas e forçando Preto Puro (#000000)
+const forceBlackText = (html: string) => {
+  if (!html) return html;
+  return html
+    .replace(/color:\s*#[0-9a-fA-F]{3,6}/gi, "color: #000000")
+    .replace(/color:\s*rgba?\([^)]+\)/gi, "color: #000000")
+    .replace(/color:\s*blue/gi, "color: #000000")
+    .replace(/color:\s*navy/gi, "color: #000000");
+};
+
+// COMPONENTE CANVAS ISOLADO E MEMOIZADO: Impede 100% que re-renders do componente pai afetem o DOM do editor
+interface EditorCanvasProps {
+  isDraggingOver: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+  onKeyUp: () => void;
+}
+
+const IsolatedEditorCanvas = memo(
+  forwardRef<HTMLDivElement, EditorCanvasProps>(function IsolatedEditorCanvas(
+    { isDraggingOver, onDragOver, onDragLeave, onDrop, onKeyUp },
+    ref
+  ) {
+    return (
+      <div
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
+          isDraggingOver
+            ? "border-4 border-dashed border-blue-600 ring-8 ring-blue-500/30 bg-blue-50/10 scale-[1.01]"
+            : "border-slate-300"
+        }`}
+        style={{ color: "#000000" }}
+      >
+        {/* Visual Feedback ao arrastar tag sobre a folha A4 */}
+        {isDraggingOver && (
+          <div className="absolute inset-x-0 top-6 z-20 pointer-events-none flex justify-center">
+            <span className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-bounce flex items-center gap-1.5">
+              <Move className="w-4 h-4" />
+              Solte a tag aqui para inserir na folha A4!
+            </span>
+          </div>
+        )}
+
+        {/* Régua superior simulada do Word */}
+        <div className="absolute top-0 left-0 right-0 h-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-[8px] text-slate-400 px-12 select-none">
+          <span>0cm</span>
+          <span>5cm</span>
+          <span>10cm</span>
+          <span>15cm</span>
+          <span>21cm</span>
+        </div>
+
+        {/* Editor Não-Controlado nativo e isolado: Zero re-renders do React ao digitar */}
+        <div
+          ref={ref}
+          contentEditable={true}
+          suppressContentEditableWarning={true}
+          onKeyUp={onKeyUp}
+          className="mt-4 focus:outline-none min-h-[900px] text-black font-serif text-sm leading-relaxed"
+          style={{ color: "#000000" }}
+        />
+      </div>
+    );
+  })
+);
 
 export default function ModelosContratoPage() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [titulo, setTitulo] = useState("");
   const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
-
-  // Sanitiza qualquer HTML removendo cores azuis ou coloridas antigas e forçando Preto Puro (#000000)
-  const forceBlackText = (html: string) => {
-    if (!html) return html;
-    return html
-      .replace(/color:\s*#[0-9a-fA-F]{3,6}/gi, "color: #000000")
-      .replace(/color:\s*rgba?\([^)]+\)/gi, "color: #000000")
-      .replace(/color:\s*blue/gi, "color: #000000")
-      .replace(/color:\s*navy/gi, "color: #000000");
-  };
 
   const defaultContentHtml = `<h2 style="text-align: center; color: #000000; font-family: Arial, sans-serif; font-weight: bold;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
 <p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa.nomeFantasia}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario.nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{locatario.cpf}}</strong>.</p>
@@ -65,7 +121,8 @@ export default function ModelosContratoPage() {
 </table>`;
 
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [activeViewMode, setActiveViewMode] = useState<"editor" | "preview">("editor");
+  const [activeViewMode, setActiveViewMode] = useState<"editor" | "code" | "preview">("editor");
+  const [htmlCodeValue, setHtmlCodeValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [wordCount, setWordCount] = useState(0);
@@ -93,13 +150,13 @@ export default function ModelosContratoPage() {
     loadModelos();
   }, []);
 
-  // Preencher o editor visual de forma não-controlada (mantém 0 cursor jumping)
   const setEditorHtml = (htmlContent: string) => {
+    const cleanBlackHtml = forceBlackText(htmlContent);
     if (editorRef.current) {
-      const cleanBlackHtml = forceBlackText(htmlContent);
       editorRef.current.innerHTML = cleanBlackHtml;
-      updateWordCount();
     }
+    setHtmlCodeValue(cleanBlackHtml);
+    updateWordCount();
   };
 
   useEffect(() => {
@@ -132,7 +189,9 @@ export default function ModelosContratoPage() {
 
   const handleForceBlackAllText = () => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = forceBlackText(editorRef.current.innerHTML);
+      const cleaned = forceBlackText(editorRef.current.innerHTML);
+      editorRef.current.innerHTML = cleaned;
+      setHtmlCodeValue(cleaned);
       setFeedback("🎨 Todo o texto do contrato foi convertido para Preto Puro (#000000)!");
     }
   };
@@ -173,7 +232,7 @@ export default function ModelosContratoPage() {
     }
   };
 
-  // Arrastar e Soltar (Drag & Drop) de Tags no Canvas A4
+  // Arrastar e Soltar (Drag & Drop) de Tags
   const handleDragStartTag = (e: React.DragEvent, tag: string) => {
     e.dataTransfer.setData("text/plain", tag);
     e.dataTransfer.effectAllowed = "copy";
@@ -196,7 +255,15 @@ export default function ModelosContratoPage() {
     setIsDraggingOverCanvas(false);
 
     const tag = e.dataTransfer.getData("text/plain");
-    if (!tag || !editorRef.current) return;
+    if (!tag) return;
+
+    if (activeViewMode === "code") {
+      setHtmlCodeValue((prev) => prev + ` <strong>${tag}</strong> `);
+      setFeedback(`📍 Tag "${tag}" inserida no código HTML!`);
+      return;
+    }
+
+    if (!editorRef.current) return;
 
     let range: Range | null = null;
     if (document.caretRangeFromPoint) {
@@ -237,6 +304,12 @@ export default function ModelosContratoPage() {
   };
 
   const handleInsertTag = (tag: string) => {
+    if (activeViewMode === "code") {
+      setHtmlCodeValue((prev) => prev + ` <strong>${tag}</strong> `);
+      setFeedback(`📍 Tag "${tag}" inserida no código HTML!`);
+      return;
+    }
+
     if (!editorRef.current) return;
     editorRef.current.focus();
 
@@ -252,7 +325,7 @@ export default function ModelosContratoPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const rawHtml = editorRef.current ? editorRef.current.innerHTML : "";
+    const rawHtml = activeViewMode === "code" ? htmlCodeValue : editorRef.current ? editorRef.current.innerHTML : "";
     const cleanHtml = forceBlackText(rawHtml);
 
     if (!titulo.trim()) {
@@ -292,9 +365,13 @@ export default function ModelosContratoPage() {
     }
   };
 
-  const handleTogglePreview = () => {
-    if (activeViewMode === "editor") {
-      const rawHtml = editorRef.current ? editorRef.current.innerHTML : defaultContentHtml;
+  const handleSwitchViewMode = (mode: "editor" | "code" | "preview") => {
+    if (mode === "code" && activeViewMode === "editor" && editorRef.current) {
+      setHtmlCodeValue(forceBlackText(editorRef.current.innerHTML));
+    } else if (mode === "editor" && activeViewMode === "code" && editorRef.current) {
+      editorRef.current.innerHTML = forceBlackText(htmlCodeValue);
+    } else if (mode === "preview") {
+      const rawHtml = activeViewMode === "code" ? htmlCodeValue : editorRef.current ? editorRef.current.innerHTML : defaultContentHtml;
       const cleanHtml = forceBlackText(rawHtml);
 
       const mockContrato = {
@@ -336,10 +413,8 @@ export default function ModelosContratoPage() {
         },
       };
       setPreviewHtmlContent(replaceContractVariables(cleanHtml, mockContrato));
-      setActiveViewMode("preview");
-    } else {
-      setActiveViewMode("editor");
     }
+    setActiveViewMode(mode);
   };
 
   const tagsCategorizadas = [
@@ -411,13 +486,13 @@ export default function ModelosContratoPage() {
             </div>
             <div>
               <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
-                <span>Editor de Contratos Word</span>
+                <span>Editor de Contratos Word & HTML</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold border border-blue-200 dark:border-blue-800">
-                  Painel Lateral de Tags Visível • Texto Preto Puro
+                  Canvas Isolado • Suporte HTML Direct
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Arraste qualquer tag do painel esquerdo com o mouse e solte diretamente no texto da folha A4
+                Alterne livremente entre Visual A4 Word e Código HTML Direto com Painel de Tags sempre visível
               </p>
             </div>
           </div>
@@ -432,7 +507,7 @@ export default function ModelosContratoPage() {
               }`}
             >
               <Tag className="w-3.5 h-3.5" />
-              <span>{sidebarOpen ? "Ocultar Painel de Tags" : "Exibir Painel de Tags"}</span>
+              <span>{sidebarOpen ? "Ocultar Tags" : "Exibir Tags"}</span>
             </button>
 
             <button
@@ -558,7 +633,7 @@ export default function ModelosContratoPage() {
           />
         </div>
 
-        {/* ÁREA DE TRABALHO SPLIT: PAINEL LATERAL DE TAGS + FOLHA A4 */}
+        {/* ÁREA DE TRABALHO SPLIT: PAINEL LATERAL DE TAGS + FOLHA A4 / CÓDIGO HTML */}
         <div className="flex flex-col lg:flex-row gap-4 items-start">
           {/* PAINEL LATERAL ESQUERDO: TAGS DINÂMICAS (SEMPRE VISÍVEL) */}
           {sidebarOpen && (
@@ -649,7 +724,7 @@ export default function ModelosContratoPage() {
               <div className="p-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[11px] text-blue-900 dark:text-blue-200 flex items-start space-x-1.5">
                 <Info className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong>Instruções:</strong> Clique e segure com o mouse em qualquer tag abaixo para arrastar e soltar direto na folha A4 ao lado.
+                  <strong>Dica:</strong> Arraste qualquer tag abaixo para a folha A4 ou clique para inserir no cursor.
                 </span>
               </div>
 
@@ -707,199 +782,220 @@ export default function ModelosContratoPage() {
             </div>
           )}
 
-          {/* COLUNA DIREITA: ESTRUTURA WORD A4 */}
+          {/* COLUNA DIREITA: ESTRUTURA WORD A4 OU CÓDIGO HTML DIRETO */}
           <div className="flex-1 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            {/* Barra de Ferramentas Superior (Word Formatting Ribbon) */}
+            {/* Barra de Ferramentas Superior */}
             <div className="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 p-2.5 flex flex-wrap items-center justify-between gap-2 text-slate-700 dark:text-slate-200">
               <div className="flex flex-wrap items-center gap-2">
-                {/* Formatação Básica */}
-                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => execCmd("bold")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded font-bold"
-                    title="Negrito (Ctrl+B)"
-                  >
-                    <Bold className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("italic")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded italic"
-                    title="Itálico (Ctrl+I)"
-                  >
-                    <Italic className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("underline")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded underline"
-                    title="Sublinhado (Ctrl+U)"
-                  >
-                    <Underline className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("strikeThrough")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded line-through"
-                    title="Tachado"
-                  >
-                    <Strikethrough className="w-4 h-4" />
-                  </button>
-                </div>
+                {activeViewMode === "editor" && (
+                  <>
+                    {/* Formatação Básica */}
+                    <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => execCmd("bold")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded font-bold"
+                        title="Negrito (Ctrl+B)"
+                      >
+                        <Bold className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("italic")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded italic"
+                        title="Itálico (Ctrl+I)"
+                      >
+                        <Italic className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("underline")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded underline"
+                        title="Sublinhado (Ctrl+U)"
+                      >
+                        <Underline className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("strikeThrough")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded line-through"
+                        title="Tachado"
+                      >
+                        <Strikethrough className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                {/* Alinhamento */}
-                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => execCmd("justifyLeft")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
-                    title="Alinhar à Esquerda"
-                  >
-                    <AlignLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("justifyCenter")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
-                    title="Centralizar"
-                  >
-                    <AlignCenter className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("justifyRight")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
-                    title="Alinhar à Direita"
-                  >
-                    <AlignRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("justifyFull")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
-                    title="Justificar"
-                  >
-                    <AlignJustify className="w-4 h-4" />
-                  </button>
-                </div>
+                    {/* Alinhamento */}
+                    <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => execCmd("justifyLeft")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
+                        title="Alinhar à Esquerda"
+                      >
+                        <AlignLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("justifyCenter")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
+                        title="Centralizar"
+                      >
+                        <AlignCenter className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("justifyRight")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
+                        title="Alinhar à Direita"
+                      >
+                        <AlignRight className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("justifyFull")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
+                        title="Justificar"
+                      >
+                        <AlignJustify className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                {/* Listas e Títulos */}
-                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => execCmd("insertUnorderedList")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
-                    title="Lista com Marcadores"
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("insertOrderedList")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
-                    title="Lista Numerada"
-                  >
-                    <ListOrdered className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("formatBlock", "<h2>")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-xs font-bold"
-                    title="Título H2"
-                  >
-                    H2
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => execCmd("formatBlock", "<p>")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-xs"
-                    title="Parágrafo Normal"
-                  >
-                    P
-                  </button>
-                </div>
+                    {/* Listas e Títulos */}
+                    <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => execCmd("insertUnorderedList")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
+                        title="Lista com Marcadores"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("insertOrderedList")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded"
+                        title="Lista Numerada"
+                      >
+                        <ListOrdered className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("formatBlock", "<h2>")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-xs font-bold"
+                        title="Título H2"
+                      >
+                        H2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execCmd("formatBlock", "<p>")}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-xs"
+                        title="Parágrafo Normal"
+                      >
+                        P
+                      </button>
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={handleForceBlackAllText}
-                  className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold flex items-center space-x-1.5 transition shadow-xs"
-                  title="Converte todo o texto para Preto (#000000)"
-                >
-                  <Paintbrush className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Texto Preto (#000000)</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={handleForceBlackAllText}
+                      className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold flex items-center space-x-1.5 transition shadow-xs"
+                      title="Converte todo o texto para Preto (#000000)"
+                    >
+                      <Paintbrush className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Texto Preto (#000000)</span>
+                    </button>
+                  </>
+                )}
+
+                {activeViewMode === "code" && (
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <Code className="w-4 h-4 text-blue-600" />
+                    <span>Modo Edição de Código HTML Direto (100% Estável no Teclado)</span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center space-x-2">
+              {/* Seletor de Modo de Visualização */}
+              <div className="flex items-center space-x-1">
                 <button
-                  onClick={() => setActiveViewMode("editor")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                  type="button"
+                  onClick={() => handleSwitchViewMode("editor")}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
                     activeViewMode === "editor"
                       ? "bg-blue-600 text-white shadow-sm"
                       : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                   }`}
                 >
-                  Modo Edição (A4)
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Visual A4 Word</span>
                 </button>
+
                 <button
-                  onClick={handleTogglePreview}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                  type="button"
+                  onClick={() => handleSwitchViewMode("code")}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
+                    activeViewMode === "code"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <Code className="w-3.5 h-3.5" />
+                  <span>Código HTML</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSwitchViewMode("preview")}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
                     activeViewMode === "preview"
                       ? "bg-blue-600 text-white shadow-sm"
                       : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span>Pré-Visualização Real</span>
+                  <span>Pré-Visualizar</span>
                 </button>
               </div>
             </div>
 
-            {/* FOLHA A4 DO WORD (CANVAS UNCONTROLLED COM DROPZONE EM DESTAQUE) */}
+            {/* CONTEÚDO DA FOLHA OU TEXTAREA HTML */}
             <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[750px]">
-              {activeViewMode === "editor" ? (
-                <div
+              {activeViewMode === "editor" && (
+                <IsolatedEditorCanvas
+                  ref={editorRef}
+                  isDraggingOver={isDraggingOverCanvas}
                   onDragOver={handleDragOverCanvas}
                   onDragLeave={handleDragLeaveCanvas}
                   onDrop={handleDropTagOnCanvas}
-                  className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
-                    isDraggingOverCanvas
-                      ? "border-4 border-dashed border-blue-600 ring-8 ring-blue-500/30 bg-blue-50/10 scale-[1.01]"
-                      : "border-slate-300"
-                  }`}
-                  style={{ color: "#000000" }}
-                >
-                  {/* Visual Feedback ao arrastar tag sobre a folha A4 */}
-                  {isDraggingOverCanvas && (
-                    <div className="absolute inset-x-0 top-6 z-20 pointer-events-none flex justify-center">
-                      <span className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-bounce flex items-center gap-1.5">
-                        <Move className="w-4 h-4" />
-                        Solte a tag aqui para inserir na folha A4!
-                      </span>
-                    </div>
-                  )}
+                  onKeyUp={updateWordCount}
+                />
+              )}
 
-                  {/* Régua superior simulada do Word */}
-                  <div className="absolute top-0 left-0 right-0 h-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-[8px] text-slate-400 px-12 select-none">
-                    <span>0cm</span>
-                    <span>5cm</span>
-                    <span>10cm</span>
-                    <span>15cm</span>
-                    <span>21cm</span>
+              {activeViewMode === "code" && (
+                <div className="w-full max-w-[800px] min-h-[1050px] bg-slate-900 text-emerald-400 p-8 shadow-2xl border border-slate-800 rounded-sm font-mono text-xs leading-relaxed flex flex-col space-y-3">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-2">
+                    <span>Editor de Código HTML do Contrato</span>
+                    <span>Digite ou edite as tags HTML diretamente sem interrupção</span>
                   </div>
-
-                  {/* Editor Não-Controlado nativo: Zero re-renders do React durante a digitação */}
-                  <div
-                    ref={editorRef}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onKeyUp={updateWordCount}
-                    className="mt-4 focus:outline-none min-h-[900px] text-black font-serif text-sm leading-relaxed"
-                    style={{ color: "#000000" }}
+                  <textarea
+                    value={htmlCodeValue}
+                    onChange={(e) => {
+                      setHtmlCodeValue(e.target.value);
+                      if (editorRef.current) {
+                        editorRef.current.innerHTML = e.target.value;
+                      }
+                      updateWordCount();
+                    }}
+                    onDrop={handleDropTagOnCanvas}
+                    placeholder="Cole ou digite o código HTML do contrato aqui..."
+                    className="w-full h-full min-h-[950px] bg-transparent text-emerald-300 font-mono text-xs focus:outline-none resize-none leading-relaxed"
                   />
                 </div>
-              ) : (
+              )}
+
+              {activeViewMode === "preview" && (
                 <div
                   className="w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed"
                   style={{ color: "#000000" }}
@@ -920,7 +1016,7 @@ export default function ModelosContratoPage() {
                 <span>Português (Brasil)</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span>Layout de Impressão A4</span>
+                <span>Modo: {activeViewMode === "editor" ? "Visual A4" : activeViewMode === "code" ? "Código HTML" : "Pré-Visualização"}</span>
                 <span>100%</span>
               </div>
             </div>
