@@ -112,6 +112,7 @@ function ShellContent({ children }: ShellProps) {
   ];
 
   const relatoriosSubItems = [
+    { label: "Contratos & Blockchain", href: "/relatorios?aba=contratos", aba: "contratos", icon: FileText },
     { label: "Checklist (Em Branco)", href: "/relatorios?aba=checklist", aba: "checklist", icon: ClipboardCheck },
     { label: "Relatório - Contas a Receber", href: "/relatorios?aba=receber", aba: "receber", icon: TrendingUp },
     { label: "Relatório - Contas a Pagar", href: "/relatorios?aba=pagar", aba: "pagar", icon: DollarSign },

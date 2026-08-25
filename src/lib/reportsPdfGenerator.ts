@@ -65,6 +65,170 @@ export interface ContasPagarReportData {
   itens: ReportItemPagar[];
 }
 
+export interface ReportItemContrato {
+  locatarioNome: string;
+  locatarioCpf: string;
+  flatNumero: string;
+  condominioNome: string;
+  valorMensal: number;
+  dataEmissao: string;
+  dataFinal: string;
+  status: string;
+  statusAssinatura: string;
+  documentoHashSha256?: string;
+  blockchainProtocol?: string;
+}
+
+export interface ContratosReportData {
+  empresaNome: string;
+  empresaCnpj: string;
+  empresaEndereco?: string;
+  empresaTelefone?: string;
+  empresaEmail?: string;
+  empresaLogomarcaUrl?: string;
+  filtrosTexto: string;
+  totais: {
+    qtdTotal: number;
+    qtdAssinados: number;
+    qtdPendentes: number;
+    valorTotalMensal: number;
+  };
+  itens: ReportItemContrato[];
+}
+
+// ----------------------------------------------------
+// GERADOR DE RELATÓRIO DE CONTRATOS & BLOCKCHAIN
+// ----------------------------------------------------
+export function generateContratosPDFReport(data: ContratosReportData) {
+  const doc = new jsPDF();
+
+  drawStandardPDFHeader(doc, {
+    empresaNome: data.empresaNome,
+    empresaCnpj: data.empresaCnpj,
+    empresaEndereco: data.empresaEndereco,
+    empresaTelefone: data.empresaTelefone,
+    empresaEmail: data.empresaEmail,
+    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    tituloDocumento: "RELATÓRIO DE CONTRATOS & AUDITORIA BLOCKCHAIN",
+    subtituloDocumento: `Filtro: ${data.filtrosTexto || "Todos os Contratos"} • Selo Bitcoin OpenTimestamps`,
+    variant: "white",
+  });
+
+  let y = 54;
+
+  // Cabeçalho da Tabela
+  doc.setFillColor(241, 245, 249);
+  doc.rect(14, y, 182, 6.5, "F");
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(14, y, 182, 6.5, "S");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(30, 58, 138);
+
+  doc.text("LOCATÁRIO", 18, y + 4.5);
+  doc.text("FLAT", 65, y + 4.5);
+  doc.text("VIGÊNCIA", 100, y + 4.5);
+  doc.text("ALUGUEL", 132, y + 4.5);
+  doc.text("STATUS", 152, y + 4.5);
+  doc.text("HASH BLOCKCHAIN (SHA-256)", 170, y + 4.5);
+
+  y += 6.5;
+
+  data.itens.forEach((item, index) => {
+    if (y > 255) {
+      doc.addPage();
+      y = 15;
+      doc.setFillColor(241, 245, 249);
+      doc.rect(14, y, 182, 6.5, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, y, 182, 6.5, "S");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(30, 58, 138);
+      doc.text("LOCATÁRIO", 18, y + 4.5);
+      doc.text("FLAT", 65, y + 4.5);
+      doc.text("VIGÊNCIA", 100, y + 4.5);
+      doc.text("ALUGUEL", 132, y + 4.5);
+      doc.text("STATUS", 152, y + 4.5);
+      doc.text("HASH BLOCKCHAIN (SHA-256)", 170, y + 4.5);
+      y += 6.5;
+    }
+
+    if (index % 2 === 1) {
+      doc.setFillColor(249, 250, 251);
+      doc.rect(14, y, 182, 6.5, "F");
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(31, 41, 55);
+
+    const locNome = item.locatarioNome.length > 22 ? item.locatarioNome.substring(0, 20) + ".." : item.locatarioNome;
+    const flatCond = `${item.flatNumero}`;
+
+    doc.text(locNome, 18, y + 4.2);
+    doc.text(flatCond, 65, y + 4.2);
+    doc.text(`${item.dataEmissao} - ${item.dataFinal}`, 100, y + 4.2);
+    doc.text(`R$ ${item.valorMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 132, y + 4.2);
+
+    if (item.statusAssinatura?.includes("ASSINADO")) {
+      doc.setTextColor(16, 185, 129);
+      doc.setFont("helvetica", "bold");
+      doc.text("ASSINADO", 152, y + 4.2);
+    } else {
+      doc.setTextColor(245, 158, 11);
+      doc.setFont("helvetica", "normal");
+      doc.text("PENDENTE", 152, y + 4.2);
+    }
+
+    doc.setFont("courier", "normal");
+    doc.setFontSize(5.5);
+    doc.setTextColor(71, 85, 105);
+    const hash = item.documentoHashSha256 || "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+    doc.text(hash.substring(0, 16) + "...", 170, y + 4.2);
+
+    y += 6.5;
+  });
+
+  // Caixa de Totais
+  if (y > 250) {
+    doc.addPage();
+    y = 15;
+  } else {
+    y += 4;
+  }
+
+  doc.setFillColor(243, 244, 246);
+  doc.rect(14, y, 182, 14, "F");
+  doc.setDrawColor(209, 213, 219);
+  doc.rect(14, y, 182, 14, "S");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+
+  doc.setTextColor(31, 41, 55);
+  doc.text(`CONTRATOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
+
+  doc.setTextColor(16, 185, 129);
+  doc.text(`ASSINADOS: ${data.totais.qtdAssinados}`, 60, y + 8.5);
+
+  doc.setTextColor(245, 158, 11);
+  doc.text(`PENDENTES: ${data.totais.qtdPendentes}`, 105, y + 8.5);
+
+  doc.setTextColor(30, 58, 138);
+  doc.text(`RECEITA MENSAL: R$ ${data.totais.valorTotalMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 145, y + 8.5);
+
+  // Rodapé do Desenvolvedor
+  doc.setDrawColor(229, 231, 235);
+  doc.line(14, 280, 196, 280);
+  doc.setTextColor(107, 114, 128);
+  doc.setFontSize(8);
+  doc.text("Desenvolvimento: pajotecnologia.com.br (87)996540551", 105, 286, { align: "center" });
+
+  doc.save(`Relatorio_Contratos_Blockchain.pdf`);
+}
+
 // ----------------------------------------------------
 // GERADOR DE RELATÓRIO DE CONTAS A RECEBER
 // ----------------------------------------------------

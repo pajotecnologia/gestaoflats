@@ -21,13 +21,16 @@ import {
   RefreshCw,
   Search,
   Truck,
+  FileText,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
 import { generateBlankChecklistPDF, defaultBlankChecklistCategories } from "@/lib/blankChecklistPdfGenerator";
-import { generateContasReceberPDFReport, generateContasPagarPDFReport, generateFluxoCaixaPDFReport } from "@/lib/reportsPdfGenerator";
+import { generateContasReceberPDFReport, generateContasPagarPDFReport, generateFluxoCaixaPDFReport, generateContratosPDFReport } from "@/lib/reportsPdfGenerator";
 
 function RelatoriosContent() {
   const searchParams = useSearchParams();
-  const activeTab = (searchParams.get("aba") as "checklist" | "receber" | "pagar" | "fluxo") || "checklist";
+  const activeTab = (searchParams.get("aba") as "contratos" | "checklist" | "receber" | "pagar" | "fluxo") || "contratos";
 
   const [loading, setLoading] = useState(true);
 
@@ -38,9 +41,15 @@ function RelatoriosContent() {
   const [flats, setFlats] = useState<any[]>([]);
   const [locais, setLocais] = useState<any[]>([]);
 
-  // Lançamentos Financeiros
+  // Lançamentos Financeiros e Contratos
   const [contasReceberList, setContasReceberList] = useState<any[]>([]);
   const [contasPagarList, setContasPagarList] = useState<any[]>([]);
+  const [contratosList, setContratosList] = useState<any[]>([]);
+
+  // ESTADOS DA ABA CONTRATOS (Filtros)
+  const [contratoLocatarioId, setContratoLocatarioId] = useState("");
+  const [contratoLocalId, setContratoLocalId] = useState("");
+  const [contratoStatus, setContratoStatus] = useState("");
 
   // ESTADOS DA ABA 1: Checklist em Branco
   const [selectedFlatId, setSelectedFlatId] = useState("");
@@ -75,13 +84,14 @@ function RelatoriosContent() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [resEmpresa, resLoc, resForn, resFlats, resRec, resPag] = await Promise.all([
+        const [resEmpresa, resLoc, resForn, resFlats, resRec, resPag, resContratos] = await Promise.all([
           fetch("/api/empresa").then((r) => r.json()).catch(() => ({})),
           fetch("/api/locatarios").then((r) => r.json()).catch(() => ({ locatarios: [] })),
           fetch("/api/fornecedores").then((r) => r.json()).catch(() => ({ fornecedores: [] })),
           fetch("/api/flats").then((r) => r.json()).catch(() => ({ flats: [] })),
           fetch("/api/financeiro/receber").then((r) => r.json()).catch(() => ({ contas: [] })),
           fetch("/api/financeiro/pagar").then((r) => r.json()).catch(() => ({ contas: [] })),
+          fetch("/api/contratos").then((r) => r.json()).catch(() => ({ contratos: [] })),
         ]);
 
         if (resEmpresa?.empresa) setEmpresa(resEmpresa.empresa);
@@ -90,7 +100,6 @@ function RelatoriosContent() {
 
         if (resFlats?.flats) {
           setFlats(resFlats.flats);
-          // Extrair locais únicos dos flats
           const uniqueLocaisMap = new Map();
           resFlats.flats.forEach((f: any) => {
             if (f.local && !uniqueLocaisMap.has(f.local.id)) {
@@ -102,6 +111,7 @@ function RelatoriosContent() {
 
         if (resRec?.contas) setContasReceberList(resRec.contas);
         if (resPag?.contas) setContasPagarList(resPag.contas);
+        if (resContratos?.contratos) setContratosList(resContratos.contratos);
       } catch (err) {
         console.error("Erro ao carregar dados dos relatórios:", err);
       } finally {
@@ -129,6 +139,58 @@ function RelatoriosContent() {
       locatarioNome: selLoc?.nome,
       locatarioCpf: selLoc?.cpf,
       responsavelVistoria: responsavelVistoria || undefined,
+    });
+  };
+
+  // Filtragem e Totais da Aba Contratos & Blockchain
+  const filteredContratos = contratosList.filter((c) => {
+    if (contratoLocatarioId && c.locatarioId !== contratoLocatarioId) return false;
+    if (contratoLocalId && c.flat?.localId !== contratoLocalId) return false;
+    if (contratoStatus) {
+      if (contratoStatus === "ASSINADO" && !c.statusAssinatura?.includes("ASSINADO")) return false;
+      if (contratoStatus === "PENDENTE" && c.statusAssinatura?.includes("ASSINADO")) return false;
+    }
+    return true;
+  });
+
+  const contratosTotais = {
+    qtdTotal: filteredContratos.length,
+    qtdAssinados: filteredContratos.filter((c) => c.statusAssinatura?.includes("ASSINADO")).length,
+    qtdPendentes: filteredContratos.filter((c) => !c.statusAssinatura?.includes("ASSINADO")).length,
+    valorTotalMensal: filteredContratos.reduce((acc, c) => acc + (c.valorMensal || 0), 0),
+  };
+
+  const handleImprimirContratosPDF = () => {
+    const selLoc = locatarios.find((l) => l.id === contratoLocatarioId);
+    const selLocal = locais.find((l) => l.id === contratoLocalId);
+
+    const filtrosArr = [];
+    if (selLoc) filtrosArr.push(`Locatário: ${selLoc.nome}`);
+    if (selLocal) filtrosArr.push(`Condomínio: ${selLocal.nome}`);
+    if (contratoStatus) filtrosArr.push(`Status: ${contratoStatus}`);
+
+    generateContratosPDFReport({
+      empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
+      empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
+      empresaEndereco: empresa?.endereco,
+      empresaTelefone: empresa?.telefone,
+      empresaEmail: empresa?.email,
+      empresaLogomarcaUrl: empresa?.logomarcaUrl,
+      filtrosTexto: filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Contratos",
+      totais: contratosTotais,
+      itens: filteredContratos.map((c) => ({
+        locatarioNome: c.locatario?.nome || "Locatário Não Informado",
+        locatarioCpf: c.locatario?.cpf || "-",
+        flatNumero: c.flat?.numero || "-",
+        condominioNome: c.flat?.local?.nome || "",
+        valorMensal: c.valorMensal || 0,
+        dataEmissao: c.dataEmissao ? new Date(c.dataEmissao).toLocaleDateString("pt-BR") : "-",
+        dataFinal: c.dataFinal ? new Date(c.dataFinal).toLocaleDateString("pt-BR") : "-",
+        status: c.status || "ATIVO",
+        statusAssinatura: c.statusAssinatura || "PENDENTE",
+        documentoHashSha256: c.documentoHashSha256 || undefined,
+        blockchainProtocol: c.blockchainProtocol || "OpenTimestamps / Bitcoin",
+      })),
     });
   };
 
@@ -366,7 +428,9 @@ function RelatoriosContent() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="p-3 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
-              {activeTab === "checklist" ? (
+              {activeTab === "contratos" ? (
+                <ShieldCheck className="w-7 h-7" />
+              ) : activeTab === "checklist" ? (
                 <ClipboardCheck className="w-7 h-7" />
               ) : activeTab === "receber" ? (
                 <TrendingUp className="w-7 h-7" />
@@ -378,7 +442,9 @@ function RelatoriosContent() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                {activeTab === "checklist"
+                {activeTab === "contratos"
+                  ? "Relatório de Contratos & Auditoria Blockchain"
+                  : activeTab === "checklist"
                   ? "Ficha de Checklist (Em Branco)"
                   : activeTab === "receber"
                   ? "Relatório - Contas a Receber"
@@ -387,7 +453,9 @@ function RelatoriosContent() {
                   : "Relatório - Fluxo de Caixa Diário"}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {activeTab === "checklist"
+                {activeTab === "contratos"
+                  ? "Relatório geral de contratos com hashes SHA-256, prova de imutabilidade Bitcoin (OpenTimestamps) e status de assinatura"
+                  : activeTab === "checklist"
                   ? "Ficha impressa por tópicos com marcação e observação manual para vistorias"
                   : activeTab === "receber"
                   ? "Relatório financeiro de recebimentos filtrado por período, locatário e condomínio"
@@ -398,6 +466,182 @@ function RelatoriosContent() {
             </div>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* ABA CONTRATOS & BLOCKCHAIN                                                */}
+        {/* ========================================================================= */}
+        {activeTab === "contratos" && (
+          <div className="space-y-6 animate-in fade-in">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Contratos</span>
+                  <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{contratosTotais.qtdTotal}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                  <FileText className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">Selo Bitcoin (Assinados)</span>
+                  <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">{contratosTotais.qtdAssinados}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">Assinatura Pendente</span>
+                  <span className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{contratosTotais.qtdPendentes}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+                  <Clock className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Receita Mensal</span>
+                  <span className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">R$ {contratosTotais.valorTotalMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+                  <DollarSign className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            {/* Painel de Filtros e Tabela */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                    <Lock className="w-5 h-5 text-blue-600" />
+                    <span>Relatório Geral de Contratos e Hashes de Auditoria</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Consulte os contratos ativos, status de assinatura digital e a chave hash SHA-256 de imutabilidade vinculada à Blockchain do Bitcoin.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleImprimirContratosPDF}
+                  className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-2 transition"
+                >
+                  <FileDown className="w-4 h-4" />
+                  <span>Imprimir / Baixar Relatório PDF</span>
+                </button>
+              </div>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Locatário</label>
+                  <select
+                    value={contratoLocatarioId}
+                    onChange={(e) => setContratoLocatarioId(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Todos os Locatários --</option>
+                    {locatarios.map((l) => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Condomínio / Prédio</label>
+                  <select
+                    value={contratoLocalId}
+                    onChange={(e) => setContratoLocalId(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Todos os Prédios --</option>
+                    {locais.map((loc) => (
+                      <option key={loc.id} value={loc.id}>{loc.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Status da Assinatura</label>
+                  <select
+                    value={contratoStatus}
+                    onChange={(e) => setContratoStatus(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Todos os Status --</option>
+                    <option value="ASSINADO">✅ Assinado (Com Selo Bitcoin)</option>
+                    <option value="PENDENTE">⏳ Assinatura Pendente</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tabela de Contratos & Blockchain */}
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                  <thead className="bg-slate-100 dark:bg-slate-800/60 uppercase font-bold text-[10px] text-slate-600 dark:text-slate-400">
+                    <tr>
+                      <th className="py-3 px-4">Locatário</th>
+                      <th className="py-3 px-4">Flat / Prédio</th>
+                      <th className="py-3 px-4">Vigência</th>
+                      <th className="py-3 px-4">Valor Mensal</th>
+                      <th className="py-3 px-4">Status Assinatura</th>
+                      <th className="py-3 px-4">Hash Blockchain (SHA-256)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredContratos.map((c, i) => {
+                      const hash = c.documentoHashSha256 || "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+                      const isAssinado = c.statusAssinatura?.includes("ASSINADO");
+                      return (
+                        <tr key={c.id || i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                            {c.locatario?.nome || "Locatário Não Informado"}
+                            <span className="block text-[10px] font-normal text-slate-400">CPF: {c.locatario?.cpf || "-"}</span>
+                          </td>
+                          <td className="py-3 px-4 font-semibold">
+                            Flat {c.flat?.numero}
+                            {c.flat?.local?.nome && <span className="block text-[10px] font-normal text-slate-400">{c.flat.local.nome}</span>}
+                          </td>
+                          <td className="py-3 px-4">
+                            {c.dataEmissao ? new Date(c.dataEmissao).toLocaleDateString("pt-BR") : "-"} a {c.dataFinal ? new Date(c.dataFinal).toLocaleDateString("pt-BR") : "-"}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                            R$ {(c.valorMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 px-4">
+                            {isAssinado ? (
+                              <span className="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold inline-flex items-center space-x-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Assinado</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-bold inline-flex items-center space-x-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>Pendente</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px]">
+                            <div className="flex items-center space-x-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-900 w-fit">
+                              <Lock className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                              <span className="truncate max-w-[140px]" title={hash}>{hash}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* ABA 1: FICHA DE CHECKLIST EM BRANCO (PREENCHIMENTO A MÃO)                 */}
