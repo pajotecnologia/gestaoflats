@@ -399,7 +399,7 @@ export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFDat
   );
 
   const sha256 = data.documentoHashSha256 || calculateSha256(`${data.empresaCnpj}-${data.locatarioCpf}-${data.flatNumero}-${data.tipoVistoria}-${data.dataVistoria}`);
-  const validationUrl = data.validationUrl || `${getAppBaseUrl()}/api/validar?hash=${sha256}`;
+  const validationUrl = data.validationUrl || `${getAppBaseUrl()}/validar?hash=${sha256}`;
 
   let qrCodeDataUrl = data.qrCodeDataUrl;
   if (!qrCodeDataUrl) {

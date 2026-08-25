@@ -316,7 +316,7 @@ export async function prepareContratoDataWithBase64Images(data: ContratoPDFData)
   }
 
   const sha256 = data.documentoHashSha256 || calculateSha256(`${data.empresaCnpj}-${data.locatarioCpf}-${data.flatNumero}-${data.dataEmissao}-${data.valorMensal}`);
-  const validationUrl = data.validationUrl || `${getAppBaseUrl()}/api/validar?hash=${sha256}`;
+  const validationUrl = data.validationUrl || `${getAppBaseUrl()}/validar?hash=${sha256}`;
 
   let qrCodeDataUrl = data.qrCodeDataUrl;
   if (!qrCodeDataUrl) {
