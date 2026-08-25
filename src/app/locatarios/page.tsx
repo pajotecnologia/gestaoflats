@@ -19,6 +19,9 @@ export default function LocatariosPage() {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [estadoCivil, setEstadoCivil] = useState("Solteiro(a)");
+  const [profissao, setProfissao] = useState("");
+  const [nacionalidade, setNacionalidade] = useState("Brasileiro(a)");
 
   const [cpfValid, setCpfValid] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +52,9 @@ export default function LocatariosPage() {
     setEmail("");
     setTelefone("");
     setEndereco("");
+    setEstadoCivil("Solteiro(a)");
+    setProfissao("");
+    setNacionalidade("Brasileiro(a)");
     setCpfValid(null);
     setErrorMsg("");
     setShowModal(true);
@@ -63,6 +69,9 @@ export default function LocatariosPage() {
     setEmail(loc.email || "");
     setTelefone(formatPhone(loc.telefone || ""));
     setEndereco(loc.endereco || "");
+    setEstadoCivil(loc.estadoCivil || "Solteiro(a)");
+    setProfissao(loc.profissao || "");
+    setNacionalidade(loc.nacionalidade || "Brasileiro(a)");
     setCpfValid(validateCPF(loc.cpf || ""));
     setErrorMsg("");
     setShowModal(true);
@@ -103,6 +112,9 @@ export default function LocatariosPage() {
           email,
           telefone,
           endereco,
+          estadoCivil,
+          profissao,
+          nacionalidade,
         }),
       });
 
@@ -180,6 +192,9 @@ export default function LocatariosPage() {
                       <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-200">
                         {loc.nome}
                         <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400">{loc.email || "Sem e-mail"}</span>
+                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                          {loc.nacionalidade || "Brasileiro(a)"} • {loc.estadoCivil || "Solteiro(a)"}{loc.profissao ? ` • ${loc.profissao}` : ""}
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 font-mono">
                         {loc.cpf}
@@ -308,6 +323,51 @@ export default function LocatariosPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="locatario@email.com"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Estado Civil
+                    </label>
+                    <select
+                      value={estadoCivil}
+                      onChange={(e) => setEstadoCivil(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+                    >
+                      <option value="Solteiro(a)">Solteiro(a)</option>
+                      <option value="Casado(a)">Casado(a)</option>
+                      <option value="Divorciado(a)">Divorciado(a)</option>
+                      <option value="Viúvo(a)">Viúvo(a)</option>
+                      <option value="União Estável">União Estável</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Profissão
+                    </label>
+                    <input
+                      type="text"
+                      value={profissao}
+                      onChange={(e) => setProfissao(e.target.value)}
+                      placeholder="ex: Advogado(a)"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Nacionalidade
+                    </label>
+                    <input
+                      type="text"
+                      value={nacionalidade}
+                      onChange={(e) => setNacionalidade(e.target.value)}
+                      placeholder="ex: Brasileiro(a)"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
                     />
                   </div>

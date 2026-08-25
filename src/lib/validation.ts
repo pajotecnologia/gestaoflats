@@ -233,6 +233,21 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "endereco_locatario": locatario.endereco || "",
     "endereco": locatario.endereco || "",
 
+    "locatario.estadoCivil": locatario.estadoCivil || "Solteiro(a)",
+    "locatario_estado_civil": locatario.estadoCivil || "Solteiro(a)",
+    "estado_civil": locatario.estadoCivil || "Solteiro(a)",
+
+    "locatario.profissao": locatario.profissao || "",
+    "locatario_profissao": locatario.profissao || "",
+    "profissao": locatario.profissao || "",
+
+    "locatario.nacionalidade": locatario.nacionalidade || "Brasileiro(a)",
+    "locatario_nacionalidade": locatario.nacionalidade || "Brasileiro(a)",
+    "nacionalidade": locatario.nacionalidade || "Brasileiro(a)",
+
+    "locatario.qualificacaoCompleta": `${locatario.nome || ""}${locatario.nacionalidade ? `, ${locatario.nacionalidade.toLowerCase()}` : ""}${locatario.estadoCivil ? `, ${locatario.estadoCivil.toLowerCase()}` : ""}${locatario.profissao ? `, ${locatario.profissao.toLowerCase()}` : ""}${locatario.cpf ? `, inscrito(a) no CPF sob o nº ${locatario.cpf}` : ""}${locatario.rg ? `, portador(a) do RG nº ${locatario.rg}` : ""}${locatario.endereco ? `, residente e domiciliado(a) em ${locatario.endereco}` : ""}`,
+    "qualificacao_completa": `${locatario.nome || ""}${locatario.nacionalidade ? `, ${locatario.nacionalidade.toLowerCase()}` : ""}${locatario.estadoCivil ? `, ${locatario.estadoCivil.toLowerCase()}` : ""}${locatario.profissao ? `, ${locatario.profissao.toLowerCase()}` : ""}${locatario.cpf ? `, inscrito(a) no CPF sob o nº ${locatario.cpf}` : ""}${locatario.rg ? `, portador(a) do RG nº ${locatario.rg}` : ""}${locatario.endereco ? `, residente e domiciliado(a) em ${locatario.endereco}` : ""}`,
+
     // IMÓVEL / FLAT / CONDOMÍNIO
     "flat.numero": flat.numero ? String(flat.numero) : "",
     "flat_numero": flat.numero ? String(flat.numero) : "",

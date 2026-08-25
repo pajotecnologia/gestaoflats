@@ -83,6 +83,9 @@ model Locatario {
   email          String?
   telefone       String
   endereco       String?
+  estadoCivil    String?
+  profissao      String?
+  nacionalidade  String?        @default("Brasileiro(a)")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { nome, cpf, rg, dataNascimento, email, telefone, endereco } = await request.json();
+    const { nome, cpf, rg, dataNascimento, email, telefone, endereco, estadoCivil, profissao, nacionalidade } = await request.json();
 
     const cpfFormatado = formatCPF(cpf);
     if (!validateCPF(cpfFormatado)) {
@@ -62,6 +62,9 @@ export async function POST(request: NextRequest) {
         email,
         telefone,
         endereco,
+        estadoCivil: estadoCivil || null,
+        profissao: profissao || null,
+        nacionalidade: nacionalidade || "Brasileiro(a)",
       },
     });
 
@@ -78,7 +81,7 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { id, nome, cpf, rg, dataNascimento, email, telefone, endereco } = await request.json();
+    const { id, nome, cpf, rg, dataNascimento, email, telefone, endereco, estadoCivil, profissao, nacionalidade } = await request.json();
 
     if (!id) {
       return NextResponse.json({ error: "ID do locatário é obrigatório." }, { status: 400 });
@@ -99,6 +102,9 @@ export async function PUT(request: NextRequest) {
         email,
         telefone,
         endereco,
+        estadoCivil: estadoCivil || null,
+        profissao: profissao || null,
+        nacionalidade: nacionalidade || "Brasileiro(a)",
       },
     });
 
