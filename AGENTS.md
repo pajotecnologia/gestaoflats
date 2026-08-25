@@ -176,9 +176,14 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 
 ## 11. Estabilidade do Editor de Contratos e Cor de Texto Preta Mandatória
 
-- **Prevenção do Pulo de Cursor ao Digitar (`isTypingRef`)**:
-  - No editor visual de modelos de contrato (`src/app/contratos/modelos/page.tsx`), o elemento `contentEditable` **NÃO deve utilizar `dangerouslySetInnerHTML={{ __html: conteudoHtml }}`** durante a digitação ativa.
-  - A sincronização do `editorRef.current.innerHTML` deve ser realizada usando a flag de digitação (`isTypingRef.current = true` em `onFocus` e `onInput`, e `false` em `onBlur` ou ao carregar modelos/tags). Isso impede que o React recrie a estrutura interna da folha e jogue o cursor para o topo a cada caractere digitado.
+- **Arquitetura Não-Controlada sem Pulo de Cursor**:
+  - No editor visual de modelos de contrato (`src/app/contratos/modelos/page.tsx`), a folha A4 em `contentEditable` opera de forma **100% não-controlada pelo React durante a digitação**.
+  - **NÃO** deve haver `setConteudoHtml` no evento `onInput` / `onKeyUp`. A leitura de `editorRef.current.innerHTML` só é realizada nas ações explicítas de salvar (`handleSave`), alternar para pré-visualização (`handleTogglePreview`) ou carregar um novo modelo.
+  - Isso garante zero re-renders do React enquanto o usuário digita, eliminando 100% o pulo de cursor ou perda de foco.
+
+- **Drag & Drop Nativo de Tags**:
+  - As tags da caixa de ferramentas possuem suporte a arrastar com o mouse e soltar diretamente no local desejado da folha A4.
+  - O manipulador `handleDropTag` utiliza `document.caretRangeFromPoint(e.clientX, e.clientY)` para identificar a posição exata sob a ponta do cursor do mouse no momento da soltura e insere o nó `<strong>{{tag}}</strong>` naquela posição.
 
 - **Cor de Texto em Preto Puro (`color: #000000`)**:
   - Todos os modelos de contrato, títulos (`<h2>`, `<h3>`), parágrafos (`<p>`) e tabelas no editor e na folha A4 utilizam obrigatoriamente a cor **Preto Puro (`color: #000000; text-black`)**.

@@ -20,36 +20,24 @@ import {
   AlignJustify,
   List,
   ListOrdered,
-  Heading1,
-  Heading2,
   FileText,
-  Printer,
-  Sparkles,
-  Type,
-  Layout,
-  Scissors,
-  Copy,
-  Check,
   Plus,
   Trash2,
   GripVertical,
   Move,
-  User,
-  Home,
-  Building,
-  Layers,
   Search,
-  ChevronDown,
-  ChevronUp,
+  Check,
+  RotateCcw,
 } from "lucide-react";
 
 export default function ModelosContratoPage() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [titulo, setTitulo] = useState("");
+  const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
 
   const defaultContentHtml = `<h2 style="text-align: center; color: #000000; font-family: Arial, sans-serif; font-weight: bold;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
 <p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa.nomeFantasia}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario.nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{locatario.cpf}}</strong>.</p>
-<hr style="border-top: 1px solid #000000;" />
+<hr style="border: 0; border-top: 1px solid #000000; margin: 15px 0;" />
 <p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA PRIMEIRA - DO OBJETO:</strong> O imóvel objeto desta locação é o <strong>Flat nº {{flat.numero}}</strong> do <strong>{{local.nome}}</strong>, totalmente mobiliado, decorado e equipado com todos os utensílios conforme laudo de vistoria.</p>
 <p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO:</strong> O aluguel mensal ajustado é de <strong>{{contrato.valorMensal}}</strong> ({{contrato.valorExtenso}}), devendo ser pago impreterivelmente até a data de vencimento de cada mês de vigência.</p>
 <p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA TERCEIRA - DA VIGÊNCIA:</strong> O contrato vigorará pelo período de <strong>{{contrato.validadeMeses}}</strong>, com início em <strong>{{contrato.dataEmissao}}</strong> e término previsto para <strong>{{contrato.dataFinal}}</strong>.</p>
@@ -61,40 +49,67 @@ export default function ModelosContratoPage() {
   </tr>
 </table>`;
 
-  const [conteudoHtml, setConteudoHtml] = useState(defaultContentHtml);
-  const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
-
   const [activeWordTab, setActiveWordTab] = useState<"inicio" | "inserir" | "layout">("inicio");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeViewMode, setActiveViewMode] = useState<"editor" | "preview">("editor");
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [wordCount, setWordCount] = useState(0);
+  const [previewHtmlContent, setPreviewHtmlContent] = useState("");
 
   const editorRef = useRef<HTMLDivElement>(null);
-  const isTypingRef = useRef(false);
 
-  // Sincroniza o innerHTML do editor visual APENAS quando o conteúdo mudar por carregamento de modelo ou clique em tag (não durante a digitação)
-  useEffect(() => {
-    if (editorRef.current && !isTypingRef.current) {
-      if (editorRef.current.innerHTML !== conteudoHtml) {
-        editorRef.current.innerHTML = conteudoHtml;
-      }
+  // Carregar modelos do banco de dados
+  const loadModelos = async () => {
+    try {
+      const res = await fetch("/api/modelos-contrato");
+      const data = await res.json();
+      setModelos(data.modelos || []);
+    } catch (err) {
+      console.error("Erro ao carregar modelos:", err);
     }
-  }, [conteudoHtml]);
+  };
+
+  useEffect(() => {
+    loadModelos();
+  }, []);
+
+  // Preencher o editor na montagem inicial ou quando mudar de modelo
+  const setEditorHtml = (htmlContent: string) => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = htmlContent;
+      updateWordCount();
+    }
+  };
+
+  useEffect(() => {
+    // Sincronização inicial no editor
+    if (editorRef.current && !editorRef.current.innerHTML.trim()) {
+      editorRef.current.innerHTML = defaultContentHtml;
+      updateWordCount();
+    }
+  }, []);
+
+  const updateWordCount = () => {
+    if (editorRef.current) {
+      const text = editorRef.current.innerText || "";
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      setWordCount(words.length);
+    }
+  };
 
   const handleSelectModelo = (mod: any) => {
-    isTypingRef.current = false;
     setSelectedModeloId(mod.id);
     setTitulo(mod.titulo);
-    setConteudoHtml(mod.conteudoHtml);
+    setEditorHtml(mod.conteudoHtml || defaultContentHtml);
+    setFeedback(`📄 Modelo "${mod.titulo}" carregado no editor!`);
   };
 
   const handleNovoModelo = () => {
-    isTypingRef.current = false;
     setSelectedModeloId(null);
     setTitulo("");
-    setConteudoHtml(defaultContentHtml);
+    setEditorHtml(defaultContentHtml);
+    setFeedback("✨ Novo modelo em branco pronto para edição.");
   };
 
   const handleDeleteModelo = async (id: string, e: React.MouseEvent) => {
@@ -120,62 +135,164 @@ export default function ModelosContratoPage() {
     }
   };
 
-  const loadModelos = async () => {
-    try {
-      const res = await fetch("/api/modelos-contrato");
-      const data = await res.json();
-      setModelos(data.modelos || []);
-    } catch (err) {
-      console.error(err);
+  const execCmd = (command: string, value: string = "") => {
+    if (editorRef.current) {
+      editorRef.current.focus();
     }
+    document.execCommand(command, false, value);
+    updateWordCount();
   };
 
-  useEffect(() => {
-    loadModelos();
-  }, []);
+  // Arrastar e Soltar (Drag & Drop) de Tags no Editor
+  const handleDragStartTag = (e: React.DragEvent, tag: string) => {
+    e.dataTransfer.setData("text/plain", tag);
+    e.dataTransfer.effectAllowed = "copy";
+  };
 
-  useEffect(() => {
-    // Contar palavras no documento Word
-    const text = conteudoHtml.replace(/<[^>]*>/g, " ");
-    const words = text.trim().split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
-  }, [conteudoHtml]);
+  const handleDropTag = (e: React.DragEvent) => {
+    e.preventDefault();
+    const tag = e.dataTransfer.getData("text/plain");
+    if (!tag || !editorRef.current) return;
 
-  const execCmd = (command: string, value: string = "") => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      setConteudoHtml(editorRef.current.innerHTML);
+    let range: Range | null = null;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    } else if ((e as any).rangeParent) {
+      range = document.createRange();
+      range.setStart((e as any).rangeParent, (e as any).rangeOffset);
+      range.collapse(true);
+    }
+
+    if (range && editorRef.current.contains(range.startContainer)) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+
+      const strongTag = document.createElement("strong");
+      strongTag.style.color = "#000000";
+      strongTag.innerText = ` ${tag} `;
+
+      range.deleteContents();
+      range.insertNode(strongTag);
+
+      range.setStartAfter(strongTag);
+      range.collapse(true);
+
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+
+      updateWordCount();
     }
   };
 
   const handleInsertTag = (tag: string) => {
-    if (activeViewMode !== "editor") return;
-    isTypingRef.current = false;
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0 && editorRef.current && editorRef.current.contains(sel.anchorNode)) {
-      execCmd("insertHTML", ` <strong>${tag}</strong> `);
+    if (sel && sel.rangeCount > 0 && editorRef.current.contains(sel.anchorNode)) {
+      execCmd("insertHTML", `<strong style="color:#000000;"> ${tag} </strong>`);
     } else {
-      setConteudoHtml((prev) => prev + ` <strong>${tag}</strong> `);
+      editorRef.current.innerHTML += `<p style="line-height:1.6; color:#000000;"><strong style="color:#000000;">${tag}</strong></p>`;
+    }
+    updateWordCount();
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const currentHtml = editorRef.current ? editorRef.current.innerHTML : "";
+
+    if (!titulo.trim()) {
+      setFeedback("⚠️ Por favor, informe um Título para o modelo de contrato.");
+      return;
+    }
+
+    if (!currentHtml.trim()) {
+      setFeedback("⚠️ O conteúdo do contrato não pode estar vazio.");
+      return;
+    }
+
+    setSaving(true);
+    setFeedback("");
+
+    try {
+      const res = await fetch("/api/modelos-contrato", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedModeloId, titulo: titulo.trim(), conteudoHtml: currentHtml }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setFeedback(`❌ Erro ao salvar: ${data.error}`);
+      } else {
+        setFeedback("✅ Modelo de contrato salvo com sucesso!");
+        if (data.modelo?.id) {
+          setSelectedModeloId(data.modelo.id);
+        }
+        loadModelos();
+      }
+    } catch (err) {
+      setFeedback("❌ Erro ao conectar ao servidor.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTogglePreview = () => {
+    if (activeViewMode === "editor") {
+      const currentHtml = editorRef.current ? editorRef.current.innerHTML : defaultContentHtml;
+      const mockContrato = {
+        id: "CTR-2026-001",
+        valorMensal: 2500,
+        validadeMeses: 12,
+        dataEmissao: new Date(),
+        dataFinal: new Date(Date.now() + 365 * 86400000),
+        status: "ATIVO",
+        statusAssinatura: "ASSINADO",
+        dataAssinaturaLocatario: new Date(),
+        ipAssinaturaLocatario: "191.243.216.169",
+        locatario: {
+          nome: "Dra. Mariana Silva Ribeiro",
+          cpf: "746.926.314-49",
+          rg: "9.876.543 SSP/PE",
+          dataNascimento: "15/04/1988",
+          email: "mariana.ribeiro@email.com",
+          telefone: "(87) 99654-0551",
+          endereco: "Av. Boa Viagem, 1500, Apt 101, Recife - PE",
+        },
+        flat: {
+          numero: "101",
+          status: "DISPONIVEL",
+          descricao: "Flat vista para o mar totalmente mobiliado",
+          valorPadrao: 2500,
+          local: {
+            nome: "Condomínio Edifício Mar Azul",
+            endereco: "Av. Beira Mar, 100, Recife - PE",
+          },
+        },
+        empresa: {
+          nomeFantasia: "Residencial & Flats Prime",
+          razaoSocial: "Prime Gestão e Empreendimentos LTDA",
+          cnpj: "12.345.678/0001-90",
+          telefone: "(81) 3344-5566",
+          email: "contato@primegestao.com.br",
+          endereco: "Rua do Imperador, 250, Recife - PE",
+        },
+      };
+      setPreviewHtmlContent(replaceContractVariables(currentHtml, mockContrato));
+      setActiveViewMode("preview");
+    } else {
+      setActiveViewMode("editor");
     }
   };
 
   const [selectedTagCategory, setSelectedTagCategory] = useState<string>("TODAS");
   const [tagSearchQuery, setTagSearchQuery] = useState("");
-  const [showTagsPanel, setShowTagsPanel] = useState(true);
-
-  const handleDragStartTag = (e: React.DragEvent, tag: string) => {
-    e.dataTransfer.setData("text/plain", tag);
-    e.dataTransfer.setData("text/html", ` <strong>${tag}</strong> `);
-    e.dataTransfer.effectAllowed = "copy";
-  };
-
-  const handleDropEditor = () => {
-    setTimeout(() => {
-      if (editorRef.current) {
-        setConteudoHtml(editorRef.current.innerHTML);
-      }
-    }, 50);
-  };
 
   const tagsCategorizadas = [
     {
@@ -235,102 +352,6 @@ export default function ModelosContratoPage() {
     },
   ];
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!titulo || !conteudoHtml) return;
-
-    setSaving(true);
-    setFeedback("");
-
-    try {
-      const res = await fetch("/api/modelos-contrato", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedModeloId, titulo, conteudoHtml }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setFeedback(`❌ Erro: ${data.error}`);
-      } else {
-        setFeedback("✅ Modelo de contrato salvo com sucesso!");
-        if (data.modelo?.id) {
-          setSelectedModeloId(data.modelo.id);
-        }
-        loadModelos();
-      }
-    } catch (err) {
-      setFeedback("❌ Erro ao conectar ao servidor.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getPreviewHtml = () => {
-    const mockContrato = {
-      id: "CTR-2026-001",
-      valorMensal: 2500,
-      validadeMeses: 12,
-      dataEmissao: new Date(),
-      dataFinal: new Date(Date.now() + 365 * 86400000),
-      status: "ATIVO",
-      statusAssinatura: "ASSINADO",
-      dataAssinaturaLocatario: new Date(),
-      ipAssinaturaLocatario: "187.54.21.90",
-      locatario: {
-        nome: "Dra. Mariana Silva Ribeiro",
-        cpf: "123.456.789-00",
-        rg: "9.876.543 SSP/PE",
-        dataNascimento: "15/04/1988",
-        email: "mariana.ribeiro@email.com",
-        telefone: "(87) 99654-0551",
-        endereco: "Av. Boa Viagem, 1500, Apt 101, Recife - PE",
-      },
-      flat: {
-        numero: "101",
-        status: "DISPONIVEL",
-        descricao: "Flat vista para o mar totalmente mobiliado",
-        valorPadrao: 2500,
-        local: {
-          nome: "Condomínio Edifício Mar Azul",
-          endereco: "Av. Beira Mar, 100, Recife - PE",
-        },
-      },
-      empresa: {
-        nomeFantasia: "Prime Gestão Imobiliária",
-        razaoSocial: "Prime Gestão e Empreendimentos LTDA",
-        cnpj: "12.345.678/0001-90",
-        telefone: "(81) 3344-5566",
-        email: "contato@primegestao.com.br",
-        endereco: "Rua do Imperador, 250, Recife - PE",
-      },
-    };
-    return replaceContractVariables(conteudoHtml, mockContrato);
-  };
-
-  const tagsDisponiveis = [
-    // Locatário
-    { label: "Nome Locatário", tag: "{{locatario.nome}}" },
-    { label: "CPF Locatário", tag: "{{locatario.cpf}}" },
-    { label: "RG Locatário", tag: "{{locatario.rg}}" },
-    { label: "Tel/WhatsApp", tag: "{{locatario.telefone}}" },
-    { label: "E-mail Locatário", tag: "{{locatario.email}}" },
-    { label: "Endereço Locatário", tag: "{{locatario.endereco}}" },
-    // Imóvel / Flat
-    { label: "Nº Flat", tag: "{{flat.numero}}" },
-    { label: "Nome Condomínio", tag: "{{local.nome}}" },
-    { label: "Endereço Condomínio", tag: "{{local.endereco}}" },
-    // Contrato / Gestão
-    { label: "Valor Mensal (R$)", tag: "{{contrato.valorMensal}}" },
-    { label: "Valor Extenso", tag: "{{contrato.valorExtenso}}" },
-    { label: "Vigência (Meses)", tag: "{{contrato.validadeMeses}}" },
-    { label: "Data Início", tag: "{{contrato.dataEmissao}}" },
-    { label: "Data Término", tag: "{{contrato.dataFinal}}" },
-    // Empresa
-    { label: "Nome Empresa", tag: "{{empresa.nomeFantasia}}" },
-    { label: "CNPJ Empresa", tag: "{{empresa.cnpj}}" },
-  ];
-
   return (
     <Shell>
       <div className={`space-y-4 ${isFullscreen ? "fixed inset-0 z-50 bg-slate-100 dark:bg-slate-950 p-4 overflow-y-auto" : ""}`}>
@@ -344,11 +365,11 @@ export default function ModelosContratoPage() {
               <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
                 <span>Editor de Contratos Word</span>
                 <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
-                  Word Layout A4
+                  Word Layout A4 (Preto Puro)
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Edição visual avançada estilo Microsoft Word com suporte a tags dinâmicas
+                Editor nativo e fluido: digitação contínua em texto preto com suporte a arrastar e soltar tags
               </p>
             </div>
           </div>
@@ -374,8 +395,9 @@ export default function ModelosContratoPage() {
         </div>
 
         {feedback && (
-          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-sm">
-            {feedback}
+          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-sm flex items-center justify-between">
+            <span>{feedback}</span>
+            <button onClick={() => setFeedback("")} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
           </div>
         )}
 
@@ -401,7 +423,7 @@ export default function ModelosContratoPage() {
 
           {modelos.length === 0 ? (
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-              Nenhum modelo de contrato salvo ainda. Digite o título e conteúdo abaixo e clique em <strong>Salvar Documento</strong>.
+              Nenhum modelo de contrato salvo ainda. Digite o título e o texto abaixo na folha A4 e clique em <strong>Salvar Documento</strong>.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -480,7 +502,7 @@ export default function ModelosContratoPage() {
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
                 }`}
               >
-                Início (Página Inicial)
+                Início (Formatação)
               </button>
               <button
                 onClick={() => setActiveWordTab("inserir")}
@@ -490,7 +512,7 @@ export default function ModelosContratoPage() {
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
                 }`}
               >
-                Inserir Tags & Tabelas
+                Inserir Tags (Arrastar & Soltar)
               </button>
               <button
                 onClick={() => setActiveWordTab("layout")}
@@ -507,24 +529,24 @@ export default function ModelosContratoPage() {
             <div className="flex items-center space-x-1 pb-1">
               <button
                 onClick={() => setActiveViewMode("editor")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
                   activeViewMode === "editor"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                 }`}
               >
-                Modo Edição
+                Modo Edição (A4)
               </button>
               <button
-                onClick={() => setActiveViewMode("preview")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 ${
+                onClick={handleTogglePreview}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
                   activeViewMode === "preview"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Pré-Visualização</span>
+                <span>Pré-Visualização Real</span>
               </button>
             </div>
           </div>
@@ -650,7 +672,7 @@ export default function ModelosContratoPage() {
                   <div className="flex items-center space-x-2">
                     <Move className="w-4 h-4 text-blue-600 animate-pulse" />
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Caixa de Ferramentas de Tags (Arraste para soltar na folha A4 ou clique para inserir no cursor):
+                      Arraste com o mouse qualquer tag abaixo e solte diretamente em qualquer local do texto A4:
                     </span>
                   </div>
 
@@ -726,7 +748,7 @@ export default function ModelosContratoPage() {
                   </div>
                 </div>
 
-                {/* Grade de Tags Organizadas com visualização da sintaxe */}
+                {/* Grade de Tags Organizadas com suporte a Arrastar & Soltar */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {tagsCategorizadas
                     .filter((cat) => selectedTagCategory === "TODAS" || cat.id === selectedTagCategory)
@@ -759,7 +781,7 @@ export default function ModelosContratoPage() {
                                 onDragStart={(e) => handleDragStartTag(e, item.tag)}
                                 onClick={() => handleInsertTag(item.tag)}
                                 className="group p-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/60 border border-slate-200/80 dark:border-slate-800 transition cursor-grab active:cursor-grabbing flex items-center justify-between shadow-sm hover:shadow hover:border-blue-300 dark:hover:border-blue-700 select-none"
-                                title="Arraste para soltar no texto da folha A4 ou clique para inserir no cursor"
+                                title="Arraste para soltar no local desejado da folha A4 ou clique para inserir no cursor"
                               >
                                 <div className="flex items-center space-x-2 overflow-hidden">
                                   <GripVertical className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition flex-shrink-0" />
@@ -788,15 +810,16 @@ export default function ModelosContratoPage() {
                 <span className="font-semibold">Formato do Papel: A4 (210mm x 297mm)</span>
                 <span>Margens: Padrão 2.5cm</span>
                 <span>Orientação: Retrato</span>
+                <span>Cor do Texto: Preto Puro (#000000)</span>
               </div>
             )}
           </div>
 
-          {/* FOLHA A4 DO WORD (CANVAS DO DOCUMENTO) */}
+          {/* FOLHA A4 DO WORD (CANVAS UNCONTROLLED SEM RE-RENDERS QUE FAZEM O CURSOR PULAR) */}
           <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[700px]">
             {activeViewMode === "editor" ? (
               <div
-                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black text-slate-900 p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative"
+                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative"
                 style={{ color: "#000000" }}
               >
                 {/* Régua superior simulada do Word */}
@@ -808,38 +831,27 @@ export default function ModelosContratoPage() {
                   <span>21cm</span>
                 </div>
 
+                {/* Editor Não-Controlado nativo: Zero re-renders do React durante a digitação */}
                 <div
                   ref={editorRef}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onFocus={() => {
-                    isTypingRef.current = true;
-                  }}
-                  onBlur={() => {
-                    isTypingRef.current = false;
-                    if (editorRef.current) {
-                      setConteudoHtml(editorRef.current.innerHTML);
-                    }
-                  }}
-                  onInput={(e) => {
-                    isTypingRef.current = true;
-                    setConteudoHtml(e.currentTarget.innerHTML);
-                  }}
-                  onDrop={() => {
-                    isTypingRef.current = false;
-                    handleDropEditor();
-                  }}
+                  contentEditable={true}
+                  suppressContentEditableWarning={true}
+                  onKeyUp={updateWordCount}
+                  onDrop={handleDropTag}
                   onDragOver={(e) => e.preventDefault()}
-                  className="mt-4 focus:outline-none min-h-[900px] text-black text-slate-900"
+                  className="mt-4 focus:outline-none min-h-[900px] text-black"
                   style={{ color: "#000000" }}
                 />
               </div>
             ) : (
               <div
-                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black text-slate-900 p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed"
+                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed"
                 style={{ color: "#000000" }}
               >
-                <div dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} style={{ color: "#000000" }} />
+                <div
+                  dangerouslySetInnerHTML={{ __html: previewHtmlContent }}
+                  style={{ color: "#000000" }}
+                />
               </div>
             )}
           </div>
@@ -852,7 +864,7 @@ export default function ModelosContratoPage() {
               <span>Português (Brasil)</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span>Layout de Impressão</span>
+              <span>Layout de Impressão A4</span>
               <span>100%</span>
             </div>
           </div>
