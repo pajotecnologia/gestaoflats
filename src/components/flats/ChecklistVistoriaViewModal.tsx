@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { generateChecklistPDF, getChecklistPDFBase64, ChecklistItem } from "@/lib/checklistPdfGenerator";
 import { getAppBaseUrl } from "@/lib/baseUrl";
+import { getMediaUrl } from "@/lib/media";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -287,7 +288,7 @@ export default function ChecklistVistoriaViewModal({
                             className="relative group w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 shadow-sm transition hover:scale-105 hover:border-blue-500"
                             title="Clique para ampliar foto em alta resolução"
                           >
-                            <img src={fotoUrl} alt={`Foto ${fotoIdx + 1}`} className="w-full h-full object-cover" />
+                            <img src={getMediaUrl(fotoUrl)} alt={`Foto ${fotoIdx + 1}`} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
                               <ExternalLink className="w-4 h-4" />
                             </div>

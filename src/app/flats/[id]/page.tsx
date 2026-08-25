@@ -5,6 +5,7 @@ import Shell from "@/components/layout/Shell";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
 import ChecklistVistoriaViewModal from "@/components/flats/ChecklistVistoriaViewModal";
 import { formatCurrency } from "@/lib/validation";
+import { getMediaUrl } from "@/lib/media";
 import {
   Building2,
   Building,
@@ -214,7 +215,7 @@ export default function FlatDetailPage({ params }: { params: { id: string } }) {
               {fotosList.length > 0 ? (
                 <div className="relative rounded-xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 dark:border-slate-800">
                   <img
-                    src={fotosList[selectedPhotoIndex] || fotosList[0]}
+                    src={getMediaUrl(fotosList[selectedPhotoIndex] || fotosList[0])}
                     alt={`Foto ${selectedPhotoIndex + 1}`}
                     className="w-full h-full object-cover"
                   />
@@ -261,7 +262,7 @@ export default function FlatDetailPage({ params }: { params: { id: string } }) {
                           : "border-transparent opacity-60 hover:opacity-100"
                       }`}
                     >
-                      <img src={url} alt="Miniatura" className="w-full h-full object-cover" />
+                      <img src={getMediaUrl(url)} alt="Miniatura" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

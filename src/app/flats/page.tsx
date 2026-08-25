@@ -5,6 +5,7 @@ import Shell from "@/components/layout/Shell";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
 import ChecklistVistoriaViewModal from "@/components/flats/ChecklistVistoriaViewModal";
 import { formatCurrency } from "@/lib/validation";
+import { getMediaUrl } from "@/lib/media";
 import {
   Building2,
   Plus,
@@ -359,7 +360,7 @@ export default function FlatsPage() {
                           <div className="relative h-40 bg-slate-200 dark:bg-slate-900 overflow-hidden group">
                             {fotoCapa ? (
                               <img
-                                src={fotoCapa}
+                                src={getMediaUrl(fotoCapa)}
                                 alt={`Foto ${flat.numero}`}
                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-300 cursor-pointer"
                                 onClick={() => handleOpenDetailModal(flat)}
@@ -532,7 +533,7 @@ export default function FlatsPage() {
                       <div className="space-y-2">
                         <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-video flex items-center justify-center border border-slate-200 dark:border-slate-800 shadow-inner">
                           <img
-                            src={fotos[detailPhotoIndex] || fotos[0]}
+                            src={getMediaUrl(fotos[detailPhotoIndex] || fotos[0])}
                             alt="Foto do Flat"
                             className="w-full h-full object-cover"
                           />
@@ -569,7 +570,7 @@ export default function FlatsPage() {
                                     : "border-transparent opacity-60 hover:opacity-100"
                                 }`}
                               >
-                                <img src={url} alt="Miniatura" className="w-full h-full object-cover" />
+                                <img src={getMediaUrl(url)} alt="Miniatura" className="w-full h-full object-cover" />
                               </button>
                             ))}
                           </div>
@@ -735,7 +736,7 @@ export default function FlatsPage() {
                     {fotosPreview.map((url, i) => (
                       <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square bg-slate-900">
                         <img
-                          src={url}
+                          src={getMediaUrl(url)}
                           alt={`Foto ${i + 1}`}
                           className="w-full h-full object-cover"
                         />

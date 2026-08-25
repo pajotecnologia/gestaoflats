@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { getMediaUrl } from "@/lib/media";
 import {
   LayoutDashboard,
   Building2,
@@ -135,7 +136,7 @@ function ShellContent({ children }: ShellProps) {
         <div className="flex items-center space-x-3 px-2">
           {user?.logomarcaUrl ? (
             <img
-              src={user.logomarcaUrl}
+              src={getMediaUrl(user.logomarcaUrl)}
               alt="Logo"
               className="w-9 h-9 rounded-xl object-cover border border-slate-300 dark:border-slate-700 shadow-sm"
             />
