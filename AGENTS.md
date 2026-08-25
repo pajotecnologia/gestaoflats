@@ -189,3 +189,23 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - Todos os modelos de contrato, títulos (`<h2>`, `<h3>`), parágrafos (`<p>`) e tabelas no editor e na folha A4 utilizam obrigatoriamente a cor **Preto Puro (`color: #000000; text-black`)**.
   - NENHUM cabeçalho ou corpo de texto do modelo de contrato deve ser renderizado em tom de azul.
 
+---
+
+## 12. Procedimento Padrão e Direto de Atualização / Deploy na VPS Linux
+
+- **COMANDO ÚNICO MANDATÓRIO DE DEPLOY NA VPS**:
+  - Para atualizar o sistema em produção na VPS (especificamente a aplicação na pasta `/www/wwwroot/dnyl.pajotech.com.br`), o procedimento **DEVE SER DIRETO** e obrigatoriamente executar a recompilação síncrona da pasta `.next` antes do restart no PM2:
+  ```bash
+  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && npx next build && pm2 restart dnyl
+  ```
+
+- **Por que esta Ordem é Obrigatória e Imperativa**:
+  1. `git fetch origin master && git reset --hard origin/master`: Atualiza o código fonte do repositório no disco.
+  2. `npx next build`: Recompila síncronamente todos os arquivos do Next.js gerando o novo `BUILD_ID` e atualizando os pacotes estáticos. **JAMAIS** reiniciar o PM2 antes da conclusão do `next build` para evitar erros de 502 Bad Gateway e `production-start-no-build-id`.
+  3. `pm2 restart dnyl`: Recarrega o processo `dnyl` na porta 3010 com a build de produção totalmente pronta.
+
+- **Controle de Versão do Sistema (`src/lib/version.ts`)**:
+  - Em cada nova funcionalidade ou atualização enviada, a constante `SYSTEM_VERSION` em `src/lib/version.ts` e no `package.json` deve ser incrementada (ex: `v1.10`, `v1.11`, `v1.12`).
+  - O indicador de versão `🟢 Versão: X.XX` deve permanecer exibido tanto no cartão da tela de login (`src/app/login/page.tsx`) quanto no topo das páginas internas (`src/components/layout/Shell.tsx`), garantindo a confirmação visual imediata de deploy bem-sucedido.
+
+
