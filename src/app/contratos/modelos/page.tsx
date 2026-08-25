@@ -46,37 +46,23 @@ import {
 export default function ModelosContratoPage() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [titulo, setTitulo] = useState("");
-  const [conteudoHtml, setConteudoHtml] = useState(
-    `<h2 style="text-align: center; color: #1e3a8a; font-family: Arial, sans-serif;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
-<p style="text-align: justify; line-height: 1.6;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa_nome}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario_nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{cpf}}</strong>.</p>
-<hr />
-<p style="line-height: 1.6;"><strong>CLÁUSULA PRIMEIRA - DO OBJETO:</strong> O imóvel objeto desta locação é o <strong>Flat nº {{flat_numero}}</strong>, totalmente mobiliado, decorado e equipado com todos os utensílios conforme laudo de vistoria.</p>
-<p style="line-height: 1.6;"><strong>CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO:</strong> O aluguel mensal ajustado é de <strong>{{valor_mensal}}</strong>, devendo ser pago impreterivelmente até a data de vencimento de cada mês de vigência.</p>
-<p style="line-height: 1.6;"><strong>CLÁUSULA TERCEIRA - DA VIGÊNCIA:</strong> O contrato vigorará a partir da data de assinatura, com término previsto para <strong>{{data_fim}}</strong>.</p>
-<br/><br/>
-<table style="width: 100%; margin-top: 40px; text-align: center;">
-  <tr>
-    <td style="width: 50%;">___________________________________<br/><strong>{{empresa_nome}}</strong><br/>Locadora</td>
-    <td style="width: 50%;">___________________________________<br/><strong>{{locatario_nome}}</strong><br/>Locatário(a)</td>
-  </tr>
-</table>`
-  );
 
-  const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
-
-  const defaultContentHtml = `<h2 style="text-align: center; color: #1e3a8a; font-family: Arial, sans-serif;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
-<p style="text-align: justify; line-height: 1.6;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa.nomeFantasia}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario.nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{locatario.cpf}}</strong>.</p>
-<hr />
-<p style="line-height: 1.6;"><strong>CLÁUSULA PRIMEIRA - DO OBJETO:</strong> O imóvel objeto desta locação é o <strong>Flat nº {{flat.numero}}</strong> do <strong>{{local.nome}}</strong>, totalmente mobiliado, decorado e equipado com todos os utensílios conforme laudo de vistoria.</p>
-<p style="line-height: 1.6;"><strong>CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO:</strong> O aluguel mensal ajustado é de <strong>{{contrato.valorMensal}}</strong> ({{contrato.valorExtenso}}), devendo ser pago impreterivelmente até a data de vencimento de cada mês de vigência.</p>
-<p style="line-height: 1.6;"><strong>CLÁUSULA TERCEIRA - DA VIGÊNCIA:</strong> O contrato vigorará pelo período de <strong>{{contrato.validadeMeses}}</strong>, com início em <strong>{{contrato.dataEmissao}}</strong> e término previsto para <strong>{{contrato.dataFinal}}</strong>.</p>
+  const defaultContentHtml = `<h2 style="text-align: center; color: #000000; font-family: Arial, sans-serif; font-weight: bold;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
+<p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa.nomeFantasia}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario.nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{locatario.cpf}}</strong>.</p>
+<hr style="border-top: 1px solid #000000;" />
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA PRIMEIRA - DO OBJETO:</strong> O imóvel objeto desta locação é o <strong>Flat nº {{flat.numero}}</strong> do <strong>{{local.nome}}</strong>, totalmente mobiliado, decorado e equipado com todos os utensílios conforme laudo de vistoria.</p>
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO:</strong> O aluguel mensal ajustado é de <strong>{{contrato.valorMensal}}</strong> ({{contrato.valorExtenso}}), devendo ser pago impreterivelmente até a data de vencimento de cada mês de vigência.</p>
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA TERCEIRA - DA VIGÊNCIA:</strong> O contrato vigorará pelo período de <strong>{{contrato.validadeMeses}}</strong>, com início em <strong>{{contrato.dataEmissao}}</strong> e término previsto para <strong>{{contrato.dataFinal}}</strong>.</p>
 <br/><br/>
-<table style="width: 100%; margin-top: 40px; text-align: center;">
+<table style="width: 100%; margin-top: 40px; text-align: center; color: #000000; font-family: Arial, sans-serif;">
   <tr>
-    <td style="width: 50%;">___________________________________<br/><strong>{{empresa.nomeFantasia}}</strong><br/>Locadora</td>
-    <td style="width: 50%;">___________________________________<br/><strong>{{locatario.nome}}</strong><br/>Locatário(a)</td>
+    <td style="width: 50%; color: #000000;">___________________________________<br/><strong>{{empresa.nomeFantasia}}</strong><br/>Locadora</td>
+    <td style="width: 50%; color: #000000;">___________________________________<br/><strong>{{locatario.nome}}</strong><br/>Locatário(a)</td>
   </tr>
 </table>`;
+
+  const [conteudoHtml, setConteudoHtml] = useState(defaultContentHtml);
+  const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
 
   const [activeWordTab, setActiveWordTab] = useState<"inicio" | "inserir" | "layout">("inicio");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -86,14 +72,26 @@ export default function ModelosContratoPage() {
   const [wordCount, setWordCount] = useState(0);
 
   const editorRef = useRef<HTMLDivElement>(null);
+  const isTypingRef = useRef(false);
+
+  // Sincroniza o innerHTML do editor visual APENAS quando o conteúdo mudar por carregamento de modelo ou clique em tag (não durante a digitação)
+  useEffect(() => {
+    if (editorRef.current && !isTypingRef.current) {
+      if (editorRef.current.innerHTML !== conteudoHtml) {
+        editorRef.current.innerHTML = conteudoHtml;
+      }
+    }
+  }, [conteudoHtml]);
 
   const handleSelectModelo = (mod: any) => {
+    isTypingRef.current = false;
     setSelectedModeloId(mod.id);
     setTitulo(mod.titulo);
     setConteudoHtml(mod.conteudoHtml);
   };
 
   const handleNovoModelo = () => {
+    isTypingRef.current = false;
     setSelectedModeloId(null);
     setTitulo("");
     setConteudoHtml(defaultContentHtml);
@@ -152,6 +150,7 @@ export default function ModelosContratoPage() {
 
   const handleInsertTag = (tag: string) => {
     if (activeViewMode !== "editor") return;
+    isTypingRef.current = false;
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0 && editorRef.current && editorRef.current.contains(sel.anchorNode)) {
       execCmd("insertHTML", ` <strong>${tag}</strong> `);
@@ -797,7 +796,8 @@ export default function ModelosContratoPage() {
           <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[700px]">
             {activeViewMode === "editor" ? (
               <div
-                className="w-full max-w-[800px] min-h-[1050px] bg-white text-slate-900 p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative"
+                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black text-slate-900 p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative"
+                style={{ color: "#000000" }}
               >
                 {/* Régua superior simulada do Word */}
                 <div className="absolute top-0 left-0 right-0 h-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-[8px] text-slate-400 px-12 select-none">
@@ -812,16 +812,34 @@ export default function ModelosContratoPage() {
                   ref={editorRef}
                   contentEditable
                   suppressContentEditableWarning
-                  onInput={(e) => setConteudoHtml(e.currentTarget.innerHTML)}
-                  onDrop={handleDropEditor}
+                  onFocus={() => {
+                    isTypingRef.current = true;
+                  }}
+                  onBlur={() => {
+                    isTypingRef.current = false;
+                    if (editorRef.current) {
+                      setConteudoHtml(editorRef.current.innerHTML);
+                    }
+                  }}
+                  onInput={(e) => {
+                    isTypingRef.current = true;
+                    setConteudoHtml(e.currentTarget.innerHTML);
+                  }}
+                  onDrop={() => {
+                    isTypingRef.current = false;
+                    handleDropEditor();
+                  }}
                   onDragOver={(e) => e.preventDefault()}
-                  dangerouslySetInnerHTML={{ __html: conteudoHtml }}
-                  className="mt-4 focus:outline-none min-h-[900px]"
+                  className="mt-4 focus:outline-none min-h-[900px] text-black text-slate-900"
+                  style={{ color: "#000000" }}
                 />
               </div>
             ) : (
-              <div className="w-full max-w-[800px] min-h-[1050px] bg-white text-slate-900 p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed">
-                <div dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
+              <div
+                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black text-slate-900 p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed"
+                style={{ color: "#000000" }}
+              >
+                <div dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} style={{ color: "#000000" }} />
               </div>
             )}
           </div>

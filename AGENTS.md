@@ -172,3 +172,15 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
     `taskkill /F /IM node.exe; Remove-Item -Recurse -Force .next; npm run dev`
   - Esta diretriz garante que os seletores Tailwind CSS e chunks do Webpack permaneçam perfeitamente sincronizados e que o layout jamais seja renderizado sem estilização visual.
 
+---
+
+## 11. Estabilidade do Editor de Contratos e Cor de Texto Preta Mandatória
+
+- **Prevenção do Pulo de Cursor ao Digitar (`isTypingRef`)**:
+  - No editor visual de modelos de contrato (`src/app/contratos/modelos/page.tsx`), o elemento `contentEditable` **NÃO deve utilizar `dangerouslySetInnerHTML={{ __html: conteudoHtml }}`** durante a digitação ativa.
+  - A sincronização do `editorRef.current.innerHTML` deve ser realizada usando a flag de digitação (`isTypingRef.current = true` em `onFocus` e `onInput`, e `false` em `onBlur` ou ao carregar modelos/tags). Isso impede que o React recrie a estrutura interna da folha e jogue o cursor para o topo a cada caractere digitado.
+
+- **Cor de Texto em Preto Puro (`color: #000000`)**:
+  - Todos os modelos de contrato, títulos (`<h2>`, `<h3>`), parágrafos (`<p>`) e tabelas no editor e na folha A4 utilizam obrigatoriamente a cor **Preto Puro (`color: #000000; text-black`)**.
+  - NENHUM cabeçalho ou corpo de texto do modelo de contrato deve ser renderizado em tom de azul.
+
