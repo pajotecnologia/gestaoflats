@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { getMediaUrl } from "@/lib/media";
+import { SYSTEM_VERSION } from "@/lib/version";
 import {
   LayoutDashboard,
   Building2,
@@ -303,6 +304,15 @@ function ShellContent({ children }: ShellProps) {
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
             </button>
+
+            {/* Badge de Versão Atual do Sistema */}
+            <div
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-extrabold text-xs shadow-xs select-none"
+              title="Versão Oficial do Sistema Gestão Flats"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Versão: {SYSTEM_VERSION}</span>
+            </div>
 
             {/* Perfil do Usuário */}
             <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50">
