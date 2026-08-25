@@ -7,9 +7,10 @@
 
 set -e
 
-echo "🚀 [1/6] Configurando diretório seguro e puxando atualizações do GitHub..."
+echo "🚀 [1/6] Configurando diretório seguro e sincronizando com GitHub master..."
 git config --global --add safe.directory "*" 2>/dev/null || true
-git pull origin master
+git fetch origin master
+git reset --hard origin/master
 
 echo "📦 [2/6] Instalando dependências..."
 npm install
@@ -42,17 +43,23 @@ if [ -f "$NGINX_CONF" ]; then
     fi
 fi
 
-echo "🧹 [5.5/6] Limpando caches estáticos do Next.js (.next)..."
+echo "🧹 [5.5/6] Removendo compilação e caches antigos (.next)..."
 rm -rf .next 2>/dev/null || true
 
-echo "🔄 Encerrando processos antigos do Node.js na porta 3010..."
-fuser -k 3010/tcp 2>/dev/null || pkill -f "next-server" 2>/dev/null || true
+echo "🔄 Encerrando processos antigos do Node.js..."
+pkill -9 -f "node" 2>/dev/null || killall -9 node 2>/dev/null || fuser -k 3010/tcp 2>/dev/null || true
 
-echo "🏗️ [6/6] Compilando Next.js (npm run build) e reiniciando a aplicação..."
+echo "🏗️ [6/6] Compilando Next.js em modo produção (npm run build)..."
 npm run build
 
+echo "⚡ Reiniciando a aplicação com PM2 na porta 3010..."
 if command -v pm2 &> /dev/null; then
-    pm2 restart all --force 2>/dev/null || pm2 start npm --name "dnyl" -- start -- -p 3010 || true
+    pm2 delete all 2>/dev/null || true
+    pm2 start npm --name "dnyl" -- start -- -p 3010
+    pm2 save 2>/dev/null || true
+else
+    npx pm2 delete all 2>/dev/null || true
+    npx pm2 start npm --name "dnyl" -- start -- -p 3010
 fi
 
 echo "=============================================================================="
