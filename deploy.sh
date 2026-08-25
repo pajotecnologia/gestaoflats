@@ -42,11 +42,14 @@ if [ -f "$NGINX_CONF" ]; then
     fi
 fi
 
+echo "🧹 Limpando caches estáticos do Next.js..."
+rm -rf .next/cache 2>/dev/null || true
+
 echo "🏗️ [6/6] Compilando Next.js (npm run build) e reiniciando a aplicação..."
 npm run build
 
 if command -v pm2 &> /dev/null; then
-    pm2 restart all 2>/dev/null || pm2 start npm --name "dnyl" -- run start || true
+    pm2 restart all --force 2>/dev/null || pm2 reload all 2>/dev/null || pm2 start npm --name "dnyl" -- start -- -p 3010 || true
 fi
 
 echo "=============================================================================="
