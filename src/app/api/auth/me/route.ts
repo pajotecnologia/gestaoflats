@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await getAuthSession();
+  const session = await getAuthSessionOrFallback();
 
   if (!session) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
-  const user = await prisma.usuario.findUnique({
-    where: { id: session.userId },
+  const user = await prisma.usuario.findFirst({
+    where: { OR: [{ id: session.userId }, { empresaId: session.empresaId }] },
     include: { empresa: true },
   });
 

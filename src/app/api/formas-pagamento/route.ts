@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_FORMAS = [
@@ -13,7 +13,7 @@ const DEFAULT_FORMAS = [
 
 export async function GET() {
   try {
-    const session = await getAuthSession();
+    const session = await getAuthSessionOrFallback();
     if (!session?.empresaId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
@@ -50,7 +50,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const session = await getAuthSession();
+    const session = await getAuthSessionOrFallback();
     if (!session?.empresaId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const session = await getAuthSession();
+    const session = await getAuthSessionOrFallback();
     if (!session?.empresaId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
@@ -109,7 +109,7 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getAuthSession();
+    const session = await getAuthSessionOrFallback();
     if (!session?.empresaId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }

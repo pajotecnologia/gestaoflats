@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await getAuthSession();
+  const session = await getAuthSessionOrFallback();
   if (!session) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }

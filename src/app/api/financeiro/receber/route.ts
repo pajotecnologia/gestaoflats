@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await getAuthSession();
+  const session = await getAuthSessionOrFallback();
   if (!session) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getAuthSession();
+  const session = await getAuthSessionOrFallback();
   if (!session) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await getAuthSession();
+  const session = await getAuthSessionOrFallback();
   if (!session) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await getAuthSession();
+  const session = await getAuthSessionOrFallback();
   if (!session) {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
