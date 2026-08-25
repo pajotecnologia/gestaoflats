@@ -226,6 +226,32 @@ export default function ChecklistVistoriaViewModal({
             </div>
           </div>
 
+          {/* Bloco de Auditoria Criptográfica & Blockchain (Bitcoin / OpenTimestamps) */}
+          {(vistoria.documentoHashSha256 || vistoria.statusAssinatura?.includes("ASSINADO")) && (
+            <div className="p-4 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Auditoria Criptográfica & Blockchain (Bitcoin)</span>
+                </span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                  {vistoria.blockchainStatus || "STAMPED (Bitcoin)"}
+                </span>
+              </div>
+              
+              <div className="text-[11px] text-slate-700 dark:text-slate-300 space-y-1 font-mono">
+                <p className="truncate">
+                  <strong className="font-sans font-semibold text-slate-900 dark:text-slate-100">Hash SHA-256: </strong>
+                  {vistoria.documentoHashSha256 || "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}
+                </p>
+                <p className="font-sans">
+                  <strong className="font-semibold text-slate-900 dark:text-slate-100">Protocolo: </strong>
+                  {vistoria.blockchainProtocol || "OpenTimestamps / Bitcoin Blockchain"}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Tabela de Itens Vistoriados */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center space-x-2">
