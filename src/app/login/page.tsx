@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Building2, Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
+import { SYSTEM_VERSION } from "@/lib/version";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -52,6 +53,12 @@ export default function LoginPage() {
             <p className="text-xs text-slate-400">
               Sistema de Controle Imobiliário, Contratos e Financeiro
             </p>
+            <div className="pt-1 flex justify-center">
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-950/90 border border-blue-800 text-blue-300 text-[11px] font-extrabold shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Versão: {SYSTEM_VERSION}</span>
+              </span>
+            </div>
           </div>
 
           {errorMsg && (
