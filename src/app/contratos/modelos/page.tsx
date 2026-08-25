@@ -27,9 +27,12 @@ import {
   Move,
   Search,
   Check,
-  RotateCcw,
-  Sparkles,
   Paintbrush,
+  Sparkles,
+  ChevronRight,
+  ChevronDown,
+  Info,
+  Layers,
 } from "lucide-react";
 
 export default function ModelosContratoPage() {
@@ -37,7 +40,7 @@ export default function ModelosContratoPage() {
   const [titulo, setTitulo] = useState("");
   const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
 
-  // Função utilitária que converte QUALQUER cor de texto azul/colorida existente para PRETO PURO (#000000)
+  // Sanitiza qualquer HTML removendo cores azuis ou coloridas antigas e forçando Preto Puro (#000000)
   const forceBlackText = (html: string) => {
     if (!html) return html;
     return html
@@ -61,7 +64,6 @@ export default function ModelosContratoPage() {
   </tr>
 </table>`;
 
-  const [activeWordTab, setActiveWordTab] = useState<"inicio" | "inserir" | "layout">("inicio");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeViewMode, setActiveViewMode] = useState<"editor" | "preview">("editor");
   const [saving, setSaving] = useState(false);
@@ -69,10 +71,14 @@ export default function ModelosContratoPage() {
   const [wordCount, setWordCount] = useState(0);
   const [previewHtmlContent, setPreviewHtmlContent] = useState("");
   const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
+  const [selectedTagCategory, setSelectedTagCategory] = useState<string>("TODAS");
 
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Carregar modelos do banco de dados
+  // Carregar modelos cadastrados
   const loadModelos = async () => {
     try {
       const res = await fetch("/api/modelos-contrato");
@@ -87,7 +93,7 @@ export default function ModelosContratoPage() {
     loadModelos();
   }, []);
 
-  // Preencher o editor de forma 100% não-controlada (sem re-renders ao digitar)
+  // Preencher o editor visual de forma não-controlada (mantém 0 cursor jumping)
   const setEditorHtml = (htmlContent: string) => {
     if (editorRef.current) {
       const cleanBlackHtml = forceBlackText(htmlContent);
@@ -114,7 +120,7 @@ export default function ModelosContratoPage() {
     setSelectedModeloId(mod.id);
     setTitulo(mod.titulo);
     setEditorHtml(mod.conteudoHtml || defaultContentHtml);
-    setFeedback(`📄 Modelo "${mod.titulo}" carregado! Texto convertido para Preto Puro (#000000).`);
+    setFeedback(`📄 Modelo "${mod.titulo}" carregado no editor!`);
   };
 
   const handleNovoModelo = () => {
@@ -160,7 +166,6 @@ export default function ModelosContratoPage() {
     }
     document.execCommand(command, false, value);
 
-    // Garante que a cor permaneça preta
     if (command === "foreColor" || command === "formatBlock") {
       handleForceBlackAllText();
     } else {
@@ -168,7 +173,7 @@ export default function ModelosContratoPage() {
     }
   };
 
-  // Arrastar e Soltar (Drag & Drop) de Tags no Editor A4
+  // Arrastar e Soltar (Drag & Drop) de Tags no Canvas A4
   const handleDragStartTag = (e: React.DragEvent, tag: string) => {
     e.dataTransfer.setData("text/plain", tag);
     e.dataTransfer.effectAllowed = "copy";
@@ -225,9 +230,8 @@ export default function ModelosContratoPage() {
       }
 
       updateWordCount();
-      setFeedback(`📍 Tag "${tag}" inserida na posição do mouse!`);
+      setFeedback(`📍 Tag "${tag}" solta com sucesso no texto!`);
     } else {
-      // Se soltar na folha A4 fora de um nó específico, insere no final
       handleInsertTag(tag);
     }
   };
@@ -275,7 +279,7 @@ export default function ModelosContratoPage() {
       if (!res.ok) {
         setFeedback(`❌ Erro ao salvar: ${data.error}`);
       } else {
-        setFeedback("✅ Modelo de contrato salvo com sucesso em texto preto!");
+        setFeedback("✅ Modelo de contrato salvo com sucesso!");
         if (data.modelo?.id) {
           setSelectedModeloId(data.modelo.id);
         }
@@ -338,14 +342,11 @@ export default function ModelosContratoPage() {
     }
   };
 
-  const [selectedTagCategory, setSelectedTagCategory] = useState<string>("TODAS");
-  const [tagSearchQuery, setTagSearchQuery] = useState("");
-
   const tagsCategorizadas = [
     {
       id: "locatario",
       categoria: "Locatário",
-      corBadge: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      corBadge: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800",
       tags: [
         { label: "Nome do Locatário", tag: "{{locatario.nome}}" },
         { label: "CPF do Locatário", tag: "{{locatario.cpf}}" },
@@ -359,7 +360,7 @@ export default function ModelosContratoPage() {
     {
       id: "imovel",
       categoria: "Imóvel / Flat",
-      corBadge: "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      corBadge: "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
       tags: [
         { label: "Número do Flat", tag: "{{flat.numero}}" },
         { label: "Status do Flat", tag: "{{flat.status}}" },
@@ -372,7 +373,7 @@ export default function ModelosContratoPage() {
     {
       id: "contrato",
       categoria: "Contrato & Valores",
-      corBadge: "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+      corBadge: "bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800",
       tags: [
         { label: "Valor Mensal (R$)", tag: "{{contrato.valorMensal}}" },
         { label: "Valor por Extenso", tag: "{{contrato.valorExtenso}}" },
@@ -387,7 +388,7 @@ export default function ModelosContratoPage() {
     {
       id: "empresa",
       categoria: "Empresa / Locadora",
-      corBadge: "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+      corBadge: "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800",
       tags: [
         { label: "Nome Fantasia", tag: "{{empresa.nomeFantasia}}" },
         { label: "Razão Social", tag: "{{empresa.razaoSocial}}" },
@@ -405,30 +406,42 @@ export default function ModelosContratoPage() {
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-blue-600 text-white shadow-md">
+            <div className="p-2.5 rounded-2xl bg-blue-600 text-white shadow-md">
               <FileCode className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
                 <span>Editor de Contratos Word</span>
-                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
-                  Word Layout A4 (Preto Puro)
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold border border-blue-200 dark:border-blue-800">
+                  Painel Lateral de Tags Visível • Texto Preto Puro
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Digitação 100% estável sem pulo de cursor • Arraste e solte tags com o mouse no local desejado
+                Arraste qualquer tag do painel esquerdo com o mouse e solte diretamente no texto da folha A4
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition shadow-sm ${
+                sidebarOpen
+                  ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800"
+                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5" />
+              <span>{sidebarOpen ? "Ocultar Painel de Tags" : "Exibir Painel de Tags"}</span>
+            </button>
+
+            <button
               onClick={handleForceBlackAllText}
               className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
-              title="Converte instantaneamente qualquer texto azul para Preto Puro (#000000)"
+              title="Converte todo o texto para Preto (#000000)"
             >
               <Paintbrush className="w-3.5 h-3.5 text-amber-400" />
-              <span>Forçar Texto Preto</span>
+              <span>Texto Preto (#000000)</span>
             </button>
 
             <button
@@ -442,7 +455,7 @@ export default function ModelosContratoPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="py-1.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center space-x-1.5 transition disabled:opacity-50"
+              className="py-1.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-white text-xs shadow-md flex items-center space-x-1.5 transition disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               <span>{saving ? "Salvando..." : "Salvar Documento"}</span>
@@ -457,7 +470,7 @@ export default function ModelosContratoPage() {
           </div>
         )}
 
-        {/* PAINEL SUPERIOR: MODELOS DE CONTRATO SALVOS */}
+        {/* PAINEL SUPERIOR: MODELOS CADASTRAIS */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
             <div className="flex items-center space-x-2">
@@ -545,74 +558,162 @@ export default function ModelosContratoPage() {
           />
         </div>
 
-        {/* ESTRUTURA DO MICROSOFT WORD: Ribbon Toolbar + Folha A4 */}
-        <div className="bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          {/* Ribbon Header (Abas do Word: Início, Inserir, Layout) */}
-          <div className="bg-slate-100 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-4 pt-2 flex items-center justify-between">
-            <div className="flex space-x-1">
-              <button
-                onClick={() => setActiveWordTab("inicio")}
-                className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold transition ${
-                  activeWordTab === "inicio"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border-t border-x border-slate-300 dark:border-slate-800"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                Início (Formatação)
-              </button>
-              <button
-                onClick={() => setActiveWordTab("inserir")}
-                className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold transition ${
-                  activeWordTab === "inserir"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border-t border-x border-slate-300 dark:border-slate-800"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                Inserir Tags (Arrastar & Soltar)
-              </button>
-              <button
-                onClick={() => setActiveWordTab("layout")}
-                className={`px-3 py-1.5 rounded-t-lg text-xs font-semibold transition ${
-                  activeWordTab === "layout"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 border-t border-x border-slate-300 dark:border-slate-800"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                Layout da Página A4
-              </button>
-            </div>
+        {/* ÁREA DE TRABALHO SPLIT: PAINEL LATERAL DE TAGS + FOLHA A4 */}
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
+          {/* PAINEL LATERAL ESQUERDO: TAGS DINÂMICAS (SEMPRE VISÍVEL) */}
+          {sidebarOpen && (
+            <div className="w-full lg:w-80 flex-shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-lg space-y-3 sticky top-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div className="flex items-center space-x-2">
+                  <Tag className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    Tags Dinâmicas
+                  </h3>
+                </div>
+                <span className="text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                  Arrastar & Soltar
+                </span>
+              </div>
 
-            <div className="flex items-center space-x-1 pb-1">
-              <button
-                onClick={() => setActiveViewMode("editor")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  activeViewMode === "editor"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
-              >
-                Modo Edição (A4)
-              </button>
-              <button
-                onClick={handleTogglePreview}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
-                  activeViewMode === "preview"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Pré-Visualização Real</span>
-              </button>
-            </div>
-          </div>
+              {/* Caixa de Busca de Tags */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  value={tagSearchQuery}
+                  onChange={(e) => setTagSearchQuery(e.target.value)}
+                  placeholder="Buscar tag (ex: nome, cpf, valor)..."
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none placeholder-slate-400"
+                />
+              </div>
 
-          {/* Ribbon Toolbar Controls (Estilo Word) */}
-          <div className="bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 p-2.5 flex flex-wrap items-center gap-2 text-slate-700 dark:text-slate-200">
-            {activeWordTab === "inicio" && (
-              <>
+              {/* Filtro por Categoria */}
+              <div className="flex flex-wrap gap-1 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagCategory("TODAS")}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                    selectedTagCategory === "TODAS"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagCategory("locatario")}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                    selectedTagCategory === "locatario"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600"
+                  }`}
+                >
+                  👤 Locatário
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagCategory("imovel")}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                    selectedTagCategory === "imovel"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600"
+                  }`}
+                >
+                  🏠 Imóvel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagCategory("contrato")}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                    selectedTagCategory === "contrato"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-purple-600"
+                  }`}
+                >
+                  📄 Contrato
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagCategory("empresa")}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition ${
+                    selectedTagCategory === "empresa"
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-amber-600"
+                  }`}
+                >
+                  🏢 Empresa
+                </button>
+              </div>
+
+              <div className="p-2 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[11px] text-blue-900 dark:text-blue-200 flex items-start space-x-1.5">
+                <Info className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <span>
+                  <strong>Instruções:</strong> Clique e segure com o mouse em qualquer tag abaixo para arrastar e soltar direto na folha A4 ao lado.
+                </span>
+              </div>
+
+              {/* Lista de Tags com Scroll Bar */}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                {tagsCategorizadas
+                  .filter((cat) => selectedTagCategory === "TODAS" || cat.id === selectedTagCategory)
+                  .map((cat) => {
+                    const filteredTags = cat.tags.filter(
+                      (t) =>
+                        t.label.toLowerCase().includes(tagSearchQuery.toLowerCase()) ||
+                        t.tag.toLowerCase().includes(tagSearchQuery.toLowerCase())
+                    );
+
+                    if (filteredTags.length === 0) return null;
+
+                    return (
+                      <div key={cat.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border uppercase tracking-wider ${cat.corBadge}`}>
+                            {cat.categoria}
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-semibold">{filteredTags.length} tags</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {filteredTags.map((item) => (
+                            <div
+                              key={item.tag}
+                              draggable={true}
+                              onDragStart={(e) => handleDragStartTag(e, item.tag)}
+                              onClick={() => handleInsertTag(item.tag)}
+                              className="group p-2 rounded-xl bg-slate-50 dark:bg-slate-950 hover:bg-blue-50 dark:hover:bg-blue-950/80 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-grab active:cursor-grabbing flex items-center justify-between shadow-xs select-none"
+                              title="Segure com o mouse e arraste para soltar no texto A4 ou clique para inserir"
+                            >
+                              <div className="flex items-center space-x-2 overflow-hidden">
+                                <GripVertical className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition flex-shrink-0" />
+                                <div className="truncate">
+                                  <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block truncate">
+                                    {item.label}
+                                  </span>
+                                  <code className="text-[10px] text-blue-600 dark:text-blue-400 font-mono block truncate font-bold">
+                                    {item.tag}
+                                  </code>
+                                </div>
+                              </div>
+                              <Move className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition flex-shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* COLUNA DIREITA: ESTRUTURA WORD A4 */}
+          <div className="flex-1 w-full bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            {/* Barra de Ferramentas Superior (Word Formatting Ribbon) */}
+            <div className="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 p-2.5 flex flex-wrap items-center justify-between gap-2 text-slate-700 dark:text-slate-200">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Formatação Básica */}
-                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => execCmd("bold")}
@@ -648,7 +749,7 @@ export default function ModelosContratoPage() {
                 </div>
 
                 {/* Alinhamento */}
-                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => execCmd("justifyLeft")}
@@ -684,7 +785,7 @@ export default function ModelosContratoPage() {
                 </div>
 
                 {/* Listas e Títulos */}
-                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => execCmd("insertUnorderedList")}
@@ -722,231 +823,106 @@ export default function ModelosContratoPage() {
                 <button
                   type="button"
                   onClick={handleForceBlackAllText}
-                  className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold flex items-center space-x-1.5 transition"
+                  className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold flex items-center space-x-1.5 transition shadow-xs"
                   title="Converte todo o texto para Preto (#000000)"
                 >
                   <Paintbrush className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Limpar Cores (Texto Preto)</span>
+                  <span>Texto Preto (#000000)</span>
                 </button>
-              </>
-            )}
-
-            {activeWordTab === "inserir" && (
-              <div className="w-full space-y-3 py-1">
-                {/* Filtros de Categoria e Pesquisa de Tags */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <Move className="w-4 h-4 text-blue-600 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Arraste com o mouse qualquer tag abaixo e solte diretamente em qualquer local do texto A4:
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                      <input
-                        type="text"
-                        value={tagSearchQuery}
-                        onChange={(e) => setTagSearchQuery(e.target.value)}
-                        placeholder="Buscar tag..."
-                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-900 dark:text-slate-100 focus:outline-none placeholder-slate-400 w-36 sm:w-48"
-                      />
-                    </div>
-
-                    <div className="flex items-center space-x-1 bg-slate-200 dark:bg-slate-900 p-1 rounded-xl">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTagCategory("TODAS")}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition ${
-                          selectedTagCategory === "TODAS"
-                            ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                        }`}
-                      >
-                        Todas
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTagCategory("locatario")}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition ${
-                          selectedTagCategory === "locatario"
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-blue-600"
-                        }`}
-                      >
-                        👤 Locatário
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTagCategory("imovel")}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition ${
-                          selectedTagCategory === "imovel"
-                            ? "bg-emerald-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-emerald-600"
-                        }`}
-                      >
-                        🏠 Imóvel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTagCategory("contrato")}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition ${
-                          selectedTagCategory === "contrato"
-                            ? "bg-purple-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-purple-600"
-                        }`}
-                      >
-                        📄 Contrato
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTagCategory("empresa")}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition ${
-                          selectedTagCategory === "empresa"
-                            ? "bg-amber-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-amber-600"
-                        }`}
-                      >
-                        🏢 Empresa
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grade de Tags Organizadas com suporte a Arrastar & Soltar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {tagsCategorizadas
-                    .filter((cat) => selectedTagCategory === "TODAS" || cat.id === selectedTagCategory)
-                    .map((cat) => {
-                      const filteredTags = cat.tags.filter(
-                        (t) =>
-                          t.label.toLowerCase().includes(tagSearchQuery.toLowerCase()) ||
-                          t.tag.toLowerCase().includes(tagSearchQuery.toLowerCase())
-                      );
-
-                      if (filteredTags.length === 0) return null;
-
-                      return (
-                        <div
-                          key={cat.id}
-                          className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border uppercase tracking-wider ${cat.corBadge}`}>
-                              {cat.categoria}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-semibold">{filteredTags.length} tags</span>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            {filteredTags.map((item) => (
-                              <div
-                                key={item.tag}
-                                draggable={true}
-                                onDragStart={(e) => handleDragStartTag(e, item.tag)}
-                                onClick={() => handleInsertTag(item.tag)}
-                                className="group p-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/60 border border-slate-200/80 dark:border-slate-800 transition cursor-grab active:cursor-grabbing flex items-center justify-between shadow-sm hover:shadow hover:border-blue-300 dark:hover:border-blue-700 select-none"
-                                title="Arraste para soltar no local desejado da folha A4 ou clique para inserir no cursor"
-                              >
-                                <div className="flex items-center space-x-2 overflow-hidden">
-                                  <GripVertical className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition flex-shrink-0" />
-                                  <div className="truncate">
-                                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block truncate">
-                                      {item.label}
-                                    </span>
-                                    <code className="text-[10px] text-blue-600 dark:text-blue-400 font-mono block truncate">
-                                      {item.tag}
-                                    </code>
-                                  </div>
-                                </div>
-                                <Move className="w-3 h-3 text-slate-300 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition flex-shrink-0 ml-1" />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
               </div>
-            )}
 
-            {activeWordTab === "layout" && (
-              <div className="flex items-center space-x-3 text-xs text-slate-600 dark:text-slate-300">
-                <span className="font-semibold">Formato do Papel: A4 (210mm x 297mm)</span>
-                <span>Margens: Padrão 2.5cm</span>
-                <span>Orientação: Retrato</span>
-                <span>Cor do Texto: Preto Puro (#000000)</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setActiveViewMode("editor")}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    activeViewMode === "editor"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  Modo Edição (A4)
+                </button>
+                <button
+                  onClick={handleTogglePreview}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+                    activeViewMode === "preview"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Pré-Visualização Real</span>
+                </button>
               </div>
-            )}
-          </div>
-
-          {/* FOLHA A4 DO WORD (CANVAS UNCONTROLLED COM DROPZONE DESTACADO) */}
-          <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[700px]">
-            {activeViewMode === "editor" ? (
-              <div
-                onDragOver={handleDragOverCanvas}
-                onDragLeave={handleDragLeaveCanvas}
-                onDrop={handleDropTagOnCanvas}
-                className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
-                  isDraggingOverCanvas
-                    ? "border-4 border-dashed border-blue-600 ring-8 ring-blue-500/30 bg-blue-50/10 scale-[1.01]"
-                    : "border-slate-300"
-                }`}
-                style={{ color: "#000000" }}
-              >
-                {/* Visual Feedback ao arrastar tag sobre a folha A4 */}
-                {isDraggingOverCanvas && (
-                  <div className="absolute inset-x-0 top-6 z-20 pointer-events-none flex justify-center">
-                    <span className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-bounce flex items-center gap-1.5">
-                      <Move className="w-4 h-4" />
-                      Solte a tag aqui para inserir no local desejado!
-                    </span>
-                  </div>
-                )}
-
-                {/* Régua superior simulada do Word */}
-                <div className="absolute top-0 left-0 right-0 h-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-[8px] text-slate-400 px-12 select-none">
-                  <span>0cm</span>
-                  <span>5cm</span>
-                  <span>10cm</span>
-                  <span>15cm</span>
-                  <span>21cm</span>
-                </div>
-
-                {/* Editor Não-Controlado nativo: Zero re-renders do React durante a digitação */}
-                <div
-                  ref={editorRef}
-                  contentEditable={true}
-                  suppressContentEditableWarning={true}
-                  onKeyUp={updateWordCount}
-                  className="mt-4 focus:outline-none min-h-[900px] text-black font-serif text-sm leading-relaxed"
-                  style={{ color: "#000000" }}
-                />
-              </div>
-            ) : (
-              <div
-                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed"
-                style={{ color: "#000000" }}
-              >
-                <div
-                  dangerouslySetInnerHTML={{ __html: previewHtmlContent }}
-                  style={{ color: "#000000" }}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Barra de Status do Word (Rodapé) */}
-          <div className="bg-blue-700 text-white px-4 py-1.5 text-[11px] font-medium flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span>Página 1 de 1</span>
-              <span>{wordCount} palavras</span>
-              <span>Português (Brasil)</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <span>Layout de Impressão A4</span>
-              <span>100%</span>
+
+            {/* FOLHA A4 DO WORD (CANVAS UNCONTROLLED COM DROPZONE EM DESTAQUE) */}
+            <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[750px]">
+              {activeViewMode === "editor" ? (
+                <div
+                  onDragOver={handleDragOverCanvas}
+                  onDragLeave={handleDragLeaveCanvas}
+                  onDrop={handleDropTagOnCanvas}
+                  className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
+                    isDraggingOverCanvas
+                      ? "border-4 border-dashed border-blue-600 ring-8 ring-blue-500/30 bg-blue-50/10 scale-[1.01]"
+                      : "border-slate-300"
+                  }`}
+                  style={{ color: "#000000" }}
+                >
+                  {/* Visual Feedback ao arrastar tag sobre a folha A4 */}
+                  {isDraggingOverCanvas && (
+                    <div className="absolute inset-x-0 top-6 z-20 pointer-events-none flex justify-center">
+                      <span className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-bounce flex items-center gap-1.5">
+                        <Move className="w-4 h-4" />
+                        Solte a tag aqui para inserir na folha A4!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Régua superior simulada do Word */}
+                  <div className="absolute top-0 left-0 right-0 h-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-[8px] text-slate-400 px-12 select-none">
+                    <span>0cm</span>
+                    <span>5cm</span>
+                    <span>10cm</span>
+                    <span>15cm</span>
+                    <span>21cm</span>
+                  </div>
+
+                  {/* Editor Não-Controlado nativo: Zero re-renders do React durante a digitação */}
+                  <div
+                    ref={editorRef}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    onKeyUp={updateWordCount}
+                    className="mt-4 focus:outline-none min-h-[900px] text-black font-serif text-sm leading-relaxed"
+                    style={{ color: "#000000" }}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm space-y-4 font-serif text-sm leading-relaxed"
+                  style={{ color: "#000000" }}
+                >
+                  <div
+                    dangerouslySetInnerHTML={{ __html: previewHtmlContent }}
+                    style={{ color: "#000000" }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Barra de Status do Word (Rodapé) */}
+            <div className="bg-blue-700 text-white px-4 py-1.5 text-[11px] font-medium flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span>Página 1 de 1</span>
+                <span>{wordCount} palavras</span>
+                <span>Português (Brasil)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span>Layout de Impressão A4</span>
+                <span>100%</span>
+              </div>
             </div>
           </div>
         </div>
