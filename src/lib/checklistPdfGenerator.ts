@@ -301,30 +301,32 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
     doc.setFillColor(240, 249, 255);
     doc.setDrawColor(186, 230, 253);
     doc.setLineWidth(0.5);
-    const boxWidth = data.qrCodeDataUrl ? 150 : 176;
-    doc.roundedRect(14, y, boxWidth, 26, 2, 2, "FD");
+    const boxWidth = data.qrCodeDataUrl ? 148 : 176;
+    doc.roundedRect(14, y, boxWidth, 31, 2, 2, "FD");
 
     doc.setTextColor(30, 58, 138);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text("REGISTRO DE AUDITORIA CRIPTOGRÁFICA & BLOCKCHAIN (BITCOIN)", 18, y + 6);
+    doc.text("REGISTRO DE AUDITORIA CRIPTOGRÁFICA & BLOCKCHAIN (BITCOIN)", 18, y + 5.5);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setTextColor(55, 65, 81);
     
     const hashText = data.documentoHashSha256 || "Criptografado e Ancorado em Blockchain";
-    doc.text(`• Hash SHA-256 (PDF): ${hashText}`, 18, y + 11);
-    doc.text(`• Prova de Existência: Ancorado via OpenTimestamps na Blockchain do Bitcoin`, 18, y + 15.5);
+    doc.text(`• Hash SHA-256 (PDF): ${hashText}`, 18, y + 10.5);
+    doc.text(`• Imutabilidade Blockchain: Ancorado via OpenTimestamps na rede descentralizada do Bitcoin (ISO 14533).`, 18, y + 15);
+    doc.text(`• Validade Jurídica: Garantida via MP 2.200-2/2001 e Lei nº 14.063/2020 para plena aceitação em juízo.`, 18, y + 19.5);
     
     if (data.validationUrl) {
       doc.setTextColor(29, 78, 216);
-      doc.text(`• Verificação Pública: ${data.validationUrl}`, 18, y + 20);
+      doc.setFont("helvetica", "bold");
+      doc.text(`• Verificação Pública: ${data.validationUrl}`, 18, y + 25);
     }
 
     if (data.qrCodeDataUrl) {
       try {
-        doc.addImage(data.qrCodeDataUrl, "PNG", 168, y + 2, 22, 22);
+        doc.addImage(data.qrCodeDataUrl, "PNG", 165, y + 2.5, 26, 26);
       } catch (e) {}
     }
   }
