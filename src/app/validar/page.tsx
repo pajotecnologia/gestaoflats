@@ -389,6 +389,37 @@ function ValidarContent() {
                     </p>
                   </div>
 
+                  {/* Documentação Direta sobre a Garantia Blockchain */}
+                  <div className="p-5 rounded-2xl bg-blue-950/40 border border-blue-800/80 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-blue-400" />
+                      Garantia Criptográfica & Validade Jurídica em Blockchain
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] text-slate-300">
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                        <strong className="text-slate-100 block font-semibold text-xs text-blue-300">1. Impressão Digital Única</strong>
+                        <p className="text-slate-400 leading-relaxed">
+                          O Hash SHA-256 de 64 caracteres é gerado com base no conteúdo exato do documento. Qualquer alteração mínima de 1 caractere no texto invalida a assinatura.
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                        <strong className="text-slate-100 block font-semibold text-xs text-emerald-300">2. Imutabilidade na Blockchain</strong>
+                        <p className="text-slate-400 leading-relaxed">
+                          Ancorado na rede descentralizada do Bitcoin (OpenTimestamps / ISO 14533). Impossibilita adulteração retroativa de datas, cláusulas ou valores por qualquer parte.
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                        <strong className="text-slate-100 block font-semibold text-xs text-indigo-300">3. Validade Probatória</strong>
+                        <p className="text-slate-400 leading-relaxed">
+                          Conforme a MP 2.200-2/2001 e Lei 14.063/2020, o carimbo de tempo descentralizado com chave criptográfica possui plena validade jurídica em juízo.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Download Proof Button */}
                   {result.otsProofBase64 && (
                     <div className="pt-2 flex justify-end">
