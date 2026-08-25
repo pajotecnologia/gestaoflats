@@ -28,12 +28,24 @@ import {
   Search,
   Check,
   RotateCcw,
+  Sparkles,
+  Paintbrush,
 } from "lucide-react";
 
 export default function ModelosContratoPage() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [titulo, setTitulo] = useState("");
   const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
+
+  // Função utilitária que converte QUALQUER cor de texto azul/colorida existente para PRETO PURO (#000000)
+  const forceBlackText = (html: string) => {
+    if (!html) return html;
+    return html
+      .replace(/color:\s*#[0-9a-fA-F]{3,6}/gi, "color: #000000")
+      .replace(/color:\s*rgba?\([^)]+\)/gi, "color: #000000")
+      .replace(/color:\s*blue/gi, "color: #000000")
+      .replace(/color:\s*navy/gi, "color: #000000");
+  };
 
   const defaultContentHtml = `<h2 style="text-align: center; color: #000000; font-family: Arial, sans-serif; font-weight: bold;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
 <p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa.nomeFantasia}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario.nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{locatario.cpf}}</strong>.</p>
@@ -56,6 +68,7 @@ export default function ModelosContratoPage() {
   const [feedback, setFeedback] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const [previewHtmlContent, setPreviewHtmlContent] = useState("");
+  const [isDraggingOverCanvas, setIsDraggingOverCanvas] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -74,19 +87,18 @@ export default function ModelosContratoPage() {
     loadModelos();
   }, []);
 
-  // Preencher o editor na montagem inicial ou quando mudar de modelo
+  // Preencher o editor de forma 100% não-controlada (sem re-renders ao digitar)
   const setEditorHtml = (htmlContent: string) => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = htmlContent;
+      const cleanBlackHtml = forceBlackText(htmlContent);
+      editorRef.current.innerHTML = cleanBlackHtml;
       updateWordCount();
     }
   };
 
   useEffect(() => {
-    // Sincronização inicial no editor
     if (editorRef.current && !editorRef.current.innerHTML.trim()) {
-      editorRef.current.innerHTML = defaultContentHtml;
-      updateWordCount();
+      setEditorHtml(defaultContentHtml);
     }
   }, []);
 
@@ -102,7 +114,7 @@ export default function ModelosContratoPage() {
     setSelectedModeloId(mod.id);
     setTitulo(mod.titulo);
     setEditorHtml(mod.conteudoHtml || defaultContentHtml);
-    setFeedback(`📄 Modelo "${mod.titulo}" carregado no editor!`);
+    setFeedback(`📄 Modelo "${mod.titulo}" carregado! Texto convertido para Preto Puro (#000000).`);
   };
 
   const handleNovoModelo = () => {
@@ -110,6 +122,13 @@ export default function ModelosContratoPage() {
     setTitulo("");
     setEditorHtml(defaultContentHtml);
     setFeedback("✨ Novo modelo em branco pronto para edição.");
+  };
+
+  const handleForceBlackAllText = () => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = forceBlackText(editorRef.current.innerHTML);
+      setFeedback("🎨 Todo o texto do contrato foi convertido para Preto Puro (#000000)!");
+    }
   };
 
   const handleDeleteModelo = async (id: string, e: React.MouseEvent) => {
@@ -140,17 +159,37 @@ export default function ModelosContratoPage() {
       editorRef.current.focus();
     }
     document.execCommand(command, false, value);
-    updateWordCount();
+
+    // Garante que a cor permaneça preta
+    if (command === "foreColor" || command === "formatBlock") {
+      handleForceBlackAllText();
+    } else {
+      updateWordCount();
+    }
   };
 
-  // Arrastar e Soltar (Drag & Drop) de Tags no Editor
+  // Arrastar e Soltar (Drag & Drop) de Tags no Editor A4
   const handleDragStartTag = (e: React.DragEvent, tag: string) => {
     e.dataTransfer.setData("text/plain", tag);
     e.dataTransfer.effectAllowed = "copy";
   };
 
-  const handleDropTag = (e: React.DragEvent) => {
+  const handleDragOverCanvas = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    if (!isDraggingOverCanvas) {
+      setIsDraggingOverCanvas(true);
+    }
+  };
+
+  const handleDragLeaveCanvas = () => {
+    setIsDraggingOverCanvas(false);
+  };
+
+  const handleDropTagOnCanvas = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOverCanvas(false);
+
     const tag = e.dataTransfer.getData("text/plain");
     if (!tag || !editorRef.current) return;
 
@@ -170,14 +209,14 @@ export default function ModelosContratoPage() {
         sel.addRange(range);
       }
 
-      const strongTag = document.createElement("strong");
-      strongTag.style.color = "#000000";
-      strongTag.innerText = ` ${tag} `;
+      const strongNode = document.createElement("strong");
+      strongNode.style.color = "#000000";
+      strongNode.innerText = ` ${tag} `;
 
       range.deleteContents();
-      range.insertNode(strongTag);
+      range.insertNode(strongNode);
 
-      range.setStartAfter(strongTag);
+      range.setStartAfter(strongNode);
       range.collapse(true);
 
       if (sel) {
@@ -186,6 +225,10 @@ export default function ModelosContratoPage() {
       }
 
       updateWordCount();
+      setFeedback(`📍 Tag "${tag}" inserida na posição do mouse!`);
+    } else {
+      // Se soltar na folha A4 fora de um nó específico, insere no final
+      handleInsertTag(tag);
     }
   };
 
@@ -200,18 +243,20 @@ export default function ModelosContratoPage() {
       editorRef.current.innerHTML += `<p style="line-height:1.6; color:#000000;"><strong style="color:#000000;">${tag}</strong></p>`;
     }
     updateWordCount();
+    setFeedback(`📍 Tag "${tag}" inserida no texto!`);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const currentHtml = editorRef.current ? editorRef.current.innerHTML : "";
+    const rawHtml = editorRef.current ? editorRef.current.innerHTML : "";
+    const cleanHtml = forceBlackText(rawHtml);
 
     if (!titulo.trim()) {
       setFeedback("⚠️ Por favor, informe um Título para o modelo de contrato.");
       return;
     }
 
-    if (!currentHtml.trim()) {
+    if (!cleanHtml.trim()) {
       setFeedback("⚠️ O conteúdo do contrato não pode estar vazio.");
       return;
     }
@@ -223,14 +268,14 @@ export default function ModelosContratoPage() {
       const res = await fetch("/api/modelos-contrato", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedModeloId, titulo: titulo.trim(), conteudoHtml: currentHtml }),
+        body: JSON.stringify({ id: selectedModeloId, titulo: titulo.trim(), conteudoHtml: cleanHtml }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         setFeedback(`❌ Erro ao salvar: ${data.error}`);
       } else {
-        setFeedback("✅ Modelo de contrato salvo com sucesso!");
+        setFeedback("✅ Modelo de contrato salvo com sucesso em texto preto!");
         if (data.modelo?.id) {
           setSelectedModeloId(data.modelo.id);
         }
@@ -245,7 +290,9 @@ export default function ModelosContratoPage() {
 
   const handleTogglePreview = () => {
     if (activeViewMode === "editor") {
-      const currentHtml = editorRef.current ? editorRef.current.innerHTML : defaultContentHtml;
+      const rawHtml = editorRef.current ? editorRef.current.innerHTML : defaultContentHtml;
+      const cleanHtml = forceBlackText(rawHtml);
+
       const mockContrato = {
         id: "CTR-2026-001",
         valorMensal: 2500,
@@ -284,7 +331,7 @@ export default function ModelosContratoPage() {
           endereco: "Rua do Imperador, 250, Recife - PE",
         },
       };
-      setPreviewHtmlContent(replaceContractVariables(currentHtml, mockContrato));
+      setPreviewHtmlContent(replaceContractVariables(cleanHtml, mockContrato));
       setActiveViewMode("preview");
     } else {
       setActiveViewMode("editor");
@@ -369,12 +416,21 @@ export default function ModelosContratoPage() {
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Editor nativo e fluido: digitação contínua em texto preto com suporte a arrastar e soltar tags
+                Digitação 100% estável sem pulo de cursor • Arraste e solte tags com o mouse no local desejado
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={handleForceBlackAllText}
+              className="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
+              title="Converte instantaneamente qualquer texto azul para Preto Puro (#000000)"
+            >
+              <Paintbrush className="w-3.5 h-3.5 text-amber-400" />
+              <span>Forçar Texto Preto</span>
+            </button>
+
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="py-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm"
@@ -662,6 +718,16 @@ export default function ModelosContratoPage() {
                     P
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleForceBlackAllText}
+                  className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-xs font-bold flex items-center space-x-1.5 transition"
+                  title="Converte todo o texto para Preto (#000000)"
+                >
+                  <Paintbrush className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Limpar Cores (Texto Preto)</span>
+                </button>
               </>
             )}
 
@@ -815,13 +881,30 @@ export default function ModelosContratoPage() {
             )}
           </div>
 
-          {/* FOLHA A4 DO WORD (CANVAS UNCONTROLLED SEM RE-RENDERS QUE FAZEM O CURSOR PULAR) */}
+          {/* FOLHA A4 DO WORD (CANVAS UNCONTROLLED COM DROPZONE DESTACADO) */}
           <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[700px]">
             {activeViewMode === "editor" ? (
               <div
-                className="w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border border-slate-300 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative"
+                onDragOver={handleDragOverCanvas}
+                onDragLeave={handleDragLeaveCanvas}
+                onDrop={handleDropTagOnCanvas}
+                className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
+                  isDraggingOverCanvas
+                    ? "border-4 border-dashed border-blue-600 ring-8 ring-blue-500/30 bg-blue-50/10 scale-[1.01]"
+                    : "border-slate-300"
+                }`}
                 style={{ color: "#000000" }}
               >
+                {/* Visual Feedback ao arrastar tag sobre a folha A4 */}
+                {isDraggingOverCanvas && (
+                  <div className="absolute inset-x-0 top-6 z-20 pointer-events-none flex justify-center">
+                    <span className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-full shadow-lg animate-bounce flex items-center gap-1.5">
+                      <Move className="w-4 h-4" />
+                      Solte a tag aqui para inserir no local desejado!
+                    </span>
+                  </div>
+                )}
+
                 {/* Régua superior simulada do Word */}
                 <div className="absolute top-0 left-0 right-0 h-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-[8px] text-slate-400 px-12 select-none">
                   <span>0cm</span>
@@ -837,9 +920,7 @@ export default function ModelosContratoPage() {
                   contentEditable={true}
                   suppressContentEditableWarning={true}
                   onKeyUp={updateWordCount}
-                  onDrop={handleDropTag}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="mt-4 focus:outline-none min-h-[900px] text-black"
+                  className="mt-4 focus:outline-none min-h-[900px] text-black font-serif text-sm leading-relaxed"
                   style={{ color: "#000000" }}
                 />
               </div>
