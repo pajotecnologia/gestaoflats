@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
 import { getAppBaseUrl } from "./baseUrl";
-import { calculateSha256 } from "./opentimestamps";
+import { calculateSha256 } from "./cryptoUtils";
 
 export interface ChecklistItem {
   categoria: string;

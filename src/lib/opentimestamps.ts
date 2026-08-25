@@ -1,4 +1,5 @@
-import crypto from 'crypto';
+import { calculateSha256 } from './cryptoUtils';
+export { calculateSha256 };
 
 // Importação segura do javascript-opentimestamps
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -10,14 +11,6 @@ export interface OpenTimestampsResult {
   blockchainProtocol: string;
   blockchainStatus: string;
   stampedAt: Date;
-}
-
-/**
- * Calcula o Hash SHA-256 (64 caracteres hexadecimais) de um Buffer ou String
- */
-export function calculateSha256(input: Buffer | string): string {
-  const buffer = typeof input === 'string' ? Buffer.from(input, 'utf-8') : input;
-  return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
 /**

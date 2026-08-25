@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { formatCurrency } from "./validation";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
 import { convertUrlToBase64, getAppBaseUrl } from "./baseUrl";
-import { calculateSha256 } from "./opentimestamps";
+import { calculateSha256 } from "./cryptoUtils";
 
 export interface ContratoPDFData {
   empresaNome: string;
