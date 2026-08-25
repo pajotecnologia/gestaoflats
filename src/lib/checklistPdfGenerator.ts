@@ -1,6 +1,8 @@
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
 import { getAppBaseUrl } from "./baseUrl";
+import { calculateSha256 } from "./opentimestamps";
 
 export interface ChecklistItem {
   categoria: string;
@@ -396,12 +398,25 @@ export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFDat
     })
   );
 
+  const sha256 = data.documentoHashSha256 || calculateSha256(`${data.empresaCnpj}-${data.locatarioCpf}-${data.flatNumero}-${data.tipoVistoria}-${data.dataVistoria}`);
+  const validationUrl = data.validationUrl || `${getAppBaseUrl()}/api/validar?hash=${sha256}`;
+
+  let qrCodeDataUrl = data.qrCodeDataUrl;
+  if (!qrCodeDataUrl) {
+    try {
+      qrCodeDataUrl = await QRCode.toDataURL(validationUrl, { margin: 1, width: 120 });
+    } catch (e) {}
+  }
+
   return {
     ...data,
     empresaLogomarcaUrl: logoUrl,
     empresaAssinaturaUrl: assUrl,
     locatarioAssinaturaUrl: locAssUrl,
     itens: updatedItens,
+    documentoHashSha256: sha256,
+    validationUrl,
+    qrCodeDataUrl,
   };
 }
 
