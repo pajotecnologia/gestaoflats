@@ -20,8 +20,15 @@ npx prisma generate
 chmod -R 777 prisma 2>/dev/null || true
 chmod 666 prisma/dev.db 2>/dev/null || true
 
-echo "📁 [4/6] Configurando pastas de upload e permissões de escrita..."
+echo "📁 [4/6] Configurando pastas de upload e removendo atalhos inválidos..."
 chattr -i .user.ini 2>/dev/null || true
+
+# Remove links simbólicos em loop (ELOOP) que travam o Next.js
+rm -f uploads 2>/dev/null || true
+rm -f public/uploads/uploads 2>/dev/null || true
+find public/uploads/ -type l -delete 2>/dev/null || true
+
+# Cria estruturas limpas de pastas de upload
 mkdir -p public/uploads/flats public/uploads/vistorias public/uploads/empresa public/uploads/assinaturas
 chmod -R 777 public/uploads 2>/dev/null || true
 
@@ -44,8 +51,4 @@ fi
 
 echo "=============================================================================="
 echo "✅ DEPLOY E CONFIGURAÇÃO DA VPS CONCLUÍDOS COM SUCESSO!"
-echo "   - Código atualizado"
-echo "   - Banco SQLite sincronizado com permissões"
-echo "   - Nginx automatizado com a regra location ^~ /uploads/"
-echo "   - Aplicação compilada e reiniciada"
 echo "=============================================================================="
