@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 });
+    console.error("Erro no login:", error);
+    return NextResponse.json({ error: error.message || "Erro interno no servidor." }, { status: 500 });
   }
 }
