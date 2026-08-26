@@ -1,29 +1,70 @@
 #!/bin/bash
-# Script de Deploy Seguro no Servidor VPS (Preserva Banco de Dados)
+# =============================================================================
+# Script de Deploy - Sistema DNYL (Gestão de Flats)
+# VPS: dnyl.pajotech.com.br | Porta: 3010 | Gerenciado por: aaPanel
+# =============================================================================
+# COMO USAR:
+#   cd /www/wwwroot/dnyl.pajotech.com.br
+#   bash deploy.sh
+# =============================================================================
 
 set -e
 
-echo "🚀 Iniciando atualização segura do sistema..."
-cd /www/wwwroot/dnyl.pajotech.com.br
+APP_DIR="/www/wwwroot/dnyl.pajotech.com.br"
+APP_PORT=3010
 
-echo "📦 Puxando últimas atualizações do código fonte..."
+echo ""
+echo "╔══════════════════════════════════════════════╗"
+echo "║    🚀 DEPLOY - DNYL Gestão de Flats          ║"
+echo "╚══════════════════════════════════════════════╝"
+echo ""
+
+cd $APP_DIR
+
+# 1. Atualizar código fonte
+echo "📦 [1/6] Puxando atualizações do GitHub..."
 git fetch origin master
 git reset --hard origin/master
+echo "✅ Código atualizado!"
 
-# Garante a correção do caminho do SQLite no arquivo .env se necessário
-if [ -f .env ]; then
-  sed -i 's|DATABASE_URL="file:./prisma/dev.db"|DATABASE_URL="file:./dev.db"|g' .env
-fi
+# 2. Matar o processo antigo na porta 3010 ANTES do build
+echo ""
+echo "🔪 [2/6] Encerrando processo antigo na porta $APP_PORT..."
+fuser -k -9 ${APP_PORT}/tcp 2>/dev/null && echo "✅ Processo encerrado!" || echo "⚠️  Nenhum processo ativo na porta $APP_PORT."
 
-echo "🗄️ Sincronizando estrutura do banco de dados (preservando 100% dos dados)..."
-npx prisma db push
-
-echo "🏗️ Recompilando pacotes de produção (Next.js)..."
+# 3. Apagar build antigo
+echo ""
+echo "🧹 [3/6] Limpando build antigo (.next)..."
 rm -rf .next
+echo "✅ Cache de build removido!"
+
+# 4. Sincronizar banco de dados
+echo ""
+echo "🗄️  [4/6] Sincronizando banco de dados (sem perder dados)..."
+npx prisma db push
+echo "✅ Banco sincronizado!"
+
+# 5. Compilar o Next.js
+echo ""
+echo "🏗️  [5/6] Compilando produção (Next.js)... Aguarde ~2 minutos..."
 npx next build
+echo "✅ Build concluído!"
 
-echo "🔄 Reiniciando processo no PM2..."
-pm2 startOrRestart ecosystem.config.js
-pm2 save
+# 6. Ajustar permissões para o aaPanel (usuário www)
+echo ""
+echo "🔐 [6/6] Ajustando permissões para o aaPanel..."
+chown -R www:www $APP_DIR
+echo "✅ Permissões ajustadas!"
 
-echo "✅ Atualização concluída com sucesso! Todos os dados e cadastros foram mantidos 100% intactos."
+echo ""
+echo "╔══════════════════════════════════════════════╗"
+echo "║  ✅ BUILD CONCLUÍDO COM SUCESSO!             ║"
+echo "║                                              ║"
+echo "║  PRÓXIMO PASSO OBRIGATÓRIO:                  ║"
+echo "║  No aaPanel → Website → Node project         ║"
+echo "║  Clique em ▶ RESTART no projeto 'dnyl'       ║"
+echo "╚══════════════════════════════════════════════╝"
+echo ""
+echo "  Após restart, acesse: https://dnyl.pajotech.com.br"
+echo "  A versão atualizada aparecerá na tela de login."
+echo ""
