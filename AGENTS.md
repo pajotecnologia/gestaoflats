@@ -200,7 +200,7 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 - **COMANDO ÚNICO MANDATÓRIO DE DEPLOY NA VPS (PRESERVA DADOS NO BANCO)**:
   - Para atualizar o sistema em produção na VPS (especificamente a aplicação na pasta `/www/wwwroot/dnyl.pajotech.com.br`), o procedimento **DEVE SER DIRETO** (em linha única encadeada no terminal) para garantir a execução síncrona de todas as etapas:
   ```bash
-  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && rm -rf .next && npx prisma db push && npx next build && pm2 restart dnyl
+  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && rm -rf .next && npx prisma db push && npx next build && pm2 startOrRestart ecosystem.config.js && pm2 save
   ```
 
 - **PROIBIÇÃO ABSOLUTA DE `pm2 delete all` OU COMANDOS GERAIS**: A VPS hospeda outros projetos em portas distintas (3000, 3005, etc.). Qualquer comando PM2 deve afetar **EXCLUSIVAMENTE** o processo `dnyl` (ex: `pm2 restart dnyl` ou `pm2 delete dnyl`).

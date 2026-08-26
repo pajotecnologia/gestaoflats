@@ -23,6 +23,7 @@ rm -rf .next
 npx next build
 
 echo "🔄 Reiniciando processo no PM2..."
-pm2 restart dnyl
+pm2 startOrRestart ecosystem.config.js
+pm2 save
 
 echo "✅ Atualização concluída com sucesso! Todos os dados e cadastros foram mantidos 100% intactos."
