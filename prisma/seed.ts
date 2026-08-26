@@ -4,20 +4,11 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🧹 Limpando dados existentes para evitar duplicidade...");
-
-  await prisma.contaPagar.deleteMany({});
-  await prisma.contaReceber.deleteMany({});
-  await prisma.vistoriaChecklist.deleteMany({});
-  await prisma.contrato.deleteMany({});
-  await prisma.modeloContrato.deleteMany({});
-  await prisma.flat.deleteMany({});
-  await prisma.local.deleteMany({});
-  await prisma.fornecedor.deleteMany({});
-  await prisma.locatario.deleteMany({});
-  await prisma.configuracaoParametros.deleteMany({});
-  await prisma.usuario.deleteMany({});
-  await prisma.empresa.deleteMany({});
+  const existingCount = await prisma.empresa.count();
+  if (existingCount > 0) {
+    console.log("ℹ️ O banco de dados já possui dados cadastrados. O seed foi ignorado para preservar 100% dos seus registros.");
+    return;
+  }
 
   console.log("🌱 Populando banco de dados com dados demonstrativos iniciais...");
 
