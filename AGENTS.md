@@ -194,16 +194,17 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 ## 12. Procedimento Padrão e Direto de Atualização / Deploy na VPS Linux
 
 - **COMANDO ÚNICO MANDATÓRIO DE DEPLOY NA VPS (PRESERVA DADOS NO BANCO)**:
-  - Para atualizar o sistema em produção na VPS (especificamente a aplicação na pasta `/www/wwwroot/dnyl.pajotech.com.br`), o procedimento **DEVE SER DIRETO** e obrigatoriamente executar a sincronização do banco (`npx prisma db push`) e a recompilação síncrona da pasta `.next` antes do restart no PM2:
+  - Para atualizar o sistema em produção na VPS (especificamente a aplicação na pasta `/www/wwwroot/dnyl.pajotech.com.br`), o procedimento **DEVE SER DIRETO** (em linha única encadeada no terminal) para garantir a execução síncrona de todas as etapas:
   ```bash
-  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && npx prisma db push && npx next build && pm2 restart dnyl
+  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && rm -rf .next && npx prisma db push && npx next build && pm2 restart dnyl
   ```
 
 - **Por que esta Ordem é Obrigatória e Imperativa**:
   1. `git fetch origin master && git reset --hard origin/master`: Atualiza o código fonte do repositório no disco. (Obs: Os arquivos `.db` do SQLite foram removidos do Git e ignorados via `.gitignore`, o que impede que o `git reset` sobrescreva ou apague dados reais do banco de produção na VPS).
-  2. `npx prisma db push`: Atualiza e adiciona novas tabelas ou colunas ao banco de dados SQLite existente **preservando 100% de todos os dados e cadastros criados**.
-  3. `npx next build`: Recompila síncronamente todos os arquivos do Next.js gerando o novo `BUILD_ID` e atualizando os pacotes estáticos. **JAMAIS** reiniciar o PM2 antes da conclusão do `next build` para evitar erros de 502 Bad Gateway e `production-start-no-build-id`.
-  4. `pm2 restart dnyl`: Recarrega o processo `dnyl` na porta 3010 com a build de produção totalmente pronta.
+  2. `rm -rf .next`: Apaga o cache de compilação antigo para forçar o Next.js a gerar todos os chunks estáticos e atualizados da nova versão.
+  3. `npx prisma db push`: Atualiza e adiciona novas tabelas ou colunas ao banco de dados SQLite existente **preservando 100% de todos os dados e cadastros criados**.
+  4. `npx next build`: Recompila síncronamente todos os arquivos do Next.js gerando o novo `BUILD_ID` e atualizando os pacotes estáticos. **JAMAIS** reiniciar o PM2 antes da conclusão do `next build` para evitar erros de 502 Bad Gateway e `production-start-no-build-id`.
+  5. `pm2 restart dnyl`: Recarrega o processo `dnyl` na porta 3010 com a build de produção totalmente pronta.
 
 - **Controle de Versão do Sistema (`src/lib/version.ts`)**:
   - Em cada nova funcionalidade ou atualização enviada, a constante `SYSTEM_VERSION` em `src/lib/version.ts` e no `package.json` deve ser incrementada (ex: `v1.10`, `v1.11`, `v1.12`).
