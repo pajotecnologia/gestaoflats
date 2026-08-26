@@ -134,7 +134,11 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - `sendWhatsAppDocument` em `src/lib/evolutionApi.ts` faz a resolução assíncrona automática se uma `Promise` ou string for fornecida, extraindo a porção base64 pura e garantindo que exceções como `trim is not a function` ou `Owned media must be a url or base64` nunca ocorram.
 
 - **Porta Padrão e Nginx Reverse Proxy (Porta 3010)**:
-  - A aplicação foi configurada para rodar na **porta 3010** (`package.json`, `baseUrl.ts`, `.env`, `Dockerfile` e `docker-compose.yml`), liberando as portas 3000 e 3005 para outras aplicações na VPS.
+  - A aplicação foi configurada para rodar na **porta 3010** (`package.json`, `baseUrl.ts`, `.env`, `Dockerfile` e `docker-compose.yml`).
+  - **Mapeamento Oficial de Portas dos Sistemas na VPS**:
+    - **Porta 3002**: `sgh`
+    - **Porta 3005**: `contratos`
+    - **Porta 3010**: `dnyl` (Sistema de Locações / Gestão de Flats)
   - O arquivo `nginx.conf.example` fornece o modelo pronto de Nginx repassando a porta 3010 para o domínio público com suporte a SSL (`certbot`), upload de arquivos de até 25MB (`client_max_body_size 25M`) e repasse de cabeçalhos HTTP (`proxy_set_header X-Forwarded-Proto $scheme`).
 
 - **URLs Dinâmicas do Sistema (`getAppBaseUrl`)**:
