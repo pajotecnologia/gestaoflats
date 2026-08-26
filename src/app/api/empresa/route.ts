@@ -8,9 +8,13 @@ export async function GET() {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   }
 
-  const empresa = await prisma.empresa.findUnique({
+  let empresa = await prisma.empresa.findUnique({
     where: { id: session.empresaId },
   });
+
+  if (!empresa) {
+    empresa = await prisma.empresa.findFirst();
+  }
 
   return NextResponse.json({ empresa });
 }
@@ -32,26 +36,59 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const empresaAtualizada = await prisma.empresa.update({
-      where: { id: session.empresaId },
-      data: {
-        nomeFantasia,
-        razaoSocial,
-        cnpj,
-        email,
-        telefone,
-        endereco,
-        bairro: bairro || null,
-        cidade: cidade || null,
-        estado: estado || null,
-        cep: cep || null,
-        logomarcaUrl: logomarcaUrl || null,
-        assinaturaUrl: assinaturaUrl || null,
-      },
+    let targetEmpresaId = session.empresaId;
+    let empresaExistente = await prisma.empresa.findUnique({
+      where: { id: targetEmpresaId },
     });
+
+    if (!empresaExistente) {
+      empresaExistente = await prisma.empresa.findFirst();
+      if (empresaExistente) {
+        targetEmpresaId = empresaExistente.id;
+      }
+    }
+
+    let empresaAtualizada;
+    if (empresaExistente) {
+      empresaAtualizada = await prisma.empresa.update({
+        where: { id: targetEmpresaId },
+        data: {
+          nomeFantasia,
+          razaoSocial,
+          cnpj,
+          email,
+          telefone,
+          endereco,
+          bairro: bairro || null,
+          cidade: cidade || null,
+          estado: estado || null,
+          cep: cep || null,
+          logomarcaUrl: logomarcaUrl || null,
+          assinaturaUrl: assinaturaUrl || null,
+        },
+      });
+    } else {
+      empresaAtualizada = await prisma.empresa.create({
+        data: {
+          nomeFantasia,
+          razaoSocial,
+          cnpj,
+          email,
+          telefone,
+          endereco,
+          bairro: bairro || null,
+          cidade: cidade || null,
+          estado: estado || null,
+          cep: cep || null,
+          logomarcaUrl: logomarcaUrl || null,
+          assinaturaUrl: assinaturaUrl || null,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, empresa: empresaAtualizada });
   } catch (error: any) {
-    return NextResponse.json({ error: "Erro ao atualizar dados da empresa." }, { status: 500 });
+    console.error("Erro ao atualizar dados da empresa:", error);
+    return NextResponse.json({ error: error.message || "Erro ao atualizar dados da empresa." }, { status: 500 });
   }
 }

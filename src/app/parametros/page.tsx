@@ -379,10 +379,12 @@ function ParametrosContent() {
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
+        if (data.empresa) setEmpresa(data.empresa);
         setFeedback({ type: "success", message: "✅ Dados da empresa e Assinatura Digital salvos com sucesso!" });
       } else {
-        setFeedback({ type: "error", message: "❌ Erro ao salvar dados da empresa." });
+        setFeedback({ type: "error", message: `❌ Erro ao salvar: ${data.error || "Erro interno no servidor."}` });
       }
     } catch (err) {
       setFeedback({ type: "error", message: "❌ Erro de conexão ao salvar empresa." });
