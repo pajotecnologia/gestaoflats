@@ -200,10 +200,27 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 - **COMANDO ÚNICO MANDATÓRIO DE DEPLOY NA VPS (PRESERVA DADOS NO BANCO)**:
   - Para atualizar o sistema em produção na VPS (especificamente a aplicação na pasta `/www/wwwroot/dnyl.pajotech.com.br`), o procedimento **DEVE SER DIRETO** (em linha única encadeada no terminal) para garantir a execução síncrona de todas as etapas:
   ```bash
-  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && rm -rf .next && npx prisma db push && npx next build && pm2 startOrRestart ecosystem.config.js && pm2 save
+  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && fuser -k -9 3010/tcp 2>/dev/null || true && rm -rf .next && npx prisma db push && npx next build && chown -R www:www /www/wwwroot/dnyl.pajotech.com.br && pm2 startOrRestart ecosystem.config.js && pm2 save
   ```
+  - **Após o build**, se o sistema for gerenciado pelo **aaPanel**, ir em **Website → Node project → Restart** no projeto `dnyl` ao invés de usar o PM2 diretamente.
 
-- **PROIBIÇÃO ABSOLUTA DE `pm2 delete all` OU COMANDOS GERAIS**: A VPS hospeda outros projetos em portas distintas (3000, 3005, etc.). Qualquer comando PM2 deve afetar **EXCLUSIVAMENTE** o processo `dnyl` (ex: `pm2 restart dnyl` ou `pm2 delete dnyl`).
+- **GERENCIAMENTO PELO AAPANEL**:
+  - O projeto `dnyl` é gerenciado pelo aaPanel como Node project.
+  - **Configuração do projeto no aaPanel**:
+    - **Path**: `/www/wwwroot/dnyl.pajotech.com.br`
+    - **Run opt**: `start [next start -p 3010]`
+    - **Port**: `3010`
+    - **User**: `www`
+  - Para iniciar pela primeira vez ou após matar o processo manualmente, usar o botão **Start** no aaPanel.
+  - O `ecosystem.config.js` na raiz do projeto garante que o PM2 e o aaPanel iniciem o sistema na porta **3010**.
+
+- **PROXY REVERSO NGINX (aaPanel)**:
+  - O arquivo de proxy do Nginx para o domínio `dnyl.pajotech.com.br` está em:
+    `/www/server/panel/vhost/nginx/proxy/dnyl.pajotech.com.br/proxy.conf`
+  - Deve conter `proxy_pass http://127.0.0.1:3010` com `proxy_cache_bypass 1` e `Cache-Control: no-cache` para evitar que o browser sirva chunks JS antigos.
+  - **NUNCA** modificar o arquivo principal `/www/server/panel/vhost/nginx/dnyl.pajotech.com.br.conf` diretamente — usar apenas o arquivo de proxy acima.
+
+- **PROIBIÇÃO ABSOLUTA DE `pm2 delete all` OU COMANDOS GERAIS**: A VPS hospeda outros projetos em portas distintas (3002, 3005, etc.). Qualquer comando PM2 deve afetar **EXCLUSIVAMENTE** o processo `dnyl` (ex: `pm2 restart dnyl` ou `pm2 delete dnyl`).
 
 - **Por que esta Ordem é Obrigatória e Imperativa**:
   1. `git fetch origin master && git reset --hard origin/master`: Atualiza o código fonte do repositório no disco. (Obs: Os arquivos `.db` do SQLite foram removidos do Git e ignorados via `.gitignore`, o que impede que o `git reset` sobrescreva ou apague dados reais do banco de produção na VPS).
