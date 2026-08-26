@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, memo, forwardRef } from "react";
 import Shell from "@/components/layout/Shell";
 import { replaceContractVariables } from "@/lib/validation";
+import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
 import {
   FileCode,
   Maximize2,
@@ -106,19 +107,7 @@ export default function ModelosContratoPage() {
   const [titulo, setTitulo] = useState("");
   const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
 
-  const defaultContentHtml = `<h2 style="text-align: center; color: #000000; font-family: Arial, sans-serif; font-weight: bold;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
-<p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif;">Pelo presente instrumento particular de locação residencial, de um lado como <strong>LOCADORA</strong> a empresa <strong>{{empresa.nomeFantasia}}</strong>, e de outro lado como <strong>LOCATÁRIO(A)</strong> o(a) Sr(a). <strong>{{locatario.nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{locatario.cpf}}</strong>.</p>
-<hr style="border: 0; border-top: 1px solid #000000; margin: 15px 0;" />
-<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA PRIMEIRA - DO OBJETO:</strong> O imóvel objeto desta locação é o <strong>Flat nº {{flat.numero}}</strong> do <strong>{{local.nome}}</strong>, totalmente mobiliado, decorado e equipado com todos os utensílios conforme laudo de vistoria.</p>
-<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO:</strong> O aluguel mensal ajustado é de <strong>{{contrato.valorMensal}}</strong> ({{contrato.valorExtenso}}), devendo ser pago impreterivelmente até a data de vencimento de cada mês de vigência.</p>
-<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif;"><strong>CLÁUSULA TERCEIRA - DA VIGÊNCIA:</strong> O contrato vigorará pelo período de <strong>{{contrato.validadeMeses}}</strong>, com início em <strong>{{contrato.dataEmissao}}</strong> e término previsto para <strong>{{contrato.dataFinal}}</strong>.</p>
-<br/><br/>
-<table style="width: 100%; margin-top: 40px; text-align: center; color: #000000; font-family: Arial, sans-serif;">
-  <tr>
-    <td style="width: 50%; color: #000000;">___________________________________<br/><strong>{{empresa.nomeFantasia}}</strong><br/>Locadora</td>
-    <td style="width: 50%; color: #000000;">___________________________________<br/><strong>{{locatario.nome}}</strong><br/>Locatário(a)</td>
-  </tr>
-</table>`;
+  const defaultContentHtml = DEFAULT_CONTRATO_HTML;
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeViewMode, setActiveViewMode] = useState<"editor" | "code" | "preview">("editor");

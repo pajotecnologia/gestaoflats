@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_CONTRATO_HTML } from "../src/lib/defaultContractTemplate";
 
 const prisma = new PrismaClient();
 
@@ -152,13 +153,8 @@ async function main() {
   const modeloContrato = await prisma.modeloContrato.create({
     data: {
       empresaId: empresa.id,
-      titulo: "Contrato de Locação Residencial de Flat de Temporada / Anual",
-      conteudoHtml: `<h2 style="text-align: center; color: #1e3a8a;">CONTRATO DE LOCAÇÃO DE FLAT RESIDENCIAL</h2>
-<p>Pelo presente instrumento particular, de um lado <strong>{{empresa_nome}}</strong>, e de outro lado o(a) LOCATÁRIO(A) <strong>{{locatario_nome}}</strong>, inscrito(a) no CPF sob o nº <strong>{{cpf}}</strong>.</p>
-<p><strong>CLÁUSULA PRIMEIRA - DO OBJETO:</strong> O objeto do presente contrato é a locação do <strong>Flat nº {{flat_numero}}</strong>, totalmente mobiliado e equipado.</p>
-<p><strong>CLÁUSULA SEGUNDA - DO VALOR E PAGAMENTO:</strong> O valor mensal do aluguel ajustado é de <strong>{{valor_mensal}}</strong>, com vencimento todo dia 10 de cada mês.</p>
-<p><strong>CLÁUSULA TERCEIRA - DA VIGÊNCIA:</strong> O presente contrato tem vigência com término previsto para <strong>{{data_fim}}</strong>.</p>
-<p style="margin-top: 30px;">Recife, {{data_emissao}}.</p>`,
+      titulo: "Contrato Padrão de Locação Residencial de Flat",
+      conteudoHtml: DEFAULT_CONTRATO_HTML,
     },
   });
 
