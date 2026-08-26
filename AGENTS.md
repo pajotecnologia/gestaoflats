@@ -199,6 +199,8 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && rm -rf .next && npx prisma db push && npx next build && pm2 restart dnyl
   ```
 
+- **PROIBIÇÃO ABSOLUTA DE `pm2 delete all` OU COMANDOS GERAIS**: A VPS hospeda outros projetos em portas distintas (3000, 3005, etc.). Qualquer comando PM2 deve afetar **EXCLUSIVAMENTE** o processo `dnyl` (ex: `pm2 restart dnyl` ou `pm2 delete dnyl`).
+
 - **Por que esta Ordem é Obrigatória e Imperativa**:
   1. `git fetch origin master && git reset --hard origin/master`: Atualiza o código fonte do repositório no disco. (Obs: Os arquivos `.db` do SQLite foram removidos do Git e ignorados via `.gitignore`, o que impede que o `git reset` sobrescreva ou apague dados reais do banco de produção na VPS).
   2. `rm -rf .next`: Apaga o cache de compilação antigo para forçar o Next.js a gerar todos os chunks estáticos e atualizados da nova versão.
