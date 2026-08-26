@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { formatCurrency } from "@/lib/validation";
+import { formatCurrency, formatMesReferencia } from "@/lib/validation";
 import { generateReciboPDF, getReciboPDFBase64 } from "@/lib/pdfGenerator";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
@@ -59,6 +59,7 @@ export interface GridMesesProps {
     telefone?: string | null;
     email?: string | null;
     logomarcaUrl?: string | null;
+    assinaturaUrl?: string | null;
   };
   onBaixaSucesso?: () => void;
 }
@@ -266,6 +267,8 @@ export default function GridMeses({
   const handleDownloadRecibo = () => {
     if (!selectedParcela) return;
 
+    const formattedMesRef = formatMesReferencia(selectedParcela.mesReferencia);
+
     generateReciboPDF({
       empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
       empresaCnpj: empresaData?.cnpj || "00.000.000/0001-00",
@@ -273,10 +276,11 @@ export default function GridMeses({
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
       locatarioNome,
       locatarioCpf,
       flatNumero,
-      mesReferencia: selectedParcela.mesReferencia,
+      mesReferencia: formattedMesRef,
       valor: selectedParcela.valorPago || selectedParcela.valor,
       dataPagamento: selectedParcela.dataPagamento
         ? new Date(selectedParcela.dataPagamento).toLocaleDateString("pt-BR")
@@ -292,6 +296,7 @@ export default function GridMeses({
     let pdfBase64: string | undefined = undefined;
     let fileName: string | undefined = undefined;
     let text = "";
+    const formattedMesRef = formatMesReferencia(selectedParcela.mesReferencia);
 
     if (selectedParcela.status === "PAGO") {
       pdfBase64 = await getReciboPDFBase64({
@@ -301,10 +306,11 @@ export default function GridMeses({
         empresaTelefone: empresaData?.telefone || undefined,
         empresaEmail: empresaData?.email || undefined,
         empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+        empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
         locatarioNome,
         locatarioCpf,
         flatNumero,
-        mesReferencia: selectedParcela.mesReferencia,
+        mesReferencia: formattedMesRef,
         valor: selectedParcela.valorPago || selectedParcela.valor,
         dataPagamento: selectedParcela.dataPagamento
           ? new Date(selectedParcela.dataPagamento).toLocaleDateString("pt-BR")
@@ -313,10 +319,10 @@ export default function GridMeses({
         numeroRecibo: selectedParcela.id.slice(0, 8).toUpperCase(),
       });
 
-      fileName = `Recibo_${selectedParcela.id.slice(0, 8).toUpperCase()}_${selectedParcela.mesReferencia.replace("-", "_")}.pdf`;
-      text = `*COMPROVANTE DE PAGAMENTO / RECIBO*\n\nOlá *${locatarioNome}*,\nSegue em anexo o recibo de pagamento em PDF do *${flatNumero}* (Ref: ${selectedParcela.mesReferencia}). Obrigado!`;
+      fileName = `Recibo_${selectedParcela.id.slice(0, 8).toUpperCase()}_${formattedMesRef.replace("/", "_")}.pdf`;
+      text = `*COMPROVANTE DE PAGAMENTO / RECIBO*\n\nOlá *${locatarioNome}*,\nSegue em anexo o recibo de pagamento em PDF do *${flatNumero}* (Ref: ${formattedMesRef}). Obrigado!`;
     } else {
-      text = `*LEMBRETE DE COBRANÇA - ALUGUEL*\n\nOlá *${locatarioNome}*,\nLembramos sobre a parcela do aluguel do *${flatNumero}* (Vencimento: ${new Date(selectedParcela.dataVencimento).toLocaleDateString("pt-BR")}) no valor de *${formatCurrency(selectedParcela.valor)}*.\n\nMês Ref: ${selectedParcela.mesReferencia}.\n\nPara maiores dúvidas ou comprovantes, favor responder este WhatsApp. Obrigado!`;
+      text = `*LEMBRETE DE COBRANÇA - ALUGUEL*\n\nOlá *${locatarioNome}*,\nLembramos sobre a parcela do aluguel do *${flatNumero}* (Vencimento: ${new Date(selectedParcela.dataVencimento).toLocaleDateString("pt-BR")}) no valor de *${formatCurrency(selectedParcela.valor)}*.\n\nMês Ref: ${formattedMesRef}.\n\nPara maiores dúvidas ou comprovantes, favor responder este WhatsApp. Obrigado!`;
     }
 
     try {

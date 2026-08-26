@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
 import { convertUrlToBase64 } from "./baseUrl";
+import { formatMesReferencia } from "./validation";
 
 export interface ReciboPDFData {
   empresaNome: string;
@@ -9,9 +10,11 @@ export interface ReciboPDFData {
   empresaTelefone?: string;
   empresaEmail?: string;
   empresaLogomarcaUrl?: string;
+  empresaAssinaturaUrl?: string;
   locatarioNome: string;
   locatarioCpf: string;
   flatNumero: string;
+  condominioNome?: string;
   mesReferencia: string;
   valor: number;
   dataPagamento: string;
@@ -24,9 +27,14 @@ export async function prepareReciboDataWithBase64Images(data: ReciboPDFData): Pr
   if (logoUrl && !logoUrl.startsWith("data:image")) {
     logoUrl = await convertUrlToBase64(logoUrl);
   }
+  let sigUrl = data.empresaAssinaturaUrl;
+  if (sigUrl && !sigUrl.startsWith("data:image")) {
+    sigUrl = await convertUrlToBase64(sigUrl);
+  }
   return {
     ...data,
     empresaLogomarcaUrl: logoUrl,
+    empresaAssinaturaUrl: sigUrl,
   };
 }
 
@@ -55,8 +63,27 @@ export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
   doc.setFontSize(10);
   doc.text(`Recebemos de: ${data.locatarioNome}`, 14, 68);
   doc.text(`CPF do Locatário: ${data.locatarioCpf}`, 14, 74);
-  doc.text(`Imóvel / Flat: ${data.flatNumero}`, 14, 80);
-  doc.text(`Mês de Referência: ${data.mesReferencia}`, 14, 86);
+
+  // Tratamento do Prédio / Condomínio e Flat / Apartamento Lado a Lado
+  let predio = (data.condominioNome || "").trim();
+  let flat = (data.flatNumero || "").trim();
+
+  if (!predio && flat.includes(" - ")) {
+    const parts = flat.split(" - ");
+    predio = parts[0].trim();
+    flat = parts.slice(1).join(" - ").trim();
+  }
+
+  if (predio) {
+    const flatDisplay = flat.toLowerCase().startsWith("flat") || flat.toLowerCase().startsWith("ap") ? flat : `Flat ${flat}`;
+    doc.text(`Prédio / Condomínio: ${predio}`, 14, 80);
+    doc.text(`Apartamento / Flat: ${flatDisplay}`, 115, 80);
+  } else {
+    doc.text(`Imóvel / Flat: ${flat}`, 14, 80);
+  }
+
+  const mesRefFormatado = formatMesReferencia(data.mesReferencia);
+  doc.text(`Mês de Referência: ${mesRefFormatado}`, 14, 86);
   doc.text(`Data do Pagamento: ${data.dataPagamento}`, 14, 92);
   doc.text(`Forma de Pagamento: ${data.formaPagamento}`, 14, 98);
 
@@ -75,6 +102,20 @@ export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
   doc.setFontSize(9);
   const declaracao = `Declaramos para os devidos fins de direito que recebemos da pessoa acima identificada a quantia supra discriminada, referente ao aluguel da unidade habitacional indicada, dando-lhe plena, geral e irrevogável quitação referente ao mês citado.`;
   doc.text(doc.splitTextToSize(declaracao, 182), 14, 160);
+
+  // Imagem da Assinatura / Carimbo da Empresa
+  if (data.empresaAssinaturaUrl && data.empresaAssinaturaUrl.trim()) {
+    try {
+      const sigUrl = data.empresaAssinaturaUrl.trim();
+      let format = "PNG";
+      if (sigUrl.toLowerCase().includes(".jpg") || sigUrl.toLowerCase().includes(".jpeg") || sigUrl.includes("image/jpeg")) {
+        format = "JPEG";
+      }
+      doc.addImage(sigUrl, format, 80, 185, 50, 23);
+    } catch (e) {
+      console.error("Erro ao desenhar imagem da assinatura da empresa no recibo:", e);
+    }
+  }
 
   // Linha de Assinatura
   doc.setDrawColor(156, 163, 175);

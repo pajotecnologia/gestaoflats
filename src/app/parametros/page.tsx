@@ -50,6 +50,10 @@ function ParametrosContent() {
   const [emailEmpresa, setEmailEmpresa] = useState("");
   const [telefoneEmpresa, setTelefoneEmpresa] = useState("");
   const [enderecoEmpresa, setEnderecoEmpresa] = useState("");
+  const [bairroEmpresa, setBairroEmpresa] = useState("");
+  const [cidadeEmpresa, setCidadeEmpresa] = useState("");
+  const [estadoEmpresa, setEstadoEmpresa] = useState("");
+  const [cepEmpresa, setCepEmpresa] = useState("");
   const [logomarcaUrl, setLogomarcaUrl] = useState("");
   const [assinaturaUrl, setAssinaturaUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -115,6 +119,10 @@ function ParametrosContent() {
         setEmailEmpresa(resEmpresa.empresa.email || "");
         setTelefoneEmpresa(formatPhone(resEmpresa.empresa.telefone || ""));
         setEnderecoEmpresa(resEmpresa.empresa.endereco || "");
+        setBairroEmpresa(resEmpresa.empresa.bairro || "");
+        setCidadeEmpresa(resEmpresa.empresa.cidade || "");
+        setEstadoEmpresa(resEmpresa.empresa.estado || "");
+        setCepEmpresa(resEmpresa.empresa.cep || "");
         setLogomarcaUrl(resEmpresa.empresa.logomarcaUrl || "");
         setAssinaturaUrl(resEmpresa.empresa.assinaturaUrl || "");
       }
@@ -362,6 +370,10 @@ function ParametrosContent() {
           email: emailEmpresa,
           telefone: telefoneEmpresa,
           endereco: enderecoEmpresa,
+          bairro: bairroEmpresa,
+          cidade: cidadeEmpresa,
+          estado: estadoEmpresa,
+          cep: cepEmpresa,
           logomarcaUrl,
           assinaturaUrl,
         }),
@@ -745,15 +757,62 @@ function ParametrosContent() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Endereço Completo</label>
-                  <input
-                    type="text"
-                    required
-                    value={enderecoEmpresa}
-                    onChange={(e) => setEnderecoEmpresa(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Logradouro / Rua / N°</label>
+                    <input
+                      type="text"
+                      required
+                      value={enderecoEmpresa}
+                      onChange={(e) => setEnderecoEmpresa(e.target.value)}
+                      placeholder="Ex: Rua do Imperador, 250"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Bairro</label>
+                    <input
+                      type="text"
+                      value={bairroEmpresa}
+                      onChange={(e) => setBairroEmpresa(e.target.value)}
+                      placeholder="Ex: Santo Antônio"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Cidade</label>
+                    <input
+                      type="text"
+                      value={cidadeEmpresa}
+                      onChange={(e) => setCidadeEmpresa(e.target.value)}
+                      placeholder="Ex: Recife"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Estado (UF)</label>
+                    <input
+                      type="text"
+                      value={estadoEmpresa}
+                      onChange={(e) => setEstadoEmpresa(e.target.value.toUpperCase())}
+                      placeholder="Ex: PE"
+                      maxLength={2}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">CEP</label>
+                    <input
+                      type="text"
+                      value={cepEmpresa}
+                      onChange={(e) => setCepEmpresa(e.target.value)}
+                      placeholder="Ex: 50010-000"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-2 space-y-3">

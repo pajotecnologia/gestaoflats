@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { nomeFantasia, razaoSocial, cnpj, email, telefone, endereco, logomarcaUrl, assinaturaUrl } =
+    const { nomeFantasia, razaoSocial, cnpj, email, telefone, endereco, bairro, cidade, estado, cep, logomarcaUrl, assinaturaUrl } =
       await request.json();
 
     if (!nomeFantasia || !razaoSocial || !cnpj) {
@@ -41,6 +41,10 @@ export async function PUT(request: NextRequest) {
         email,
         telefone,
         endereco,
+        bairro: bairro || null,
+        cidade: cidade || null,
+        estado: estado || null,
+        cep: cep || null,
         logomarcaUrl: logomarcaUrl || null,
         assinaturaUrl: assinaturaUrl || null,
       },

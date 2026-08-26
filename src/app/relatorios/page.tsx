@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { generateBlankChecklistPDF, defaultBlankChecklistCategories } from "@/lib/blankChecklistPdfGenerator";
 import { generateContasReceberPDFReport, generateContasPagarPDFReport, generateFluxoCaixaPDFReport, generateContratosPDFReport } from "@/lib/reportsPdfGenerator";
+import { formatMesReferencia } from "@/lib/validation";
 
 function RelatoriosContent() {
   const searchParams = useSearchParams();
@@ -245,7 +246,7 @@ function RelatoriosContent() {
         locatarioNome: c.locatario?.nome || "Locatário Não Informado",
         flatNumero: c.contrato?.flat?.numero || "-",
         condominioNome: c.contrato?.flat?.local?.nome || "",
-        mesReferencia: c.mesReferencia || "-",
+        mesReferencia: formatMesReferencia(c.mesReferencia),
         numeroParcela: c.numeroParcela || 1,
         dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR") : "-",
         dataPagamento: c.dataPagamento ? new Date(c.dataPagamento).toLocaleDateString("pt-BR") : undefined,
@@ -310,7 +311,7 @@ function RelatoriosContent() {
         descricao: c.descricao || "Conta a Pagar",
         fornecedorNome: c.fornecedor?.nome || "-",
         flatNumero: c.flat?.numero || "",
-        condominioNome: c.local?.nome || "",
+        condominioNome: c.local?.nome || c.flat?.local?.nome || "",
         dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR") : "-",
         dataPagamento: c.dataPagamento ? new Date(c.dataPagamento).toLocaleDateString("pt-BR") : undefined,
         valor: c.valor || 0,
@@ -936,7 +937,7 @@ function RelatoriosContent() {
                             {item.contrato?.flat?.local?.nome ? `(${item.contrato.flat.local.nome})` : ""}
                           </td>
                           <td className="py-3 px-3 text-slate-600 dark:text-slate-400">
-                            {item.mesReferencia} (Parc. {item.numeroParcela})
+                            {formatMesReferencia(item.mesReferencia)} (Parc. {item.numeroParcela})
                           </td>
                           <td className="py-3 px-3 font-semibold text-slate-800 dark:text-slate-200">
                             {item.dataVencimento ? new Date(item.dataVencimento).toLocaleDateString("pt-BR") : "-"}

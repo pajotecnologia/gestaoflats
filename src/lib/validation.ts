@@ -324,6 +324,49 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "contrato.ipAssinatura": contrato.ipAssinaturaLocatario || "",
     "ip_assinatura": contrato.ipAssinaturaLocatario || "",
 
+    // NOVAS CONDIÇÕES FINANCEIRAS DO CONTRATO
+    "contrato.diaVencimento": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
+    "dia_vencimento": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
+    "vencimento_dia": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
+    "pagamento_dia": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
+
+    "contrato.formaPagamento": contrato.formaPagamento || "PIX",
+    "forma_pagamento": contrato.formaPagamento || "PIX",
+    "forma_pagto": contrato.formaPagamento || "PIX",
+
+    "contrato.bancoNome": contrato.bancoNome || "",
+    "banco_nome": contrato.bancoNome || "",
+    "nome_banco": contrato.bancoNome || "",
+    "banco": contrato.bancoNome || "",
+
+    "contrato.bancoDadosConta": contrato.bancoDadosConta || "",
+    "dados_conta": contrato.bancoDadosConta || "",
+    "conta_bancaria": contrato.bancoDadosConta || "",
+    "pix_dados": contrato.bancoDadosConta || "",
+
+    "contrato.multaAtrasoPercentual": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
+    "multa_percentual": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
+    "multa_atraso": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
+    "multa": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
+
+    "contrato.jurosAtrasoPercentual": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
+    "juros_percentual": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
+    "juros_atraso": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
+    "juros": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
+
+    "contrato.valorCaucao": formatCurrency(Number(contrato.valorCaucao || 0)),
+    "valor_caucao": formatCurrency(Number(contrato.valorCaucao || 0)),
+    "caucao": formatCurrency(Number(contrato.valorCaucao || 0)),
+
+    "contrato.caucaoParcelas": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
+    "caucao_parcelas": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
+    "caucao_meses": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
+
+    "contrato.multaRescisaoMeses": contrato.multaRescisaoMeses !== undefined && contrato.multaRescisaoMeses !== null ? `${contrato.multaRescisaoMeses}` : "3",
+    "multa_rescisao_meses": contrato.multaRescisaoMeses !== undefined && contrato.multaRescisaoMeses !== null ? `${contrato.multaRescisaoMeses}` : "3",
+    "multa_rescisao": contrato.multaRescisaoMeses !== undefined && contrato.multaRescisaoMeses !== null ? `${contrato.multaRescisaoMeses}` : "3",
+    "multa_cancelamento": contrato.multaRescisaoMeses !== undefined && contrato.multaRescisaoMeses !== null ? `${contrato.multaRescisaoMeses}` : "3",
+
     // EMPRESA / LOCADORA
     "empresa.nomeFantasia": empresa.nomeFantasia || "Locadora",
     "empresa_nome": empresa.nomeFantasia || "Locadora",
@@ -349,6 +392,37 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
 
     "empresa.endereco": empresa.endereco || "",
     "empresa_endereco": empresa.endereco || "",
+    "empresa_logradouro": empresa.endereco || "",
+    "rua_empresa": empresa.endereco || "",
+
+    "empresa.bairro": empresa.bairro || "",
+    "empresa_bairro": empresa.bairro || "",
+    "bairro_empresa": empresa.bairro || "",
+
+    "empresa.cidade": empresa.cidade || "",
+    "empresa_cidade": empresa.cidade || "",
+    "cidade_empresa": empresa.cidade || "",
+
+    "empresa.estado": empresa.estado || "",
+    "empresa_estado": empresa.estado || "",
+    "uf_empresa": empresa.estado || "",
+
+    "empresa.cep": empresa.cep || "",
+    "empresa_cep": empresa.cep || "",
+    "cep_empresa": empresa.cep || "",
+
+    "empresa.enderecoCompleto": [
+      empresa.endereco,
+      empresa.bairro ? `Bairro ${empresa.bairro}` : "",
+      empresa.cidade && empresa.estado ? `${empresa.cidade}/${empresa.estado}` : empresa.cidade || empresa.estado || "",
+      empresa.cep ? `CEP ${empresa.cep}` : "",
+    ].filter(Boolean).join(", "),
+    "empresa_endereco_completo": [
+      empresa.endereco,
+      empresa.bairro ? `Bairro ${empresa.bairro}` : "",
+      empresa.cidade && empresa.estado ? `${empresa.cidade}/${empresa.estado}` : empresa.cidade || empresa.estado || "",
+      empresa.cep ? `CEP ${empresa.cep}` : "",
+    ].filter(Boolean).join(", "),
   };
 
   let result = templateHtml;
@@ -362,4 +436,51 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
   }
 
   return result;
+}
+
+/**
+ * Formata mês de referência para o padrão MM/YYYY (XX/XXXX)
+ * Ex: "2026-08" -> "08/2026", "2026-08-15" -> "08/2026", "8/2026" -> "08/2026"
+ */
+export function formatMesReferencia(mesRef?: string | null): string {
+  if (!mesRef || !mesRef.trim()) return "-";
+  const str = mesRef.trim();
+
+  // Trata separador hífen (ex: 2026-08 ou 08-2026)
+  if (str.includes("-")) {
+    const parts = str.split("-");
+    if (parts.length >= 2) {
+      if (parts[0].length === 4) {
+        // YYYY-MM ou YYYY-MM-DD
+        const year = parts[0];
+        const month = parts[1].padStart(2, "0");
+        return `${month}/${year}`;
+      } else if (parts[1].length === 4) {
+        // MM-YYYY
+        const month = parts[0].padStart(2, "0");
+        const year = parts[1];
+        return `${month}/${year}`;
+      }
+    }
+  }
+
+  // Trata separador barra (ex: 08/2026 ou 8/2026 ou 2026/08)
+  if (str.includes("/")) {
+    const parts = str.split("/");
+    if (parts.length === 2) {
+      if (parts[0].length === 4) {
+        // YYYY/MM
+        const year = parts[0];
+        const month = parts[1].padStart(2, "0");
+        return `${month}/${year}`;
+      } else {
+        // MM/YYYY
+        const month = parts[0].padStart(2, "0");
+        const year = parts[1].length === 2 ? `20${parts[1]}` : parts[1];
+        return `${month}/${year}`;
+      }
+    }
+  }
+
+  return str;
 }

@@ -15,6 +15,10 @@ model Empresa {
   email                 String
   telefone              String
   endereco              String
+  bairro                String?
+  cidade                String?
+  estado                String?
+  cep                   String?
   logomarcaUrl          String?
   assinaturaUrl         String?                // Assinatura/Carimbo Digital do Representante
   createdAt             DateTime               @default(now())
@@ -170,6 +174,18 @@ model Contrato {
   validadeDias            Int?
   dataFinal               DateTime
   valorMensal             Float
+
+  // Novos Campos de Condições Financeiras e Regras do Contrato
+  diaVencimento           Int?            @default(5)
+  formaPagamento          String?         @default("PIX")
+  bancoNome               String?
+  bancoDadosConta         String?
+  multaAtrasoPercentual   Float?          @default(2.0)
+  jurosAtrasoPercentual   Float?          @default(1.0)
+  valorCaucao             Float?          @default(0.0)
+  caucaoParcelas          Int?            @default(0)
+  multaRescisaoMeses      Int?            @default(3)
+
   status                  String          @default("ATIVO") // ATIVO, FINALIZADO, CANCELADO
   fotosAnexadasUrl        String?         // JSON String array das fotos anexadas ao contrato
   anexoChecklistEntrada   String?         // JSON String da Vistoria/Checklist de Entrada

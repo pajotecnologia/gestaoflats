@@ -49,12 +49,28 @@ export async function POST(request: NextRequest) {
       validadeMeses = "12",
       valorMensal,
       fotosAnexadasUrl,
+      diaVencimento = 5,
+      formaPagamento = "PIX",
+      bancoNome,
+      bancoDadosConta,
+      multaAtrasoPercentual = 2.0,
+      jurosAtrasoPercentual = 1.0,
+      valorCaucao = 0.0,
+      caucaoParcelas = 0,
+      multaRescisaoMeses = 3,
     } = await request.json();
 
     const dtEmissao = new Date(dataEmissao);
     const vlrMensalNum = parseFloat(valorMensal);
     const isDias = tipoValidade === "DIAS";
     const duracaoValor = parseInt(validadeValor || validadeMeses || (isDias ? "30" : "12"), 10);
+
+    const diaVencNum = diaVencimento ? parseInt(String(diaVencimento), 10) : 5;
+    const multaNum = multaAtrasoPercentual !== undefined && multaAtrasoPercentual !== null ? parseFloat(String(multaAtrasoPercentual)) : 2.0;
+    const jurosNum = jurosAtrasoPercentual !== undefined && jurosAtrasoPercentual !== null ? parseFloat(String(jurosAtrasoPercentual)) : 1.0;
+    const caucaoNum = valorCaucao !== undefined && valorCaucao !== null ? parseFloat(String(valorCaucao)) : 0.0;
+    const caucaoParcNum = caucaoParcelas ? parseInt(String(caucaoParcelas), 10) : 0;
+    const multaRescisaoNum = multaRescisaoMeses ? parseInt(String(multaRescisaoMeses), 10) : 3;
 
     const mesesInt = isDias ? Math.max(1, Math.ceil(duracaoValor / 30)) : duracaoValor;
     const diasInt: number | null = isDias ? duracaoValor : null;
@@ -96,6 +112,15 @@ export async function POST(request: NextRequest) {
         validadeDias: diasInt,
         dataFinal: dtFinal,
         valorMensal: vlrMensalNum,
+        diaVencimento: diaVencNum,
+        formaPagamento: formaPagamento || "PIX",
+        bancoNome: bancoNome || null,
+        bancoDadosConta: bancoDadosConta || null,
+        multaAtrasoPercentual: multaNum,
+        jurosAtrasoPercentual: jurosNum,
+        valorCaucao: caucaoNum,
+        caucaoParcelas: caucaoParcNum,
+        multaRescisaoMeses: multaRescisaoNum,
         fotosAnexadasUrl: fotosAnexadasUrl || null,
         tokenAssinatura,
         statusAssinatura: "PENDENTE",
@@ -128,6 +153,10 @@ export async function POST(request: NextRequest) {
       for (let i = 1; i <= duracaoValor; i++) {
         const vencimento = new Date(dtEmissao);
         vencimento.setMonth(vencimento.getMonth() + (i - 1));
+
+        if (diaVencNum && diaVencNum >= 1 && diaVencNum <= 31) {
+          vencimento.setDate(Math.min(diaVencNum, 28));
+        }
 
         const mesRef = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, "0")}`;
 

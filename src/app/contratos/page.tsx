@@ -24,6 +24,17 @@ export default function ContratosPage() {
   const [validadeValor, setValidadeValor] = useState("12");
   const [valorMensal, setValorMensal] = useState("");
 
+  // Novos Campos de Condições Financeiras e Regras do Contrato
+  const [diaVencimento, setDiaVencimento] = useState("5");
+  const [formaPagamento, setFormaPagamento] = useState("PIX");
+  const [bancoNome, setBancoNome] = useState("");
+  const [bancoDadosConta, setBancoDadosConta] = useState("");
+  const [multaAtrasoPercentual, setMultaAtrasoPercentual] = useState("2.0");
+  const [jurosAtrasoPercentual, setJurosAtrasoPercentual] = useState("1.0");
+  const [valorCaucao, setValorCaucao] = useState("0.00");
+  const [caucaoParcelas, setCaucaoParcelas] = useState("0");
+  const [multaRescisaoMeses, setMultaRescisaoMeses] = useState("3");
+
   // Fotos Anexadas do Flat
   const [availableFlatFotos, setAvailableFlatFotos] = useState<string[]>([]);
   const [selectedFotosToAttach, setSelectedFotosToAttach] = useState<string[]>([]);
@@ -115,6 +126,15 @@ export default function ContratosPage() {
           validadeValor,
           validadeMeses: validadeValor,
           valorMensal,
+          diaVencimento: parseInt(diaVencimento, 10),
+          formaPagamento,
+          bancoNome,
+          bancoDadosConta,
+          multaAtrasoPercentual: parseFloat(multaAtrasoPercentual),
+          jurosAtrasoPercentual: parseFloat(jurosAtrasoPercentual),
+          valorCaucao: parseFloat(valorCaucao),
+          caucaoParcelas: parseInt(caucaoParcelas, 10),
+          multaRescisaoMeses: parseInt(multaRescisaoMeses, 10),
           fotosAnexadasUrl: JSON.stringify(selectedFotosToAttach),
         }),
       });
@@ -383,6 +403,162 @@ export default function ContratosPage() {
                       onChange={(e) => setValorMensal(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-bold"
                     />
+                  </div>
+                </div>
+
+                {/* Bloco 1: Condições de Pagamento & Dados Bancários */}
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                    <span>💳 Pagamento & Dados Bancários</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Pagamento até o dia (Vencimento)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        required
+                        value={diaVencimento}
+                        onChange={(e) => setDiaVencimento(e.target.value)}
+                        placeholder="Ex: 5"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Forma de Pagamento
+                      </label>
+                      <select
+                        value={formaPagamento}
+                        onChange={(e) => setFormaPagamento(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                      >
+                        <option value="PIX">⚡ PIX</option>
+                        <option value="BOLETO">📄 Boleto Bancário</option>
+                        <option value="TRANSFERENCIA">🏦 Transferência / TED / DOC</option>
+                        <option value="DINHEIRO">💵 Dinheiro em Espécie</option>
+                        <option value="CARTAO">💳 Cartão de Crédito/Débito</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Nome do Banco
+                      </label>
+                      <input
+                        type="text"
+                        value={bancoNome}
+                        onChange={(e) => setBancoNome(e.target.value)}
+                        placeholder="Ex: Banco do Brasil, Bradesco, Itaú..."
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Dados da Conta / Chave PIX
+                      </label>
+                      <input
+                        type="text"
+                        value={bancoDadosConta}
+                        onChange={(e) => setBancoDadosConta(e.target.value)}
+                        placeholder="Ex: Ag: 0001 / Conta: 12345-6 / PIX: 12.345.678/0001-90"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloco 2: Encargos, Caução & Multa Rescisória */}
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                    <span>⚖️ Multas, Juros, Caução & Rescisão</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Multa por Atraso (%)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={multaAtrasoPercentual}
+                        onChange={(e) => setMultaAtrasoPercentual(e.target.value)}
+                        placeholder="Ex: 2.0"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Juros de Mora (%)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={jurosAtrasoPercentual}
+                        onChange={(e) => setJurosAtrasoPercentual(e.target.value)}
+                        placeholder="Ex: 1.0"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Valor Caução (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={valorCaucao}
+                        onChange={(e) => setValorCaucao(e.target.value)}
+                        placeholder="Ex: 2500.00"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Equivalente a (Parcelas)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="12"
+                        value={caucaoParcelas}
+                        onChange={(e) => setCaucaoParcelas(e.target.value)}
+                        placeholder="Ex: 1"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Multa Rescisão (Meses)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="12"
+                        value={multaRescisaoMeses}
+                        onChange={(e) => setMultaRescisaoMeses(e.target.value)}
+                        placeholder="Ex: 3"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
                   </div>
                 </div>
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Shell from "@/components/layout/Shell";
-import { formatCurrency } from "@/lib/validation";
+import { formatCurrency, formatMesReferencia } from "@/lib/validation";
 import { generateReciboPDF, getReciboPDFBase64 } from "@/lib/pdfGenerator";
 import {
   TrendingUp,
@@ -87,7 +87,9 @@ export default function ContasReceberPage() {
     const flatNumero = c.contrato?.flat?.numero
       ? `Flat ${c.contrato.flat.numero}`
       : c.observacao || "Receita Avulsa";
-    const mesRef = c.mesReferencia || (c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR").slice(3) : "Avulso");
+    const condominioNome = c.contrato?.flat?.local?.nome || "";
+    const mesRefRaw = c.mesReferencia || (c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR").slice(3) : "Avulso");
+    const mesRef = formatMesReferencia(mesRefRaw);
 
     generateReciboPDF({
       empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
@@ -96,9 +98,11 @@ export default function ContasReceberPage() {
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
       locatarioNome: c.locatario?.nome || "Locatário",
       locatarioCpf: c.locatario?.cpf || "000.000.000-00",
       flatNumero,
+      condominioNome,
       mesReferencia: mesRef,
       valor: Number(c.valorPago || c.valor || 0),
       dataPagamento: c.dataPagamento
@@ -118,7 +122,9 @@ export default function ContasReceberPage() {
     const flatNumero = c.contrato?.flat?.numero
       ? `Flat ${c.contrato.flat.numero}`
       : c.observacao || "Receita Avulsa";
-    const mesRef = c.mesReferencia || (c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR").slice(3) : "Avulso");
+    const condominioNome = c.contrato?.flat?.local?.nome || "";
+    const mesRefRaw = c.mesReferencia || (c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR").slice(3) : "Avulso");
+    const mesRef = formatMesReferencia(mesRefRaw);
     const numRecibo = c.id.slice(0, 8).toUpperCase();
 
     const pdfBase64 = await getReciboPDFBase64({
@@ -128,9 +134,11 @@ export default function ContasReceberPage() {
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
       locatarioNome: c.locatario?.nome || "Locatário",
       locatarioCpf: c.locatario?.cpf || "000.000.000-00",
       flatNumero,
+      condominioNome,
       mesReferencia: mesRef,
       valor: Number(c.valorPago || c.valor || 0),
       dataPagamento: c.dataPagamento
@@ -450,7 +458,7 @@ export default function ContasReceberPage() {
                         <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-200">
                           {c.locatario?.nome || "Locatário"}
                           <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                            {c.observacao || `Mês Ref: ${c.mesReferencia}`}
+                            {c.observacao || `Mês Ref: ${formatMesReferencia(c.mesReferencia)}`}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">

@@ -259,12 +259,12 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
   doc.setFontSize(7.5);
   doc.setTextColor(30, 58, 138);
 
-  doc.text("LOCATÁRIO", 18, y + 4.5);
-  doc.text("FLAT / COND.", 75, y + 4.5);
-  doc.text("VENCIMENTO", 115, y + 4.5);
-  doc.text("PAGAMENTO", 142, y + 4.5);
-  doc.text("VALOR (R$)", 168, y + 4.5);
-  doc.text("STATUS", 185, y + 4.5);
+  doc.text("LOCATÁRIO", 16, y + 4.5);
+  doc.text("FLAT / COND.", 63, y + 4.5);
+  doc.text("VENCIMENTO", 116, y + 4.5);
+  doc.text("PAGAMENTO", 137, y + 4.5);
+  doc.text("VALOR (R$)", 158, y + 4.5);
+  doc.text("STATUS", 180, y + 4.5);
 
   y += 6.5;
 
@@ -282,12 +282,12 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       doc.setTextColor(30, 58, 138);
-      doc.text("LOCATÁRIO", 18, y + 4.5);
-      doc.text("FLAT / COND.", 75, y + 4.5);
-      doc.text("VENCIMENTO", 115, y + 4.5);
-      doc.text("PAGAMENTO", 142, y + 4.5);
-      doc.text("VALOR (R$)", 168, y + 4.5);
-      doc.text("STATUS", 185, y + 4.5);
+      doc.text("LOCATÁRIO", 16, y + 4.5);
+      doc.text("FLAT / COND.", 63, y + 4.5);
+      doc.text("VENCIMENTO", 116, y + 4.5);
+      doc.text("PAGAMENTO", 137, y + 4.5);
+      doc.text("VALOR (R$)", 158, y + 4.5);
+      doc.text("STATUS", 180, y + 4.5);
       y += 6.5;
     }
 
@@ -300,26 +300,26 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
     doc.setFontSize(7.5);
     doc.setTextColor(31, 41, 55);
 
-    const locNome = item.locatarioNome.length > 28 ? item.locatarioNome.substring(0, 26) + ".." : item.locatarioNome;
+    const locNome = item.locatarioNome.length > 24 ? item.locatarioNome.substring(0, 22) + ".." : item.locatarioNome;
     const flatCond = `${item.flatNumero}${item.condominioNome ? " (" + item.condominioNome + ")" : ""}`;
-    const flatCondTrunc = flatCond.length > 22 ? flatCond.substring(0, 20) + ".." : flatCond;
+    const flatCondTrunc = flatCond.length > 27 ? flatCond.substring(0, 25) + ".." : flatCond;
 
-    doc.text(locNome, 18, y + 4.2);
-    doc.text(flatCondTrunc, 75, y + 4.2);
-    doc.text(item.dataVencimento, 115, y + 4.2);
-    doc.text(item.dataPagamento || "-", 142, y + 4.2);
-    doc.text(item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 168, y + 4.2);
+    doc.text(locNome, 16, y + 4.2);
+    doc.text(flatCondTrunc, 63, y + 4.2);
+    doc.text(item.dataVencimento, 116, y + 4.2);
+    doc.text(item.dataPagamento || "-", 137, y + 4.2);
+    doc.text(item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 158, y + 4.2);
 
     // Status Badge
     if (item.status === "PAGO") {
       doc.setTextColor(16, 185, 129);
-      doc.text("PAGO", 185, y + 4.2);
+      doc.text("PAGO", 180, y + 4.2);
     } else if (item.status === "ATRASADO") {
       doc.setTextColor(239, 68, 68);
-      doc.text("ATRASADO", 185, y + 4.2);
+      doc.text("ATRASADO", 180, y + 4.2);
     } else {
-      doc.setTextColor(245, 158, 11);
-      doc.text("PENDENTE", 185, y + 4.2);
+      doc.setTextColor(217, 119, 6);
+      doc.text("PENDENTE", 180, y + 4.2);
     }
 
     y += 6;
@@ -339,19 +339,22 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
   doc.rect(14, y, 182, 14, "S");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
+  doc.setFontSize(7.5);
 
   doc.setTextColor(31, 41, 55);
-  doc.text(`TÍTULOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
+  doc.text(`TÍTULOS: ${data.totais.qtdTotal}`, 17, y + 8.5);
 
   doc.setTextColor(30, 58, 138);
-  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 50, y + 8.5);
+  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 48, y + 8.5);
 
   doc.setTextColor(16, 185, 129);
-  doc.text(`RECEBIDO: R$ ${data.totais.totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 105, y + 8.5);
+  doc.text(`RECEBIDO: R$ ${data.totais.totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 86, y + 8.5);
+
+  doc.setTextColor(217, 119, 6);
+  doc.text(`PENDENTE: R$ ${data.totais.totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 118, y + 8.5);
 
   doc.setTextColor(239, 68, 68);
-  doc.text(`PENDENTE/ATRAS.: R$ ${(data.totais.totalPendente + data.totais.totalAtrasado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 150, y + 8.5);
+  doc.text(`ATRASADO: R$ ${data.totais.totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 152, y + 8.5);
 
   // Rodapé do Desenvolvedor
   doc.setDrawColor(229, 231, 235);
@@ -393,12 +396,12 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
   doc.setFontSize(7.5);
   doc.setTextColor(30, 58, 138);
 
-  doc.text("DESCRIÇÃO", 18, y + 4.5);
-  doc.text("FORNECEDOR / FLAT", 75, y + 4.5);
-  doc.text("VENCIMENTO", 120, y + 4.5);
-  doc.text("PAGAMENTO", 145, y + 4.5);
-  doc.text("VALOR (R$)", 168, y + 4.5);
-  doc.text("STATUS", 185, y + 4.5);
+  doc.text("DESCRIÇÃO", 16, y + 4.5);
+  doc.text("FORNECEDOR / FLAT / COND.", 63, y + 4.5);
+  doc.text("VENCIMENTO", 116, y + 4.5);
+  doc.text("PAGAMENTO", 137, y + 4.5);
+  doc.text("VALOR (R$)", 158, y + 4.5);
+  doc.text("STATUS", 180, y + 4.5);
 
   y += 6.5;
 
@@ -416,12 +419,12 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       doc.setTextColor(30, 58, 138);
-      doc.text("DESCRIÇÃO", 18, y + 4.5);
-      doc.text("FORNECEDOR / FLAT", 75, y + 4.5);
-      doc.text("VENCIMENTO", 120, y + 4.5);
-      doc.text("PAGAMENTO", 145, y + 4.5);
-      doc.text("VALOR (R$)", 168, y + 4.5);
-      doc.text("STATUS", 185, y + 4.5);
+      doc.text("DESCRIÇÃO", 16, y + 4.5);
+      doc.text("FORNECEDOR / FLAT / COND.", 63, y + 4.5);
+      doc.text("VENCIMENTO", 116, y + 4.5);
+      doc.text("PAGAMENTO", 137, y + 4.5);
+      doc.text("VALOR (R$)", 158, y + 4.5);
+      doc.text("STATUS", 180, y + 4.5);
       y += 6.5;
     }
 
@@ -434,26 +437,37 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
     doc.setFontSize(7.5);
     doc.setTextColor(31, 41, 55);
 
-    const descTxt = item.descricao.length > 26 ? item.descricao.substring(0, 24) + ".." : item.descricao;
-    const origTxt = `${item.fornecedorNome || "-"}${item.flatNumero ? " (" + item.flatNumero + ")" : ""}`;
-    const origTrunc = origTxt.length > 22 ? origTxt.substring(0, 20) + ".." : origTxt;
+    const descTxt = item.descricao.length > 24 ? item.descricao.substring(0, 22) + ".." : item.descricao;
 
-    doc.text(descTxt, 18, y + 4.2);
-    doc.text(origTrunc, 75, y + 4.2);
-    doc.text(item.dataVencimento, 120, y + 4.2);
-    doc.text(item.dataPagamento || "-", 145, y + 4.2);
-    doc.text(item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 168, y + 4.2);
+    let flatCondParts: string[] = [];
+    if (item.flatNumero) flatCondParts.push(item.flatNumero.toLowerCase().includes("flat") ? item.flatNumero : `${item.flatNumero}`);
+    if (item.condominioNome) flatCondParts.push(item.condominioNome);
+    const flatCondStr = flatCondParts.join(" - ");
+
+    let origTxt = "";
+    if (item.fornecedorNome && item.fornecedorNome !== "-") {
+      origTxt = item.fornecedorNome + (flatCondStr ? ` (${flatCondStr})` : "");
+    } else {
+      origTxt = flatCondStr ? `- (${flatCondStr})` : "-";
+    }
+    const origTrunc = origTxt.length > 27 ? origTxt.substring(0, 25) + ".." : origTxt;
+
+    doc.text(descTxt, 16, y + 4.2);
+    doc.text(origTrunc, 63, y + 4.2);
+    doc.text(item.dataVencimento, 116, y + 4.2);
+    doc.text(item.dataPagamento || "-", 137, y + 4.2);
+    doc.text(item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 }), 158, y + 4.2);
 
     // Status Badge
     if (item.status === "PAGO") {
       doc.setTextColor(16, 185, 129);
-      doc.text("PAGO", 185, y + 4.2);
+      doc.text("PAGO", 180, y + 4.2);
     } else if (item.status === "ATRASADO") {
       doc.setTextColor(239, 68, 68);
-      doc.text("ATRASADO", 185, y + 4.2);
+      doc.text("ATRASADO", 180, y + 4.2);
     } else {
-      doc.setTextColor(245, 158, 11);
-      doc.text("PENDENTE", 185, y + 4.2);
+      doc.setTextColor(217, 119, 6);
+      doc.text("PENDENTE", 180, y + 4.2);
     }
 
     y += 6;
@@ -473,19 +487,22 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
   doc.rect(14, y, 182, 14, "S");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
+  doc.setFontSize(7.5);
 
   doc.setTextColor(31, 41, 55);
-  doc.text(`LANCAMENTOS: ${data.totais.qtdTotal}`, 18, y + 8.5);
+  doc.text(`LANÇAMENTOS: ${data.totais.qtdTotal}`, 17, y + 8.5);
 
   doc.setTextColor(30, 58, 138);
-  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 55, y + 8.5);
+  doc.text(`TOTAL GERAL: R$ ${data.totais.totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 48, y + 8.5);
 
   doc.setTextColor(16, 185, 129);
-  doc.text(`PAGO: R$ ${data.totais.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 110, y + 8.5);
+  doc.text(`PAGO: R$ ${data.totais.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 86, y + 8.5);
+
+  doc.setTextColor(217, 119, 6);
+  doc.text(`PENDENTE: R$ ${data.totais.totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 118, y + 8.5);
 
   doc.setTextColor(239, 68, 68);
-  doc.text(`PENDENTE/ATRAS.: R$ ${(data.totais.totalPendente + data.totais.totalAtrasado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 150, y + 8.5);
+  doc.text(`ATRASADO: R$ ${data.totais.totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 152, y + 8.5);
 
   // Rodapé do Desenvolvedor
   doc.setDrawColor(229, 231, 235);
