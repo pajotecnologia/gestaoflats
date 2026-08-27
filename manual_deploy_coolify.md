@@ -24,9 +24,9 @@
 
 | Projeto | Porta | Banco de Dados | Domínio | Autenticação |
 |---------|-------|----------------|---------|--------------|
-| **SGH** | `3002` | PostgreSQL (`5432`) | `sgh.pajotech.com.br` | NextAuth |
-| **Contratos** | `3005` | PostgreSQL (`5432`) | `contratos.pajotech.com.br` | NextAuth |
-| **DNYL (Flats)** | `3010` | SQLite (`prisma/dev.db`) | `dnyl.pajotech.com.br` | JWT Customizado |
+| **SGH** | `3002` | PostgreSQL (`5432` / db: `postgres` ou `sgh`) | `sgh.pajotech.com.br` | NextAuth |
+| **Contratos** | `3005` | PostgreSQL (`5432` / db: `contratos`) | `contratos.pajotech.com.br` | NextAuth |
+| **DNYL (Flats)** | `3010` | PostgreSQL (`5432` / db: `dnyl`) | `dnyl.pajotech.com.br` | JWT Customizado |
 
 ---
 
@@ -197,25 +197,26 @@ export const dynamic = 'force-dynamic';
 
 ---
 
-## 4. Configuração Específica: DNYL (Gestão de Flats - SQLite)
+## 4. Configuração Específica: DNYL (Gestão de Flats - PostgreSQL)
 
-### Volumes Persistentes (Storages no Coolify)
+### 4.1. Criar o Banco `dnyl` no pgAdmin:
+1. Conecte ao PostgreSQL via pgAdmin (`169.58.246.70:5432`, usuário `postgres`).
+2. Clique com botão direito em **Databases** → **Create** → **Database...**
+3. Nome do banco: **`dnyl`**
+4. Clique em **Save**.
+*(O Prisma executará o `prisma db push` e criará todas as tabelas automaticamente na inicialização do container).*
 
-Como o DNYL utiliza **SQLite** e upload de fotos locais, é **obrigatório** configurar Storages no Coolify para que os dados não sejam perdidos no redeploy:
-
+### 4.2. Volumes Persistentes (Storages no Coolify):
 No Coolify: **Aplicação DNYL** → Aba **Storages** (ou **Persistent Storage**):
-1. **Banco SQLite**:
-   - **Source path** (host): `/var/lib/docker/volumes/dnyl_db/_data` (ou volume nomeado `dnyl_db`)
-   - **Destination path** (container): `/app/prisma`
-2. **Uploads (Fotos/PDFs)**:
-   - **Source path** (host): `/var/lib/docker/volumes/dnyl_uploads/_data` (ou volume nomeado `dnyl_uploads`)
-   - **Destination path** (container): `/app/public/uploads`
+- **Uploads (Fotos/Laudos/PDFs)**:
+  - **Name:** `dnyl_uploads`
+  - **Destination path (container):** `/app/public/uploads`
 
-### Variáveis de Ambiente DNYL no Coolify:
+### 4.3. Variáveis de Ambiente DNYL no Coolify:
 
 | Variável | Valor | Build? | Runtime? |
 |----------|-------|--------|----------|
-| `DATABASE_URL` | `file:./dev.db` | ❌ | ✅ |
+| `DATABASE_URL` | `postgresql://postgres:SENHA_POSTGRES@169.58.246.70:5432/dnyl` | ❌ | ✅ |
 | `JWT_SECRET` | `super-secret-jwt-key-gestao-flats-saas-2026-production-ready` | ❌ | ✅ |
 | `NEXT_PUBLIC_APP_URL` | `https://dnyl.pajotech.com.br` | ❌ | ✅ |
 | `NODE_ENV` | `production` | ❌ | ✅ |
