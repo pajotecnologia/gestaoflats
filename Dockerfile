@@ -1,35 +1,41 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY prisma ./prisma/
+RUN apk add --no-cache libc6-compat
 
-RUN npm ci
+# Ignora ARGs que o Coolify ou CI podem injetar automaticamente
+ARG JWT_SECRET
+ARG NEXT_PUBLIC_APP_URL
+ARG NODE_ENV
 
+# 1. Copia manifestos de pacotes e instala dependências completas
+COPY package*.json .npmrc* ./
+ENV NODE_ENV=development
+RUN npm install --legacy-peer-deps
+
+# 2. Prisma
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# 3. Copia o código-fonte da aplicação
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-ENV PORT 3010
+# 4. Entrypoint executável
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
-RUN npx prisma generate
+# 5. Build Next.js
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV JWT_SECRET="build-fallback-jwt-secret-gestao-flats-saas-2026-placeholder"
 RUN npm run build
 
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV production
-ENV PORT 3010
-ENV NEXT_TELEMETRY_DISABLED 1
-
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
+# 6. Configurações de Produção
+ENV PORT=3010
+ENV HOSTNAME="0.0.0.0"
 
 EXPOSE 3010
 
-CMD ["npm", "run", "start"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["npm", "start"]

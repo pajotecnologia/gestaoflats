@@ -8,6 +8,8 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: {
     default: "Gestão de Flats, Contratos & Aluguéis SaaS",

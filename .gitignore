@@ -38,4 +38,7 @@ next-env.d.ts
 prisma/*.db
 prisma/*.db-journal
 test-ots.js
+*.zip
+release/
+
 

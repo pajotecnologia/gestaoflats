@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: locacoes-app
+    container_name: dnyl-app
     restart: always
     ports:
       - "3010:3010"
@@ -14,7 +14,13 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=file:./dev.db
       - JWT_SECRET=super-secret-jwt-key-gestao-flats-saas-2026-production-ready
-      - NEXT_PUBLIC_APP_URL=http://localhost:3010
+      - NEXT_PUBLIC_APP_URL=https://dnyl.pajotech.com.br
     volumes:
-      - ./prisma/dev.db:/app/prisma/dev.db
-      - ./public/uploads:/app/public/uploads
+      - dnyl_db:/app/prisma
+      - dnyl_uploads:/app/public/uploads
+
+volumes:
+  dnyl_db:
+    driver: local
+  dnyl_uploads:
+    driver: local
