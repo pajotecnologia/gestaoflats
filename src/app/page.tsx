@@ -67,7 +67,7 @@ export default function LandingPage() {
     chavePix: "contato@pajotech.com.br",
   });
 
-  const [activeTabDemo, setActiveTabDemo] = useState<"contratos" | "vistorias" | "whatsapp" | "financeiro">("vistorias");
+  const [activeTabDemo, setActiveTabDemo] = useState<"contratos" | "vistorias" | "whatsapp" | "financeiro" | "blockchain">("blockchain");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Modal de Acesso Rápido (Login / Cadastro)
@@ -211,8 +211,12 @@ export default function LandingPage() {
       a: `Você se cadastra em menos de 1 minuto e ganha ${config.diasTrialPadrao} dias de acesso total e irrestrito a todas as funcionalidades do sistema, sem necessidade de cartão de crédito.`,
     },
     {
+      q: "Como funciona o registro em Blockchain dos contratos e laudos?",
+      a: "No momento em que o locador e locatário assinam o contrato ou laudo de vistoria, o sistema gera uma impressão digital criptográfica única (Hash SHA-256) e ancora esse registro na rede Blockchain do Bitcoin através do protocolo OpenTimestamps (ISO 14533). Isso gera uma prova matemática e imutável de que o documento existia exatamente naquele formato e horário, tornando qualquer falsificação ou alteração retroativa impossível.",
+    },
+    {
       q: "Os contratos e laudos emitidos possuem validade jurídica?",
-      a: "Sim! Os contratos e laudos de vistoria são gerados no padrão White Clean Universal, contêm assinaturas digitais, carimbo de data/hora e fotos com resolução otimizada, ideais para segurança jurídica de locador e locatário.",
+      a: "Sim! Os contratos e laudos de vistoria são gerados no padrão White Clean Universal, contêm assinaturas digitais, carimbo de data/hora, ancoragem em Blockchain e fotos com resolução otimizada, ideais para segurança jurídica de locador e locatário.",
     },
     {
       q: "Como funciona o envio de contratos e recibos pelo WhatsApp?",
@@ -578,10 +582,59 @@ export default function LandingPage() {
             <DollarSign className="w-4 h-4" />
             <span>Contas a Receber & Recibos</span>
           </button>
+
+          <button
+            onClick={() => setActiveTabDemo("blockchain")}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${
+              activeTabDemo === "blockchain"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/25"
+                : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>🛡️ Auditoria Blockchain (Bitcoin)</span>
+          </button>
         </div>
 
         {/* Card do Preview Interativo */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-2xl max-w-4xl mx-auto">
+          {activeTabDemo === "blockchain" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                  <h3 className="font-bold text-white text-base flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" /> Prova de Existência & Imutabilidade em Blockchain (Bitcoin)
+                  </h3>
+                  <p className="text-xs text-slate-400">Ancoragem de contratos e vistorias via protocolo descentralizado OpenTimestamps (ISO 14533)</p>
+                </div>
+                <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-bold">
+                  ✓ Bitcoin Blockchain
+                </span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-mono">HASH SHA-256 DO DOCUMENTO:</span>
+                  <span className="font-mono font-bold text-emerald-400 text-[11px] truncate max-w-[280px]">
+                    e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-t border-slate-800/80 pt-2">
+                  <span className="text-slate-400">STATUS DA ANCORAGEM:</span>
+                  <span className="bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
+                    STAMPED & VERIFIED (BITCOIN)
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-t border-slate-800/80 pt-2">
+                  <span className="text-slate-400">PROTOCOLO / PADRÃO:</span>
+                  <span className="font-semibold text-slate-200">OpenTimestamps (OTS) / Rede Bitcoin</span>
+                </div>
+                <div className="border-t border-slate-800/80 pt-2 text-[11px] text-slate-400">
+                  💡 Qualquer pessoa ou tribunal pode verificar a autenticidade apontando a câmera para o QR Code do documento ou enviando o arquivo PDF na página <Link href="/validar" className="text-blue-400 font-bold hover:underline">/validar</Link>.
+                </div>
+              </div>
+            </div>
+          )}
           {activeTabDemo === "vistorias" && (
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -738,6 +791,87 @@ export default function LandingPage() {
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* 4.5. SEÇÃO DEDICADA DE AUDITORIA EM BLOCKCHAIN (BITCOIN) */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border border-emerald-500/30 rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10">
+            <div className="space-y-5 text-left">
+              <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Exclusivo: Auditoria Imutável em Blockchain</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+                Seus Contratos e Vistorias Ancorados na Blockchain do Bitcoin
+              </h2>
+
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Cada contrato e laudo assinado no sistema gera uma impressão digital única (<strong>Hash SHA-256</strong>), que é ancorada na maior rede descentralizada do mundo via protocolo <strong>OpenTimestamps (ISO 14533)</strong>.
+              </p>
+
+              <div className="space-y-2.5 text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>100% Imutável:</strong> Qualquer adulteração de 1 único caractere invalida a prova.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Validação Pública por QR Code:</strong> Juízes, advogados e inquilinos verificam apontando o celular.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Download de Prova (.ots):</strong> Arquivo de prova criptográfica com carimbo de tempo mundial.</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/validar"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition inline-flex items-center space-x-2"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>Testar Validador Público de Blockchain</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/90 border border-emerald-500/20 rounded-2xl p-6 space-y-4 text-xs font-mono">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  CERTIFICADO DIGITAL BITCOIN
+                </span>
+                <span className="text-[10px] text-slate-400 font-sans">OpenTimestamps</span>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-slate-500 text-[10px] block">DOCUMENT HASH (SHA-256):</span>
+                <p className="text-slate-200 break-all bg-slate-900 p-2 rounded-lg border border-slate-800 text-[11px]">
+                  9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">REDE:</span>
+                  <span className="font-bold text-white text-xs">Bitcoin Mainnet</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">STATUS:</span>
+                  <span className="font-bold text-emerald-400 text-xs">STAMPED (CONFIRMADO)</span>
+                </div>
+              </div>
+
+              <div className="bg-emerald-950/40 border border-emerald-800/40 p-3 rounded-xl text-emerald-300 text-[11px] font-sans">
+                ✓ Prova de integridade jurídica aceita em conformidade com o Artigo 10 da MP 2.200-2/2001 e normas ISO.
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
