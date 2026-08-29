@@ -9,5 +9,5 @@ if [ -f "prisma/schema.prisma" ]; then
   npx prisma db push --skip-generate || echo "Aviso: prisma db push não executado (verifique DATABASE_URL)"
 fi
 
-echo "Iniciando aplicação na porta ${PORT:-3010}..."
+echo "Iniciando aplicação na porta ${PORT:-3005}..."
 exec "$@"

@@ -32,10 +32,10 @@ ENV JWT_SECRET="build-fallback-jwt-secret-gestao-flats-saas-2026-placeholder"
 RUN npm run build
 
 # 6. Configurações de Produção
-ENV PORT=3010
+ENV PORT=3005
 ENV HOSTNAME="0.0.0.0"
 
-EXPOSE 3010
+EXPOSE 3005
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["npm", "start"]

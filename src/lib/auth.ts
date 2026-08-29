@@ -112,34 +112,14 @@ export async function getAuthSession(): Promise<TokenPayload | null> {
 }
 
 /**
- * Obtém a sessão do usuário logado ou realiza um fallback gracioso para a empresa ativa no banco.
+ * Obtém a sessão do usuário logado.
+ * Retorna a sessão ativa ou null se o usuário não estiver devidamente autenticado.
  */
 export async function getAuthSessionOrFallback(): Promise<TokenPayload | null> {
   const session = await getAuthSession();
   if (session && session.empresaId) {
     return session;
   }
-
-  try {
-    const { prisma } = await import("./prisma");
-    const empresa = await prisma.empresa.findFirst();
-    if (empresa) {
-      const user = await prisma.usuario.findFirst({
-        where: { empresaId: empresa.id },
-      });
-
-      return {
-        userId: user?.id || "admin-system",
-        empresaId: empresa.id,
-        email: user?.email || empresa.email || "admin@pajotech.com.br",
-        nome: user?.nome || "Administrador",
-        cargo: user?.cargo || "ADMIN",
-        empresaNome: empresa.nomeFantasia,
-      };
-    }
-  } catch (error) {
-    console.error("Erro no fallback de sessão:", error);
-  }
-
   return null;
 }
+

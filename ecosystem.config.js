@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "dnyl",
       script: "node_modules/next/dist/bin/next",
-      args: "start -p 3010",
+      args: "start -p 3005",
       cwd: "./",
       instances: 1,
       autorestart: true,
@@ -11,7 +11,7 @@ module.exports = {
       max_memory_restart: "1G",
       env: {
         NODE_ENV: "production",
-        PORT: 3010
+        PORT: 3005
       }
     }
   ]

@@ -36,8 +36,8 @@ export function getAppBaseUrl(req?: NextRequest | Request): string {
     return window.location.origin.replace(/\/$/, "");
   }
 
-  // 4. Fallback Padrão (Porta 3010)
-  const port = process.env.PORT || "3010";
+  // 4. Fallback Padrão (Porta 3005)
+  const port = process.env.PORT || "3005";
   return `http://localhost:${port}`;
 }
 

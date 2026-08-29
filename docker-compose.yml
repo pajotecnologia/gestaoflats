@@ -8,9 +8,9 @@ services:
     container_name: dnyl-app
     restart: always
     ports:
-      - "3010:3010"
+      - "3005:3005"
     environment:
-      - PORT=3010
+      - PORT=3005
       - NODE_ENV=production
       - DATABASE_URL=file:./dev.db
       - JWT_SECRET=super-secret-jwt-key-gestao-flats-saas-2026-production-ready

@@ -82,12 +82,29 @@ export async function POST(request: NextRequest) {
       dtFinal.setMonth(dtFinal.getMonth() + duracaoValor);
     }
 
-    const flatObj = await prisma.flat.findUnique({
-      where: { id: flatId },
+    const flatObj = await prisma.flat.findFirst({
+      where: { id: flatId, empresaId: session.empresaId },
     });
 
     if (!flatObj) {
-      return NextResponse.json({ error: "Flat selecionado não foi encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Flat selecionado não foi encontrado para esta empresa." }, { status: 404 });
+    }
+
+    const locatarioObj = await prisma.locatario.findFirst({
+      where: { id: locatarioId, empresaId: session.empresaId },
+    });
+
+    if (!locatarioObj) {
+      return NextResponse.json({ error: "Locatário selecionado não foi encontrado para esta empresa." }, { status: 404 });
+    }
+
+    if (modeloContratoId) {
+      const modeloObj = await prisma.modeloContrato.findFirst({
+        where: { id: modeloContratoId, empresaId: session.empresaId },
+      });
+      if (!modeloObj) {
+        return NextResponse.json({ error: "Modelo de contrato selecionado não foi encontrado para esta empresa." }, { status: 404 });
+      }
     }
 
     if (flatObj.status !== "DISPONIVEL") {

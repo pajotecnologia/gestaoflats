@@ -26,7 +26,7 @@
 |---------|-------|----------------|---------|--------------|
 | **SGH** | `3002` | PostgreSQL (`5432` / db: `postgres` ou `sgh`) | `sgh.pajotech.com.br` | NextAuth |
 | **Contratos** | `3005` | PostgreSQL (`5432` / db: `contratos`) | `contratos.pajotech.com.br` | NextAuth |
-| **DNYL (Flats)** | `3010` | PostgreSQL (`5432` / db: `dnyl`) | `dnyl.pajotech.com.br` | JWT Customizado |
+| **DNYL (Flats)** | `3005` | PostgreSQL (`5432` / db: `dnyl`) | `dnyl.pajotech.com.br` | JWT Customizado |
 
 ---
 
@@ -220,7 +220,7 @@ No Coolify: **Aplicação DNYL** → Aba **Storages** (ou **Persistent Storage**
 | `JWT_SECRET` | `super-secret-jwt-key-gestao-flats-saas-2026-production-ready` | ❌ | ✅ |
 | `NEXT_PUBLIC_APP_URL` | `https://dnyl.pajotech.com.br` | ❌ | ✅ |
 | `NODE_ENV` | `production` | ❌ | ✅ |
-| `PORT` | `3010` | ❌ | ✅ |
+| `PORT` | `3005` | ❌ | ✅ |
 
 ---
 
@@ -251,7 +251,7 @@ No Coolify: **Aplicação DNYL** → Aba **Storages** (ou **Persistent Storage**
 4. Em **Build Pack**: selecione **Dockerfile**
 5. Em **General**:
    - **FQDN/Domains**: `https://dnyl.pajotech.com.br` (ou o domínio do sistema)
-   - **Port Exposes**: `3010` (para DNYL), `3002` (SGH) ou `3005` (Contratos)
+   - **Port Exposes**: `3005` (para DNYL e Contratos) ou `3002` (SGH)
 
 ---
 

@@ -233,4 +233,10 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - Em cada nova funcionalidade ou atualização enviada, a constante `SYSTEM_VERSION` em `src/lib/version.ts` e no `package.json` deve ser incrementada (ex: `v1.10`, `v1.11`, `v1.12`).
   - O indicador de versão `🟢 Versão: X.XX` deve permanecer exibido tanto no cartão da tela de login (`src/app/login/page.tsx`) quanto no topo das páginas internas (`src/components/layout/Shell.tsx`), garantindo a confirmação visual imediata de deploy bem-sucedido.
 
+---
+
+## 13. Sincronização Automática com o GitHub
+
+- **Envio Automático Obrigatório**: Toda e qualquer alteração realizada no código, configurações ou documentação DEVE ser imediatamente adicionada (`git add .`), comitada e enviada (`git push origin master`) para o GitHub ao final de cada alteração, garantindo que o repositório remoto e os webhooks do Coolify/CI estejam sempre 100% atualizados.
+
 

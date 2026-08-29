@@ -55,6 +55,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ local: newLocal });
     } else if (type === "flat") {
       const { localId, numero, status, descricao, valorPadrao, fotosUrl } = body;
+      
+      const localValido = await prisma.local.findFirst({
+        where: { id: localId, empresaId: session.empresaId },
+      });
+
+      if (!localValido) {
+        return NextResponse.json({ error: "Local/Condomínio não encontrado para esta empresa." }, { status: 404 });
+      }
+
       const newFlat = await prisma.flat.create({
         data: {
           empresaId: session.empresaId,

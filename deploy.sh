@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # Script de Deploy - Sistema DNYL (Gestão de Flats)
-# VPS: dnyl.pajotech.com.br | Porta: 3010 | Gerenciado por: aaPanel
+# VPS: dnyl.pajotech.com.br | Porta: 3005 | Gerenciado por: aaPanel
 # =============================================================================
 # COMO USAR:
 #   cd /www/wwwroot/dnyl.pajotech.com.br
@@ -11,7 +11,7 @@
 set -e
 
 APP_DIR="/www/wwwroot/dnyl.pajotech.com.br"
-APP_PORT=3010
+APP_PORT=3005
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
