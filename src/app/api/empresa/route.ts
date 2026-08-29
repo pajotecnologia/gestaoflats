@@ -39,6 +39,10 @@ export async function PUT(request: NextRequest) {
       cep,
       logomarcaUrl,
       assinaturaUrl,
+      chavePix,
+      tipoChavePix,
+      nomeBeneficiarioPix,
+      cidadePix,
     } = await request.json();
 
     if (!nomeFantasia || !razaoSocial || !cnpj) {
@@ -63,6 +67,10 @@ export async function PUT(request: NextRequest) {
         cep: cep || null,
         logomarcaUrl: logomarcaUrl || null,
         assinaturaUrl: assinaturaUrl || null,
+        chavePix: chavePix?.trim() || null,
+        tipoChavePix: tipoChavePix || "CNPJ",
+        nomeBeneficiarioPix: nomeBeneficiarioPix?.trim() || null,
+        cidadePix: cidadePix?.trim() || null,
       },
     });
 

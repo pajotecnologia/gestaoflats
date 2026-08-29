@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  MessageSquare,
 } from "lucide-react";
 
 export default function ContasReceberPage() {
@@ -170,6 +171,48 @@ export default function ContasReceberPage() {
       }
     } catch (err: any) {
       alert(`❌ Erro ao enviar recibo via WhatsApp: ${err.message || err}`);
+    }
+  };
+
+  const handleEnviarWhatsAppCobranca = async (c: any) => {
+    if (!c.locatario?.telefone) {
+      alert("Locatário não possui telefone/WhatsApp cadastrado.");
+      return;
+    }
+
+    const flatNumero = c.contrato?.flat?.numero
+      ? `Flat ${c.contrato.flat.numero}`
+      : c.observacao || "Locação";
+    const condominioNome = c.contrato?.flat?.local?.nome ? ` - ${c.contrato.flat.local.nome}` : "";
+    const vencimentoFormatado = c.dataVencimento
+      ? new Date(c.dataVencimento).toLocaleDateString("pt-BR")
+      : "A definir";
+    const valorFormatado = Number(c.valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    const chavePix = empresaData?.chavePix || empresaData?.cnpj || empresaData?.email || "Chave a consultar";
+    const tipoChave = empresaData?.tipoChavePix || "Chave";
+    const beneficiario = empresaData?.nomeBeneficiarioPix || empresaData?.nomeFantasia || "Imobiliária";
+
+    const text = `*AVISO DE COBRANÇA DE ALUGUEL* 🏢\n\nOlá, *${c.locatario?.nome}*!\n\nInformamos os dados para pagamento do aluguel:\n🏠 *Imóvel*: ${flatNumero}${condominioNome}\n📅 *Vencimento*: ${vencimentoFormatado}\n💰 *Valor*: ${valorFormatado}\n\n🔑 *DADOS PARA PAGAMENTO VIA PIX*:\n• *Tipo*: ${tipoChave}\n• *Chave PIX*: ${chavePix}\n• *Beneficiário*: ${beneficiario}\n\n_Após efetuar o pagamento, por favor nos envie o comprovante por aqui. Muito obrigado!_`;
+
+    try {
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: c.locatario.telefone,
+          message: text,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`✅ Cobrança e dados do PIX enviados com sucesso para ${c.locatario.nome} no WhatsApp!`);
+      } else {
+        alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique a conexão da Evolution API em Parâmetros."}`);
+      }
+    } catch (err: any) {
+      alert(`❌ Erro ao enviar cobrança via WhatsApp: ${err.message || err}`);
     }
   };
 
@@ -493,14 +536,23 @@ export default function ContasReceberPage() {
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end space-x-1.5">
                             {!isPago && (
-                              <button
-                                onClick={() => handleOpenBaixaModal(c)}
-                                className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center space-x-1 shadow-sm transition"
-                                title="Registrar Baixa de Pagamento"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Dar Baixa</span>
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleEnviarWhatsAppCobranca(c)}
+                                  className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition"
+                                  title="Enviar Cobrança com Dados do PIX via WhatsApp"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleOpenBaixaModal(c)}
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center space-x-1 shadow-sm transition"
+                                  title="Registrar Baixa de Pagamento"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Dar Baixa</span>
+                                </button>
+                              </>
                             )}
 
                             {isPago && (

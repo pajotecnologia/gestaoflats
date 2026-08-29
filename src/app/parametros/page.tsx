@@ -80,6 +80,10 @@ function ParametrosContent() {
   const [cepEmpresa, setCepEmpresa] = useState("");
   const [logomarcaUrl, setLogomarcaUrl] = useState("");
   const [assinaturaUrl, setAssinaturaUrl] = useState("");
+  const [chavePixEmpresa, setChavePixEmpresa] = useState("");
+  const [tipoChavePixEmpresa, setTipoChavePixEmpresa] = useState("CNPJ");
+  const [nomeBeneficiarioPixEmpresa, setNomeBeneficiarioPixEmpresa] = useState("");
+  const [cidadePixEmpresa, setCidadePixEmpresa] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [savingEmpresa, setSavingEmpresa] = useState(false);
 
@@ -316,6 +320,10 @@ function ParametrosContent() {
         setCepEmpresa(resEmpresa.empresa.cep || "");
         setLogomarcaUrl(resEmpresa.empresa.logomarcaUrl || "");
         setAssinaturaUrl(resEmpresa.empresa.assinaturaUrl || "");
+        setChavePixEmpresa(resEmpresa.empresa.chavePix || "");
+        setTipoChavePixEmpresa(resEmpresa.empresa.tipoChavePix || "CNPJ");
+        setNomeBeneficiarioPixEmpresa(resEmpresa.empresa.nomeBeneficiarioPix || "");
+        setCidadePixEmpresa(resEmpresa.empresa.cidadePix || "");
       }
 
       const p = resParametros.config || resParametros.parametros;
@@ -738,7 +746,16 @@ function ParametrosContent() {
             email: emailEmpresa,
             telefone: telefoneEmpresa,
             endereco: enderecoEmpresa,
+            bairro: bairroEmpresa,
+            cidade: cidadeEmpresa,
+            estado: estadoEmpresa,
+            cep: cepEmpresa,
+            logomarcaUrl,
             assinaturaUrl,
+            chavePix: chavePixEmpresa,
+            tipoChavePix: tipoChavePixEmpresa,
+            nomeBeneficiarioPix: nomeBeneficiarioPixEmpresa,
+            cidadePix: cidadePixEmpresa,
           }),
         }),
         fetch("/api/parametros", {
@@ -1047,6 +1064,81 @@ function ParametrosContent() {
                   ) : (
                     <p className="text-[11px] text-slate-400 italic">Nenhuma logomarca enviada. Um emblema com a inicial da empresa será gerado nos relatórios.</p>
                   )}
+                </div>
+              </div>
+
+              {/* DADOS DA CHAVE PIX DA EMPRESA PARA RECEBIMENTO DE ALUGUÉIS */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                    <CreditCard className="w-4 h-4 text-emerald-500" />
+                    <span>Dados da Chave PIX para Recebimento de Aluguéis</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    Disparado automaticamente no WhatsApp
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Informe a chave PIX da sua imobiliária/empresa. Ela será incluída automaticamente nas mensagens de cobrança e recibos enviados aos locatários.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Tipo de Chave PIX
+                    </label>
+                    <select
+                      value={tipoChavePixEmpresa}
+                      onChange={(e) => setTipoChavePixEmpresa(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-semibold"
+                    >
+                      <option value="CNPJ">CNPJ</option>
+                      <option value="CPF">CPF</option>
+                      <option value="EMAIL">E-mail</option>
+                      <option value="TELEFONE">Telefone / Celular</option>
+                      <option value="ALEATORIA">Chave Aleatória (EVP)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Chave PIX *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 00.000.000/0001-00 ou pix@minhaempresa.com"
+                      value={chavePixEmpresa}
+                      onChange={(e) => setChavePixEmpresa(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Nome do Titular / Beneficiário
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Prime Gestão Imobiliária"
+                      value={nomeBeneficiarioPixEmpresa}
+                      onChange={(e) => setNomeBeneficiarioPixEmpresa(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Cidade da Conta PIX
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Recife"
+                      value={cidadePixEmpresa}
+                      onChange={(e) => setCidadePixEmpresa(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
                 </div>
               </div>
 
