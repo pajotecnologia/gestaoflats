@@ -340,18 +340,18 @@ function ShellContent({ children }: ShellProps) {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* Badge de Teste Grátis / Assinatura */}
+            {/* Badge de Teste Grátis / Assinatura (Design Limpo e Estático) */}
             {statusAcesso && (
               <Link
                 href="/renovar"
                 className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
                   statusAcesso.isExpirado
-                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 animate-pulse"
+                    ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
                     : statusAcesso.isTrial
                     ? statusAcesso.diasRestantes <= 3
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 animate-bounce"
-                      : "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
-                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20"
+                      : "bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20"
+                    : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20"
                 }`}
                 title="Clique para gerenciar sua assinatura e ver planos"
               >

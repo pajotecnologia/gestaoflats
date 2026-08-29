@@ -347,23 +347,100 @@ export default function AjudaPage() {
             )}
 
             {activeTopic === "passo8" && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center gap-3 pb-4 border-b border-slate-700">
                   <div className="p-3 rounded-xl bg-amber-600/20 text-amber-400 border border-amber-500/30">
                     <DollarSign className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Passo 8: Financeiro, Baixas & Recibos</h2>
-                    <p className="text-xs text-slate-400">Controle de recebimentos e disparos de recibo em PDF</p>
+                    <h2 className="text-xl font-bold text-white">Passo 8: Controle de Pagamentos de Clientes & Locatários</h2>
+                    <p className="text-xs text-slate-400">Ciclo financeiro completo: da geração do contrato à quitação com recibo</p>
                   </div>
                 </div>
 
-                <div className="space-y-3 text-sm text-slate-300 leading-relaxed">
-                  <ol className="list-decimal list-inside space-y-2 pl-2 text-xs md:text-sm text-slate-300">
-                    <li>Acesse <strong>💰 Contas a Receber</strong> para ver todas as parcelas ativas, vencidas e pagas.</li>
-                    <li>Clique em <strong>💲 Dar Baixa</strong> para registrar o pagamento com forma (PIX, Transferência, Dinheiro) e comprovante.</li>
-                    <li>Após a baixa, clique no ícone do <strong>WhatsApp</strong> para enviar o Recibo oficial com QR Code de autenticidade para o locatário.</li>
-                  </ol>
+                <div className="space-y-4 text-xs md:text-sm text-slate-300 leading-relaxed">
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                    <h3 className="font-bold text-amber-400 text-sm flex items-center gap-2">
+                      <span>1️⃣ Geração Automática das Parcelas</span>
+                    </h3>
+                    <p className="text-slate-300">
+                      Assim que você emite um contrato no sistema, as parcelas no <strong>Contas a Receber</strong> são criadas automaticamente:
+                    </p>
+                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-400">
+                      <li><strong>Locações por Mês (Anuais/Mensais)</strong>: O sistema gera 1 parcela para cada mês de vigência (ex: 12 parcelas para 12 meses), com a data de vencimento programada para o dia escolhido.</li>
+                      <li><strong>Locações por Temporada (Dias)</strong>: O sistema gera 1 parcela única com o valor total do período contratado.</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                    <h3 className="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                      <span>2️⃣ Envio de Cobranças pelo WhatsApp</span>
+                    </h3>
+                    <p className="text-slate-300">
+                      No menu <strong>💰 Contas a Receber</strong> ou na tela de detalhes do Flat/Contrato:
+                    </p>
+                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-400">
+                      <li>Localize a parcela a ser cobrada e clique no botão <strong>📱 Enviar Cobrança WhatsApp</strong>.</li>
+                      <li>A mensagem é enviada diretamente ao WhatsApp do locatário com o valor, data de vencimento, chave PIX da imobiliária e o PDF da fatura/contrato anexado.</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                    <h3 className="font-bold text-blue-400 text-sm flex items-center gap-2">
+                      <span>3️⃣ Como Dar Baixa / Registrar o Pagamento</span>
+                    </h3>
+                    <p className="text-slate-300">
+                      Quando o locatário efetuar o pagamento via PIX, transferência, dinheiro ou cartão:
+                    </p>
+                    <ol className="list-decimal list-inside pl-2 space-y-1 text-slate-400">
+                      <li>Acesse <strong>Contas a Receber</strong> e clique no botão <strong>💲 Dar Baixa</strong> da parcela correspondente.</li>
+                      <li>Confirme ou ajuste a <strong>Data do Pagamento</strong> e o <strong>Valor Efetivamente Pago</strong>.</li>
+                      <li>Se aplicável, informe valores de <strong>Desconto</strong> ou <strong>Acréscimo (Multa/Juros por atraso)</strong>.</li>
+                      <li>Selecione a <strong>Forma de Pagamento</strong> (PIX, Transferência, Boleto, Dinheiro, etc.).</li>
+                      <li><strong>Comprovante</strong>: Você pode anexar a foto ou PDF do comprovante bancário para registro histórico.</li>
+                      <li>Clique em <strong>Confirmar Baixa</strong>. O status da parcela mudará imediatamente para <span className="text-emerald-400 font-bold">PAGO</span>.</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                    <h3 className="font-bold text-purple-400 text-sm flex items-center gap-2">
+                      <span>4️⃣ Emissão e Envio do Recibo Oficial em PDF</span>
+                    </h3>
+                    <p className="text-slate-300">
+                      Após liquidar a parcela, o sistema libera a emissão do <strong>Recibo de Pagamento Oficial</strong>:
+                    </p>
+                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-400">
+                      <li>Clique no botão <strong>🖨️ Imprimir Recibo</strong> para gerar o PDF em folha A4 com logotipo da empresa, endereço, dados do inquilino, assinatura digital e QR Code de autenticidade.</li>
+                      <li>Clique no botão <strong>📱 Enviar Recibo no WhatsApp</strong> para disparar o PDF do recibo oficial diretamente no celular do inquilino.</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                    <h3 className="font-bold text-rose-400 text-sm flex items-center gap-2">
+                      <span>5️⃣ Gestão de Inadimplência & Atrasos</span>
+                    </h3>
+                    <p className="text-slate-300">
+                      O sistema monitora diariamente as datas de vencimento:
+                    </p>
+                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-400">
+                      <li>Parcelas com data vencida são destacadas automaticamente em <span className="text-rose-400 font-bold">EM ATRASO</span> com a contagem exata de dias de atraso.</li>
+                      <li>Utilize o filtro <strong>Status: Vencidas</strong> no topo do Contas a Receber para listar e renegociar pendências com rapidez.</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                    <h3 className="font-bold text-cyan-400 text-sm flex items-center gap-2">
+                      <span>6️⃣ Relatórios Financeiros & Fluxo de Caixa</span>
+                    </h3>
+                    <p className="text-slate-300">
+                      No menu lateral <strong>📊 Relatórios</strong>, você tem acesso aos consolidados:
+                    </p>
+                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-400">
+                      <li><strong>Relatório - Contas a Receber</strong>: Extrato completo de valores recebidos e a receber por condomínio, flat ou locatário.</li>
+                      <li><strong>Relatório - Contas a Pagar</strong>: Controle de despesas (condomínio, energia, manutenção, faxina, fornecedores).</li>
+                      <li><strong>Fluxo de Caixa Diário</strong>: Demonstrativo de entradas vs saídas com saldo líquido em tempo real.</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
