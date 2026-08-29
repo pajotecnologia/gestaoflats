@@ -67,6 +67,7 @@ function ShellContent({ children }: ShellProps) {
     planoAtual: string;
     isTrial: boolean;
     isExpirado: boolean;
+    isMestre?: boolean;
     diasRestantes: number;
     dataExpiracao: string | null;
     podeAcessar: boolean;
@@ -340,37 +341,49 @@ function ShellContent({ children }: ShellProps) {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* Badge de Teste Grátis / Assinatura (Design Limpo e Estático) */}
+            {/* Badge de Empresa MESTRE ou Teste Grátis / Assinatura */}
             {statusAcesso && (
-              <Link
-                href="/renovar"
-                className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
-                  statusAcesso.isExpirado
-                    ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
-                    : statusAcesso.isTrial
-                    ? statusAcesso.diasRestantes <= 3
-                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20"
-                      : "bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20"
-                    : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20"
-                }`}
-                title="Clique para gerenciar sua assinatura e ver planos"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">
-                  {statusAcesso.isExpirado
-                    ? "⚠️ Expirado - Renovar"
-                    : statusAcesso.isTrial
-                    ? `Teste: ${statusAcesso.diasRestantes} dia(s)`
-                    : `Plano Ativo`}
-                </span>
-                <span className="sm:hidden">
-                  {statusAcesso.isExpirado
-                    ? "Renovar"
-                    : statusAcesso.isTrial
-                    ? `${statusAcesso.diasRestantes}d`
-                    : "Ativo"}
-                </span>
-              </Link>
+              statusAcesso.isMestre || user?.isSuperAdmin ? (
+                <Link
+                  href="/parametros?aba=saas"
+                  className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold transition shadow-xs bg-amber-500/10 text-amber-500 border border-amber-500/25 hover:bg-amber-500/20"
+                  title="Empresa Mestre - Acesso Vitalício Irrestrito (Gerenciamento do SaaS)"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">👑 MESTRE (Vitalício)</span>
+                  <span className="sm:hidden">👑 MESTRE</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/renovar"
+                  className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                    statusAcesso.isExpirado
+                      ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
+                      : statusAcesso.isTrial
+                      ? statusAcesso.diasRestantes <= 3
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20"
+                        : "bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20"
+                      : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20"
+                  }`}
+                  title="Clique para gerenciar sua assinatura e ver planos"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">
+                    {statusAcesso.isExpirado
+                      ? "⚠️ Expirado - Renovar"
+                      : statusAcesso.isTrial
+                      ? `Teste: ${statusAcesso.diasRestantes} dia(s)`
+                      : `Plano Ativo`}
+                  </span>
+                  <span className="sm:hidden">
+                    {statusAcesso.isExpirado
+                      ? "Renovar"
+                      : statusAcesso.isTrial
+                      ? `${statusAcesso.diasRestantes}d`
+                      : "Ativo"}
+                  </span>
+                </Link>
+              )
             )}
 
             {/* Link para Manual do Sistema */}

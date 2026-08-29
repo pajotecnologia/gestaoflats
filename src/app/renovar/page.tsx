@@ -163,7 +163,25 @@ function RenovarContent() {
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 py-8 flex-1 w-full">
         {/* Banner de Status */}
-        {userStatus?.isExpirado ? (
+        {userStatus?.isMestre ? (
+          <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-7 h-7 shrink-0 text-amber-400" />
+              <div>
+                <p className="font-bold text-sm text-amber-200">👑 Empresa MESTRE - Acesso Vitalício Irrestrito</p>
+                <p className="text-xs text-amber-300/80">
+                  Sua empresa possui acesso permanente. Os dados de PIX exibidos abaixo são os configurados na sua conta para receber as assinaturas de todos os locadores do sistema.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/parametros?aba=saas")}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 transition"
+            >
+              ⚡ Gerenciar Assinaturas SaaS
+            </button>
+          </div>
+        ) : userStatus?.isExpirado ? (
           <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-center gap-3">
             <AlertTriangle className="w-6 h-6 shrink-0 text-amber-400" />
             <div>

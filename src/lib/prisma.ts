@@ -33,10 +33,19 @@ export async function ensureDatabaseSchema() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "tipoChavePix" TEXT DEFAULT 'CNPJ';`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "nomeBeneficiarioPix" TEXT;`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "cidadePix" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "isMestre" BOOLEAN DEFAULT FALSE;`).catch(() => {});
 
     // 1.1 Preenche registros existentes que estejam com dataInicioTrial ou statusAssinatura nulos
     await prisma.$executeRawUnsafe(`UPDATE "Empresa" SET "dataInicioTrial" = COALESCE("createdAt", NOW()) WHERE "dataInicioTrial" IS NULL;`).catch(() => {});
     await prisma.$executeRawUnsafe(`UPDATE "Empresa" SET "statusAssinatura" = 'TRIAL' WHERE "statusAssinatura" IS NULL;`).catch(() => {});
+
+    // 1.2 Identifica e consagra a Empresa Mestre com Acesso Vitalício
+    await prisma.$executeRawUnsafe(`
+      UPDATE "Empresa" 
+      SET "isMestre" = TRUE, "statusAssinatura" = 'ATIVO', "planoAtual" = 'VITALICIO', "dataFimAcesso" = NULL 
+      WHERE "id" IN (SELECT "empresaId" FROM "Usuario" WHERE LOWER("email") IN ('pajotecnologia@gmail.com', 'admin@primeflats.com.br', 'contato@pajotech.com.br'))
+         OR "id" = (SELECT "id" FROM "Empresa" ORDER BY "createdAt" ASC LIMIT 1);
+    `).catch(() => {});
 
     // 2. Tabela ConfiguracaoSaaS
     await prisma.$executeRawUnsafe(`

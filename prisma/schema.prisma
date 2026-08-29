@@ -37,6 +37,9 @@ model Empresa {
   nomeBeneficiarioPix   String?
   cidadePix             String?
 
+  // Identificador de Empresa MESTRE (Acesso Vitalício e Gestora do SaaS)
+  isMestre              Boolean?               @default(false)
+
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 

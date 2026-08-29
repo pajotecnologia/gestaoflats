@@ -938,6 +938,27 @@ function ParametrosContent() {
               </div>
             </div>
 
+            {/* BANNER INFORMATIVO SE FOR EMPRESA MESTRE */}
+            {(empresa?.isMestre || isSuperAdmin) && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center space-x-3">
+                  <Sparkles className="w-6 h-6 text-amber-500 shrink-0" />
+                  <div>
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <span>👑 EMPRESA MESTRE</span>
+                      <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">(Administrador Geral)</span>
+                    </span>
+                    <p className="text-[11px] text-amber-700/90 dark:text-amber-300/90 mt-0.5">
+                      Esta é a empresa titular do sistema. Possui <strong>validade vitalícia permanente</strong> e sua Chave PIX cadastrada abaixo é a utilizada para receber os pagamentos de assinaturas de todos os locadores do SaaS.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950 self-start sm:self-center shrink-0">
+                  ACESSO VITALÍCIO
+                </span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <div>
@@ -1938,7 +1959,14 @@ function ParametrosContent() {
                             return (
                               <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                                 <td className="py-3 px-4">
-                                  <div className="font-bold text-slate-900 dark:text-slate-100">{emp.nomeFantasia}</div>
+                                  <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                    <span>{emp.nomeFantasia}</span>
+                                    {emp.isMestre && (
+                                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                        👑 MESTRE
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-[11px] text-slate-500">{emp.cnpj || "Sem CNPJ"}</div>
                                   <div className="text-[10px] text-slate-400 mt-0.5">
                                     {emp.counts?.flats || 0} Flats • {emp.counts?.contratos || 0} Contratos
@@ -1973,39 +2001,53 @@ function ParametrosContent() {
                                   </div>
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">
-                                    {emp.planoAtual || "TRIAL"}
+                                  <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${emp.isMestre ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
+                                    {emp.isMestre ? "VITALÍCIO" : (emp.planoAtual || "TRIAL")}
                                   </span>
                                 </td>
                                 <td className="py-3 px-4 text-center">
-                                  <span
-                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                      status?.status === "ATIVO"
-                                        ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 text-emerald-700 dark:text-emerald-300"
-                                        : status?.status === "TRIAL"
-                                        ? "bg-blue-100 dark:bg-blue-950/60 border-blue-300 text-blue-700 dark:text-blue-300"
-                                        : "bg-rose-100 dark:bg-rose-950/60 border-rose-300 text-rose-700 dark:text-rose-300"
-                                    }`}
-                                  >
-                                    {status?.status === "TRIAL"
-                                      ? `TRIAL (${status.diasRestantes}d)`
-                                      : status?.status === "ATIVO"
-                                      ? "ATIVO"
-                                      : "EXPIRADO"}
-                                  </span>
+                                  {emp.isMestre ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+                                      👑 VITALÍCIO
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                        status?.status === "ATIVO"
+                                          ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 text-emerald-700 dark:text-emerald-300"
+                                          : status?.status === "TRIAL"
+                                          ? "bg-blue-100 dark:bg-blue-950/60 border-blue-300 text-blue-700 dark:text-blue-300"
+                                          : "bg-rose-100 dark:bg-rose-950/60 border-rose-300 text-rose-700 dark:text-rose-300"
+                                      }`}
+                                    >
+                                      {status?.status === "TRIAL"
+                                        ? `TRIAL (${status.diasRestantes}d)`
+                                        : status?.status === "ATIVO"
+                                        ? "ATIVO"
+                                        : "EXPIRADO"}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="py-3 px-4 text-center font-medium text-slate-700 dark:text-slate-300">
-                                  {dataFimFormatada}
+                                  {emp.isMestre ? (
+                                    <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">Vitalício</span>
+                                  ) : (
+                                    dataFimFormatada
+                                  )}
                                 </td>
                                 <td className="py-3 px-4 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenLiberarModal(emp)}
-                                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1.5 ml-auto transition shadow-xs"
-                                  >
-                                    <Unlock className="w-3.5 h-3.5" />
-                                    <span>Liberar Acesso</span>
-                                  </button>
+                                  {!emp.isMestre ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenLiberarModal(emp)}
+                                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1.5 ml-auto transition shadow-xs"
+                                    >
+                                      <Unlock className="w-3.5 h-3.5" />
+                                      <span>Liberar Acesso</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] font-bold text-amber-500">Mestre</span>
+                                  )}
                                 </td>
                               </tr>
                             );

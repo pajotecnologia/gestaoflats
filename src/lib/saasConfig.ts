@@ -36,7 +36,7 @@ export const DEFAULT_SAAS_CONFIG: SaasConfigData = {
 };
 
 /**
- * Obtém as configurações globais do SaaS (ou cria padrão caso não existam)
+ * Obtém as configurações globais do SaaS (utilizando como fonte de pagamento os dados da Empresa MESTRE)
  */
 export async function getSaasConfig(): Promise<SaasConfigData> {
   try {
@@ -60,19 +60,46 @@ export async function getSaasConfig(): Promise<SaasConfigData> {
         },
       });
     }
+
+    // Busca a Empresa Mestre para priorizar os dados de pagamento PIX cadastrados nela
+    const empresaMestre = await prisma.empresa.findFirst({
+      where: { isMestre: true },
+      select: {
+        chavePix: true,
+        tipoChavePix: true,
+        nomeBeneficiarioPix: true,
+        cidadePix: true,
+        telefone: true,
+        nomeFantasia: true,
+      },
+    });
+
+    const chavePixEfetiva = empresaMestre?.chavePix || config.chavePix || DEFAULT_SAAS_CONFIG.chavePix;
+    const tipoChavePixEfetiva = empresaMestre?.tipoChavePix || config.tipoChavePix || DEFAULT_SAAS_CONFIG.tipoChavePix;
+    const nomeBeneficiarioPixEfetivo =
+      empresaMestre?.nomeBeneficiarioPix ||
+      empresaMestre?.nomeFantasia ||
+      config.nomeBeneficiarioPix ||
+      DEFAULT_SAAS_CONFIG.nomeBeneficiarioPix;
+    const cidadePixEfetiva = empresaMestre?.cidadePix || config.cidadePix || DEFAULT_SAAS_CONFIG.cidadePix;
+    const telefoneSuporteEfetivo =
+      config.telefoneSuporteWhatsApp ||
+      empresaMestre?.telefone ||
+      DEFAULT_SAAS_CONFIG.telefoneSuporteWhatsApp;
+
     return {
       id: config.id,
       diasTrialPadrao: config.diasTrialPadrao ?? 7,
-      chavePix: config.chavePix || DEFAULT_SAAS_CONFIG.chavePix,
-      tipoChavePix: config.tipoChavePix || DEFAULT_SAAS_CONFIG.tipoChavePix,
-      nomeBeneficiarioPix: config.nomeBeneficiarioPix || DEFAULT_SAAS_CONFIG.nomeBeneficiarioPix,
-      cidadePix: config.cidadePix || DEFAULT_SAAS_CONFIG.cidadePix,
+      chavePix: chavePixEfetiva,
+      tipoChavePix: tipoChavePixEfetiva,
+      nomeBeneficiarioPix: nomeBeneficiarioPixEfetivo,
+      cidadePix: cidadePixEfetiva,
       valorMensal: config.valorMensal ?? DEFAULT_SAAS_CONFIG.valorMensal,
       valorTrimestral: config.valorTrimestral ?? DEFAULT_SAAS_CONFIG.valorTrimestral,
       valorSemestral: config.valorSemestral ?? DEFAULT_SAAS_CONFIG.valorSemestral,
       valorAnual: config.valorAnual ?? DEFAULT_SAAS_CONFIG.valorAnual,
       diasAvisoAntesExpirar: config.diasAvisoAntesExpirar ?? DEFAULT_SAAS_CONFIG.diasAvisoAntesExpirar,
-      telefoneSuporteWhatsApp: config.telefoneSuporteWhatsApp || DEFAULT_SAAS_CONFIG.telefoneSuporteWhatsApp,
+      telefoneSuporteWhatsApp: telefoneSuporteEfetivo,
       mensagemAvisoWhatsApp: config.mensagemAvisoWhatsApp || DEFAULT_SAAS_CONFIG.mensagemAvisoWhatsApp,
       emailNotificacaoAdmin: DEFAULT_SAAS_CONFIG.emailNotificacaoAdmin,
     };
@@ -87,6 +114,7 @@ export interface StatusAcessoEmpresa {
   planoAtual: string;
   isTrial: boolean;
   isExpirado: boolean;
+  isMestre: boolean;
   diasRestantes: number;
   dataExpiracao: string | null;
   dataExpiracaoObj: Date | null;
@@ -94,13 +122,15 @@ export interface StatusAcessoEmpresa {
 }
 
 /**
- * Avalia a situação do acesso e dias restantes de uma empresa
+ * Avalia a situação do acesso e dias restantes de uma empresa.
+ * A Empresa MESTRE possui validade VITALÍCIA e acesso irrestrito permanente.
  */
 export async function verificarStatusAcesso(empresaId: string): Promise<StatusAcessoEmpresa> {
   const empresa = await prisma.empresa.findUnique({
     where: { id: empresaId },
     select: {
       id: true,
+      isMestre: true,
       statusAssinatura: true,
       dataInicioTrial: true,
       dataFimTrial: true,
@@ -116,10 +146,26 @@ export async function verificarStatusAcesso(empresaId: string): Promise<StatusAc
       planoAtual: "NENHUM",
       isTrial: false,
       isExpirado: true,
+      isMestre: false,
       diasRestantes: 0,
       dataExpiracao: null,
       dataExpiracaoObj: null,
       podeAcessar: false,
+    };
+  }
+
+  // Se a empresa for MESTRE, o acesso é 100% VITALÍCIO e NUNCA expira
+  if (empresa.isMestre) {
+    return {
+      status: "ATIVO",
+      planoAtual: "VITALICIO",
+      isTrial: false,
+      isExpirado: false,
+      isMestre: true,
+      diasRestantes: 99999,
+      dataExpiracao: null,
+      dataExpiracaoObj: null,
+      podeAcessar: true,
     };
   }
 
@@ -153,6 +199,7 @@ export async function verificarStatusAcesso(empresaId: string): Promise<StatusAc
     planoAtual: empresa.planoAtual || "TRIAL",
     isTrial: statusCalculado === "TRIAL",
     isExpirado: !podeAcessar,
+    isMestre: false,
     diasRestantes,
     dataExpiracao: dataLimite ? dataLimite.toISOString() : null,
     dataExpiracaoObj: dataLimite,

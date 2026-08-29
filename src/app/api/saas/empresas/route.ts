@@ -56,6 +56,7 @@ export async function GET() {
           dataFimTrial: emp.dataFimTrial,
           dataFimAcesso: emp.dataFimAcesso,
           planoAtual: emp.planoAtual,
+          isMestre: Boolean(emp.isMestre),
           ultimoAvisoWhatsAppEm: emp.ultimoAvisoWhatsAppEm,
           usuarios: emp.usuarios,
           counts: emp._count,

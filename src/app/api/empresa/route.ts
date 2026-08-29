@@ -74,6 +74,28 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    // Se for a Empresa Mestre, sincroniza automaticamente com as configurações SaaS
+    if (empresaAtualizada.isMestre) {
+      await prisma.configuracaoSaaS.upsert({
+        where: { id: "saas-global-config" },
+        update: {
+          chavePix: chavePix?.trim() || null,
+          tipoChavePix: tipoChavePix || "CNPJ",
+          nomeBeneficiarioPix: nomeBeneficiarioPix?.trim() || null,
+          cidadePix: cidadePix?.trim() || null,
+          telefoneSuporteWhatsApp: telefone || null,
+        },
+        create: {
+          id: "saas-global-config",
+          chavePix: chavePix?.trim() || null,
+          tipoChavePix: tipoChavePix || "CNPJ",
+          nomeBeneficiarioPix: nomeBeneficiarioPix?.trim() || null,
+          cidadePix: cidadePix?.trim() || null,
+          telefoneSuporteWhatsApp: telefone || null,
+        },
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, empresa: empresaAtualizada });
   } catch (error: any) {
     console.error("Erro ao atualizar dados da empresa:", error);
