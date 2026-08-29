@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       diasAvisoAntesExpirar,
       telefoneSuporteWhatsApp,
       mensagemAvisoWhatsApp,
+      emailNotificacaoAdmin,
     } = body;
 
     const config = await prisma.configuracaoSaaS.upsert({

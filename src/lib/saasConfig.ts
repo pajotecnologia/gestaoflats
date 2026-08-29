@@ -14,6 +14,7 @@ export interface SaasConfigData {
   diasAvisoAntesExpirar: number;
   telefoneSuporteWhatsApp: string;
   mensagemAvisoWhatsApp: string;
+  emailNotificacaoAdmin?: string;
 }
 
 export const DEFAULT_SAAS_CONFIG: SaasConfigData = {
@@ -29,6 +30,7 @@ export const DEFAULT_SAAS_CONFIG: SaasConfigData = {
   valorAnual: 890.0,
   diasAvisoAntesExpirar: 3,
   telefoneSuporteWhatsApp: "(87) 99654-0551",
+  emailNotificacaoAdmin: "pajotecnologia@gmail.com",
   mensagemAvisoWhatsApp:
     "Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}",
 };
@@ -72,6 +74,7 @@ export async function getSaasConfig(): Promise<SaasConfigData> {
       diasAvisoAntesExpirar: config.diasAvisoAntesExpirar ?? DEFAULT_SAAS_CONFIG.diasAvisoAntesExpirar,
       telefoneSuporteWhatsApp: config.telefoneSuporteWhatsApp || DEFAULT_SAAS_CONFIG.telefoneSuporteWhatsApp,
       mensagemAvisoWhatsApp: config.mensagemAvisoWhatsApp || DEFAULT_SAAS_CONFIG.mensagemAvisoWhatsApp,
+      emailNotificacaoAdmin: DEFAULT_SAAS_CONFIG.emailNotificacaoAdmin,
     };
   } catch (error) {
     console.error("Erro ao buscar configurações SaaS:", error);

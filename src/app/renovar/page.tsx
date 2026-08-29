@@ -104,7 +104,24 @@ function RenovarContent() {
     }).format(val);
   };
 
-  const handleEnviarComprovanteWhatsApp = () => {
+  const handleEnviarComprovanteWhatsApp = async () => {
+    // 1. Notifica o Super Admin por E-mail no sistema
+    try {
+      await fetch("/api/saas/confirmar-pagamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plano: selectedPlano,
+          valor: data?.planoSelecionado?.valor || 97,
+          formaPagamento: "PIX",
+          empresaId: empresaIdParam || undefined,
+        }),
+      });
+    } catch (e) {
+      console.error("Aviso: Falha ao registrar notificação de pagamento:", e);
+    }
+
+    // 2. Abre a conversa no WhatsApp para enviar o comprovante
     const tel = data?.config?.telefoneSuporteWhatsApp?.replace(/\D/g, "") || "5587996540551";
     const empresaNome = data?.empresaNome || "Minha Empresa";
     const planoNome = data?.planoSelecionado?.nome || "Plano Gestão de Flats";

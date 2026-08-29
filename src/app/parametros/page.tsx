@@ -120,12 +120,15 @@ function ParametrosContent() {
   const [saasValorAnual, setSaasValorAnual] = useState(890);
   const [saasDiasAviso, setSaasDiasAviso] = useState(3);
   const [saasTelSuporte, setSaasTelSuporte] = useState("(87) 99654-0551");
+  const [saasEmailAdmin, setSaasEmailAdmin] = useState("pajotecnologia@gmail.com");
   const [saasMsgAviso, setSaasMsgAviso] = useState("");
   const [savingSaasConfig, setSavingSaasConfig] = useState(false);
 
   // Gestão de Empresas
   const [empresasSaaS, setEmpresasSaaS] = useState<any[]>([]);
   const [loadingEmpresasSaaS, setLoadingEmpresasSaaS] = useState(false);
+  const [searchTermEmpresa, setSearchTermEmpresa] = useState("");
+  const [statusFilterEmpresa, setStatusFilterEmpresa] = useState("TODOS");
   const [showLiberarModal, setShowLiberarModal] = useState(false);
   const [empresaLiberar, setEmpresaLiberar] = useState<any>(null);
   const [liberarTipo, setLiberarTipo] = useState<"MESES" | "DIAS" | "CUSTOM">("MESES");
@@ -154,6 +157,7 @@ function ParametrosContent() {
         setSaasValorAnual(data.config.valorAnual ?? 890);
         setSaasDiasAviso(data.config.diasAvisoAntesExpirar ?? 3);
         setSaasTelSuporte(data.config.telefoneSuporteWhatsApp || "(87) 99654-0551");
+        setSaasEmailAdmin(data.config.emailNotificacaoAdmin || "pajotecnologia@gmail.com");
         setSaasMsgAviso(data.config.mensagemAvisoWhatsApp || "");
       }
     } catch (e) {
@@ -193,6 +197,7 @@ function ParametrosContent() {
           valorAnual: Number(saasValorAnual),
           diasAvisoAntesExpirar: Number(saasDiasAviso),
           telefoneSuporteWhatsApp: saasTelSuporte,
+          emailNotificacaoAdmin: saasEmailAdmin,
           mensagemAvisoWhatsApp: saasMsgAviso,
         }),
       });
@@ -1685,22 +1690,89 @@ function ParametrosContent() {
 
             {/* SUB-ABA 1: LISTAGEM DE EMPRESAS & LIBERAÇÃO */}
             {saasSubTab === "empresas" && (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                  <div>
-                    <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Empresas Cadastradas no Sistema</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Acompanhe o período de teste grátis (trial), assinaturas ativas e libere acesso
-                    </p>
+              <div className="space-y-4">
+                {/* CARDS DE RESUMO / KPIS PARA O SUPER ADMIN */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Total Empresas</span>
+                    <span className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1 block">
+                      {empresasSaaS.length}
+                    </span>
+                    <span className="text-[10px] text-blue-500 font-semibold">Clientes Cadastrados</span>
                   </div>
-                  <button
-                    onClick={loadEmpresasSaaS}
-                    className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                    title="Atualizar lista"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+                    <span className="text-[11px] font-bold text-amber-500 uppercase block">Em Teste (Trial)</span>
+                    <span className="text-2xl font-black text-amber-500 mt-1 block">
+                      {empresasSaaS.filter((e) => e.statusAcesso?.isTrial).length}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-semibold">Período Gratuito</span>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+                    <span className="text-[11px] font-bold text-emerald-500 uppercase block">Assinantes Ativos</span>
+                    <span className="text-2xl font-black text-emerald-500 mt-1 block">
+                      {empresasSaaS.filter((e) => e.statusAssinatura === "ATIVO" || (!e.statusAcesso?.isTrial && !e.statusAcesso?.isExpirado)).length}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Planos Pagos</span>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+                    <span className="text-[11px] font-bold text-rose-500 uppercase block">Expirados / Bloq.</span>
+                    <span className="text-2xl font-black text-rose-500 mt-1 block">
+                      {empresasSaaS.filter((e) => e.statusAcesso?.isExpirado).length}
+                    </span>
+                    <span className="text-[10px] text-rose-400 font-semibold">Aguardando Renovação</span>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm col-span-2 sm:col-span-1">
+                    <span className="text-[11px] font-bold text-indigo-500 uppercase block">Total de Flats</span>
+                    <span className="text-2xl font-black text-indigo-500 mt-1 block">
+                      {empresasSaaS.reduce((acc, e) => acc + (e.counts?.flats || 0), 0)}
+                    </span>
+                    <span className="text-[10px] text-indigo-400 font-semibold">Imóveis na Plataforma</span>
+                  </div>
                 </div>
+
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                      <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Empresas & Clientes Cadastrados</h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Gerenciamento completo de acessos, planos contratados e comunicação direta
+                      </p>
+                    </div>
+
+                    {/* Barra de Busca e Filtro de Status */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Buscar por empresa, CNPJ, e-mail..."
+                        value={searchTermEmpresa}
+                        onChange={(e) => setSearchTermEmpresa(e.target.value)}
+                        className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 w-48 sm:w-64 focus:outline-none focus:border-amber-500"
+                      />
+
+                      <select
+                        value={statusFilterEmpresa}
+                        onChange={(e) => setStatusFilterEmpresa(e.target.value)}
+                        className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold focus:outline-none"
+                      >
+                        <option value="TODOS">Todos os Status</option>
+                        <option value="TRIAL">Em Teste (Trial)</option>
+                        <option value="ATIVO">Ativos (Pagos)</option>
+                        <option value="EXPIRADO">Expirados</option>
+                      </select>
+
+                      <button
+                        onClick={loadEmpresasSaaS}
+                        className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        title="Atualizar lista"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
                 {loadingEmpresasSaaS ? (
                   <div className="py-8 text-center text-xs text-slate-500">Carregando empresas cadastradas...</div>
@@ -1720,66 +1792,117 @@ function ParametrosContent() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {empresasSaaS.map((emp) => {
-                          const status = emp.statusAcesso;
-                          const dataFimFormatada = status?.dataExpiracao
-                            ? new Date(status.dataExpiracao).toLocaleDateString("pt-BR")
-                            : "—";
+                        {empresasSaaS
+                          .filter((emp) => {
+                            const matchSearch =
+                              !searchTermEmpresa.trim() ||
+                              emp.nomeFantasia?.toLowerCase().includes(searchTermEmpresa.toLowerCase()) ||
+                              emp.cnpj?.includes(searchTermEmpresa) ||
+                              emp.email?.toLowerCase().includes(searchTermEmpresa.toLowerCase()) ||
+                              emp.telefone?.includes(searchTermEmpresa) ||
+                              emp.usuarios?.some(
+                                (u: any) =>
+                                  u.nome?.toLowerCase().includes(searchTermEmpresa.toLowerCase()) ||
+                                  u.email?.toLowerCase().includes(searchTermEmpresa.toLowerCase())
+                              );
 
-                          return (
-                            <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                              <td className="py-3 px-4">
-                                <div className="font-bold text-slate-900 dark:text-slate-100">{emp.nomeFantasia}</div>
-                                <div className="text-[11px] text-slate-500">{emp.cnpj}</div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="text-slate-700 dark:text-slate-300 font-medium">
-                                  {emp.usuarios?.[0]?.nome || "Admin"}
-                                </div>
-                                <div className="text-[11px] text-slate-500">{emp.telefone || emp.email}</div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">
-                                  {emp.planoAtual || "TRIAL"}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-center">
-                                <span
-                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                    status?.status === "ATIVO"
-                                      ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 text-emerald-700 dark:text-emerald-300"
-                                      : status?.status === "TRIAL"
-                                      ? "bg-blue-100 dark:bg-blue-950/60 border-blue-300 text-blue-700 dark:text-blue-300"
-                                      : "bg-rose-100 dark:bg-rose-950/60 border-rose-300 text-rose-700 dark:text-rose-300"
-                                  }`}
-                                >
-                                  {status?.status === "TRIAL"
-                                    ? `TRIAL (${status.diasRestantes}d)`
-                                    : status?.status === "ATIVO"
-                                    ? "ATIVO"
-                                    : "EXPIRADO"}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-center font-medium text-slate-700 dark:text-slate-300">
-                                {dataFimFormatada}
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenLiberarModal(emp)}
-                                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1.5 ml-auto transition shadow-xs"
-                                >
-                                  <Unlock className="w-3.5 h-3.5" />
-                                  <span>Liberar Acesso</span>
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                            const status = emp.statusAcesso?.status;
+                            const matchStatus =
+                              statusFilterEmpresa === "TODOS" ||
+                              (statusFilterEmpresa === "TRIAL" && status === "TRIAL") ||
+                              (statusFilterEmpresa === "ATIVO" && status === "ATIVO") ||
+                              (statusFilterEmpresa === "EXPIRADO" && status === "EXPIRADO");
+
+                            return matchSearch && matchStatus;
+                          })
+                          .map((emp) => {
+                            const status = emp.statusAcesso;
+                            const dataFimFormatada = status?.dataExpiracao
+                              ? new Date(status.dataExpiracao).toLocaleDateString("pt-BR")
+                              : "—";
+
+                            const telLimpo = emp.telefone?.replace(/\D/g, "");
+
+                            return (
+                              <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                                <td className="py-3 px-4">
+                                  <div className="font-bold text-slate-900 dark:text-slate-100">{emp.nomeFantasia}</div>
+                                  <div className="text-[11px] text-slate-500">{emp.cnpj || "Sem CNPJ"}</div>
+                                  <div className="text-[10px] text-slate-400 mt-0.5">
+                                    {emp.counts?.flats || 0} Flats • {emp.counts?.contratos || 0} Contratos
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="text-slate-700 dark:text-slate-300 font-medium">
+                                    {emp.usuarios?.[0]?.nome || "Admin"}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                    <span>{emp.telefone || emp.email}</span>
+                                    {telLimpo && (
+                                      <a
+                                        href={`https://wa.me/55${telLimpo}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-emerald-500 hover:text-emerald-400"
+                                        title="Abrir WhatsApp"
+                                      >
+                                        <MessageSquare className="w-3 h-3 inline" />
+                                      </a>
+                                    )}
+                                    {emp.email && (
+                                      <a
+                                        href={`mailto:${emp.email}`}
+                                        className="text-blue-500 hover:text-blue-400"
+                                        title="Enviar E-mail"
+                                      >
+                                        <Mail className="w-3 h-3 inline" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">
+                                    {emp.planoAtual || "TRIAL"}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span
+                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                      status?.status === "ATIVO"
+                                        ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 text-emerald-700 dark:text-emerald-300"
+                                        : status?.status === "TRIAL"
+                                        ? "bg-blue-100 dark:bg-blue-950/60 border-blue-300 text-blue-700 dark:text-blue-300"
+                                        : "bg-rose-100 dark:bg-rose-950/60 border-rose-300 text-rose-700 dark:text-rose-300"
+                                    }`}
+                                  >
+                                    {status?.status === "TRIAL"
+                                      ? `TRIAL (${status.diasRestantes}d)`
+                                      : status?.status === "ATIVO"
+                                      ? "ATIVO"
+                                      : "EXPIRADO"}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-center font-medium text-slate-700 dark:text-slate-300">
+                                  {dataFimFormatada}
+                                </td>
+                                <td className="py-3 px-4 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenLiberarModal(emp)}
+                                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1.5 ml-auto transition shadow-xs"
+                                  >
+                                    <Unlock className="w-3.5 h-3.5" />
+                                    <span>Liberar Acesso</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
                 )}
+                </div>
               </div>
             )}
 
@@ -1980,6 +2103,32 @@ function ParametrosContent() {
                       />
                       <span className="text-[11px] text-slate-500 mt-1 block">
                         Tags dinâmicas disponíveis: <code>{"{{nome}}"}</code>, <code>{"{{empresa}}"}</code>, <code>{"{{dias_restantes}}"}</code>, <code>{"{{data_expiracao}}"}</code>, <code>{"{{link_renovacao}}"}</code>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloco 5: Notificações por E-mail do Super Admin */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-blue-500" />
+                    <span>Notificações por E-mail do Super Admin</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        E-mail do Super Admin para Receber Alertas *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="pajotecnologia@gmail.com"
+                        value={saasEmailAdmin}
+                        onChange={(e) => setSaasEmailAdmin(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                      />
+                      <span className="text-[11px] text-slate-500 mt-1 block">
+                        Recebe e-mails instantâneos sempre que houver novo cadastro (trial) ou confirmação de contratação.
                       </span>
                     </div>
                   </div>

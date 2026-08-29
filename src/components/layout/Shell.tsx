@@ -146,6 +146,7 @@ function ShellContent({ children }: ShellProps) {
     { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
     { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
     { label: "Manual do Sistema", href: "/ajuda", icon: BookOpen },
+    { label: "⚡ Gestão SaaS (Super Admin)", href: "/parametros?aba=saas", icon: Zap },
   ];
 
   const relatoriosSubItems = [

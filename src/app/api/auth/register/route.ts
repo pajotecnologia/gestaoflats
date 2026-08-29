@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createAccessToken, createRefreshToken, setAuthCookies } from "@/lib/auth";
+import { notifyAdminNovoCadastro } from "@/lib/adminNotifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -146,7 +147,20 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // 6. Gerar Sessão JWT e autenticar imediatamente
+    // 6. Notificar Super Admin por E-mail em background (sem bloquear o cadastro)
+    notifyAdminNovoCadastro({
+      nomeEmpresa: result.empresa.nomeFantasia,
+      cnpj: result.empresa.cnpj,
+      telefone: result.empresa.telefone,
+      nomeAdmin: result.usuario.nome,
+      email: result.usuario.email,
+      cidade: result.empresa.cidade,
+      estado: result.empresa.estado,
+      diasTrial: diasTrial,
+      dataFimTrial: dataFimTrial,
+    }).catch((err) => console.error("Erro ao enviar e-mail de notificação:", err));
+
+    // 7. Gerar Sessão JWT e autenticar imediatamente
     const tokenPayload = {
       userId: result.usuario.id,
       empresaId: result.empresa.id,
