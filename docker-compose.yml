@@ -8,13 +8,13 @@ services:
     container_name: dnyl-app
     restart: always
     ports:
-      - "3005:3005"
+      - "3010:3010"
     environment:
-      - PORT=3005
+      - PORT=3010
       - NODE_ENV=production
       - DATABASE_URL=file:./dev.db
       - JWT_SECRET=super-secret-jwt-key-gestao-flats-saas-2026-production-ready
-      - NEXT_PUBLIC_APP_URL=https://dnyl.pajotech.com.br
+      - NEXT_PUBLIC_APP_URL=https://gestaoflats.pajotech.com.br
     volumes:
       - dnyl_db:/app/prisma
       - dnyl_uploads:/app/public/uploads

@@ -1,21 +1,21 @@
 #!/bin/bash
 # =============================================================================
-# Script de Deploy - Sistema DNYL (Gestão de Flats)
-# VPS: dnyl.pajotech.com.br | Porta: 3005 | Gerenciado por: aaPanel
+# Script de Deploy - Sistema Gestão de Flats
+# VPS: gestaoflats.pajotech.com.br | Porta: 3010 | Gerenciado por: aaPanel / Coolify
 # =============================================================================
 # COMO USAR:
-#   cd /www/wwwroot/dnyl.pajotech.com.br
+#   cd /www/wwwroot/gestaoflats.pajotech.com.br (ou dnyl)
 #   bash deploy.sh
 # =============================================================================
 
 set -e
 
 APP_DIR="/www/wwwroot/dnyl.pajotech.com.br"
-APP_PORT=3005
+APP_PORT=3010
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║    🚀 DEPLOY - DNYL Gestão de Flats          ║"
+echo "║    🚀 DEPLOY - Gestão de Flats               ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
 

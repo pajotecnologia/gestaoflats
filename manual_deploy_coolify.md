@@ -26,7 +26,7 @@
 |---------|-------|----------------|---------|--------------|
 | **SGH** | `3002` | PostgreSQL (`5432` / db: `postgres` ou `sgh`) | `sgh.pajotech.com.br` | NextAuth |
 | **Contratos** | `3005` | PostgreSQL (`5432` / db: `contratos`) | `contratos.pajotech.com.br` | NextAuth |
-| **DNYL (Flats)** | `3005` | PostgreSQL (`5432` / db: `dnyl`) | `dnyl.pajotech.com.br` | JWT Customizado |
+| **Gestão de Flats** | `3010` | PostgreSQL (`5432` / db: `dnyl` ou `flats`) | `gestaoflats.pajotech.com.br` | JWT Customizado |
 
 ---
 
