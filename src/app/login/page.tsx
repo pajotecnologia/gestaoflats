@@ -166,10 +166,12 @@ export default function LoginPage() {
           </p>
 
           <div className="flex justify-center items-center space-x-2 pt-1">
-            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-blue-300 text-[11px] font-extrabold shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Versão Oficial: {SYSTEM_VERSION}</span>
-            </span>
+            <a
+              href="/"
+              className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-blue-300 hover:text-white hover:border-blue-500 text-[11px] font-bold shadow-sm transition"
+            >
+              <span>← Conhecer o Sistema / Início</span>
+            </a>
             <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-[11px] font-bold">
               <Layers className="w-3 h-3" />
               <span>Multi-Tenant Isolado</span>
@@ -519,17 +521,23 @@ export default function LoginPage() {
       </div>
 
       {/* Rodapé Oficial da Tela de Login */}
-      <footer className="py-4 text-center text-xs font-medium text-slate-400 relative z-10 border-t border-slate-900/80 bg-slate-950/60 backdrop-blur-sm">
-        Desenvolvimento:{" "}
-        <a
-          href="https://pajotecnologia.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 font-semibold hover:underline"
-        >
-          pajotecnologia.com.br
-        </a>{" "}
-        (87)996540551
+      <footer className="py-4 px-4 text-center text-xs font-medium text-slate-400 relative z-10 border-t border-slate-900/80 bg-slate-950/60 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+        <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-blue-300 text-[11px] font-bold">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Versão Oficial: {SYSTEM_VERSION}</span>
+        </span>
+        <span>
+          Desenvolvimento:{" "}
+          <a
+            href="https://pajotecnologia.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 font-semibold hover:underline"
+          >
+            pajotecnologia.com.br
+          </a>{" "}
+          (87)996540551
+        </span>
       </footer>
     </div>
   );
