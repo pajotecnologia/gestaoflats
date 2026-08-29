@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = global as unknown as { 
+  prisma: PrismaClient;
+  dbSchemaEnsured?: boolean;
+};
 
 export const prisma =
   globalForPrisma.prisma ||
@@ -9,4 +12,51 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+/**
+ * Auto-recuperação (Self-Healing) do banco de dados PostgreSQL
+ * Garante que tabelas e colunas novas existam mesmo antes de rodar o prisma db push
+ */
+export async function ensureDatabaseSchema() {
+  if (globalForPrisma.dbSchemaEnsured) return;
+  globalForPrisma.dbSchemaEnsured = true;
+
+  try {
+    // 1. Colunas da Empresa
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "statusAssinatura" TEXT DEFAULT 'TRIAL';`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "dataInicioTrial" TIMESTAMP(3);`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "dataFimTrial" TIMESTAMP(3);`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "dataFimAcesso" TIMESTAMP(3);`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "planoAtual" TEXT DEFAULT 'MENSAL';`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "ultimoAvisoWhatsAppEm" TIMESTAMP(3);`).catch(() => {});
+
+    // 2. Tabela ConfiguracaoSaaS
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ConfiguracaoSaaS" (
+        "id" TEXT NOT NULL,
+        "diasTrialPadrao" INTEGER NOT NULL DEFAULT 7,
+        "chavePix" TEXT,
+        "tipoChavePix" TEXT DEFAULT 'CHAVE_ALEATORIA',
+        "nomeBeneficiarioPix" TEXT,
+        "cidadePix" TEXT,
+        "valorMensal" DOUBLE PRECISION NOT NULL DEFAULT 97,
+        "valorTrimestral" DOUBLE PRECISION NOT NULL DEFAULT 260,
+        "valorSemestral" DOUBLE PRECISION NOT NULL DEFAULT 490,
+        "valorAnual" DOUBLE PRECISION NOT NULL DEFAULT 890,
+        "diasAvisoAntesExpirar" INTEGER NOT NULL DEFAULT 3,
+        "telefoneSuporteWhatsApp" TEXT,
+        "mensagemAvisoWhatsApp" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ConfiguracaoSaaS_pkey" PRIMARY KEY ("id")
+      );
+    `).catch(() => {});
+  } catch (err) {
+    // Silencia erros se já existirem ou se for outro dialeto
+  }
+}
+
+// Dispara a verificação em background na inicialização
+ensureDatabaseSchema().catch(() => {});
+
 
