@@ -36,6 +36,19 @@ export interface ContratoPDFData {
   dataHashGerado?: string;
   validationUrl?: string;
   qrCodeDataUrl?: string;
+  vistoriaEntrada?: {
+    responsavel?: string;
+    dataVistoria?: string;
+    statusAssinatura?: string;
+    observacoesGerais?: string;
+    itens: Array<{
+      categoria: string;
+      item: string;
+      status: string;
+      observacao?: string;
+      fotosUrl?: string[];
+    }>;
+  };
 }
 
 interface TextBlock {
@@ -296,6 +309,185 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
     }
   }
 
+  // 6. ANEXO I: LAUDO DE VISTORIA DE ENTRADA DO IMÓVEL & FOTOS (SE HOUVER VISTORIA VINCULADA)
+  if (data.vistoriaEntrada && data.vistoriaEntrada.itens && data.vistoriaEntrada.itens.length > 0) {
+    doc.addPage();
+
+    // Cabeçalho do Anexo I
+    drawStandardPDFHeader(doc, {
+      empresaNome: data.empresaNome,
+      empresaCnpj: data.empresaCnpj,
+      empresaEndereco: data.empresaEndereco,
+      empresaTelefone: data.empresaTelefone,
+      empresaEmail: data.empresaEmail,
+      empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+      tituloDocumento: "ANEXO I - LAUDO DE VISTORIA DE ENTRADA",
+      subtituloDocumento: `Checklist do Imóvel: Flat ${data.flatNumero}`,
+      variant: "white",
+    });
+
+    // Quadro Resumo da Vistoria
+    doc.setFillColor(249, 250, 251);
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(14, 54, 182, 26, 2, 2, "FD");
+
+    doc.setTextColor(30, 58, 138);
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dados da Vistoria de Entrada Vinculada:", 18, 60);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(55, 65, 81);
+    doc.text(`• Vistoriador Responsável: ${data.vistoriaEntrada.responsavel || "Vistoriador Oficial"}`, 18, 66);
+    doc.text(
+      `• Data da Vistoria: ${data.vistoriaEntrada.dataVistoria || data.dataEmissao}   •   Status: ${data.vistoriaEntrada.statusAssinatura || "CONCLUÍDO"}`,
+      18,
+      72
+    );
+
+    let vY = 88;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.text("Itens Verificados no Checklist de Entrada:", 14, vY);
+    vY += 6;
+
+    const renderVistoriaTableHeader = (yPos: number) => {
+      doc.setFillColor(243, 244, 246);
+      doc.rect(14, yPos, 182, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(31, 41, 55);
+      doc.text("Item / Cômodo", 18, yPos + 5.5);
+      doc.text("Status", 110, yPos + 5.5);
+      doc.text("Observações", 138, yPos + 5.5);
+      return yPos + 12;
+    };
+
+    vY = renderVistoriaTableHeader(vY);
+
+    data.vistoriaEntrada.itens.forEach((item, itemIdx) => {
+      const itemTitle = `${item.categoria} - ${item.item}`;
+      const itemLines: string[] = doc.splitTextToSize(itemTitle, 88);
+
+      const obsText = item.observacao || "-";
+      const obsLines: string[] = doc.splitTextToSize(obsText, 56);
+
+      const fotosList = item.fotosUrl || [];
+      const hasFotos = fotosList.length > 0;
+      const imgWidth = 32;
+      const imgHeight = 24;
+      const imgGap = 3;
+      const maxFotosPerRow = 4;
+
+      let fotosHeight = 0;
+      if (hasFotos) {
+        const numRows = Math.ceil(fotosList.length / maxFotosPerRow);
+        fotosHeight = numRows * (imgHeight + imgGap);
+      }
+
+      const textLinesCount = Math.max(itemLines.length, obsLines.length, 1);
+      const lineSpacing = 4.5;
+      const textHeight = textLinesCount * lineSpacing;
+      const rowHeight = textHeight + fotosHeight + 3;
+
+      if (vY + rowHeight > 260) {
+        doc.addPage();
+        vY = 20;
+        vY = renderVistoriaTableHeader(vY);
+      }
+
+      if (itemIdx % 2 === 1) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(14, vY - 3.5, 182, rowHeight, "F");
+      }
+
+      // Título do Item
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(31, 41, 55);
+      itemLines.forEach((line, idx) => {
+        doc.text(line, 18, vY + idx * lineSpacing);
+      });
+
+      // Status
+      if (item.status === "OK") {
+        doc.setTextColor(16, 185, 129);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.text("✓ OK / BOM", 110, vY);
+      } else if (item.status === "ATENCAO") {
+        doc.setTextColor(217, 119, 6);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.text("! ATENÇÃO", 110, vY);
+      } else {
+        doc.setTextColor(220, 38, 38);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.text("✕ AVARIA", 110, vY);
+      }
+
+      // Observações
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(31, 41, 55);
+      obsLines.forEach((line, idx) => {
+        doc.text(line, 138, vY + idx * lineSpacing);
+      });
+
+      // Fotos da Vistoria
+      if (hasFotos) {
+        let imgX = 18;
+        let imgY = vY + textHeight + 1;
+
+        fotosList.forEach((fotoUrl, fIdx) => {
+          if (imgX + imgWidth > 194) {
+            imgX = 18;
+            imgY += imgHeight + imgGap;
+          }
+
+          try {
+            let format = "JPEG";
+            if (fotoUrl.toLowerCase().includes(".png") || fotoUrl.includes("image/png")) {
+              format = "PNG";
+            }
+            doc.addImage(fotoUrl, format, imgX, imgY, imgWidth, imgHeight);
+          } catch (e) {
+            doc.setDrawColor(209, 213, 219);
+            doc.setFillColor(243, 244, 246);
+            doc.roundedRect(imgX, imgY, imgWidth, imgHeight, 1, 1, "FD");
+            doc.setFontSize(7);
+            doc.setTextColor(107, 114, 128);
+            doc.text(`📷 Foto ${fIdx + 1}`, imgX + imgWidth / 2, imgY + imgHeight / 2, { align: "center" });
+          }
+
+          imgX += imgWidth + imgGap;
+        });
+      }
+
+      vY += rowHeight + 2;
+    });
+
+    // Rodapé de Aceite da Vistoria pelo Locatário
+    vY += 6;
+    if (vY + 24 > 260) {
+      doc.addPage();
+      vY = 20;
+    }
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(75, 85, 99);
+    doc.text(
+      "Declaro que recebi o imóvel nas condições especificadas neste laudo de vistoria de entrada e anexo fotográfico integrante do contrato.",
+      14,
+      vY
+    );
+  }
+
   // RODAPÉ DO DESENVOLVEDOR NO CONTRATO PDF
   doc.setDrawColor(229, 231, 235);
   doc.line(14, 280, 196, 280);
@@ -309,12 +501,34 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
 export async function prepareContratoDataWithBase64Images(data: ContratoPDFData): Promise<ContratoPDFData> {
   let logoUrl = data.empresaLogomarcaUrl;
   let assUrl = data.empresaAssinaturaUrl;
+  let locatarioAssUrl = data.locatarioAssinaturaUrl;
 
   if (logoUrl && !logoUrl.startsWith("data:image")) {
     logoUrl = await convertUrlToBase64(logoUrl);
   }
   if (assUrl && !assUrl.startsWith("data:image")) {
     assUrl = await convertUrlToBase64(assUrl);
+  }
+  if (locatarioAssUrl && !locatarioAssUrl.startsWith("data:image")) {
+    locatarioAssUrl = await convertUrlToBase64(locatarioAssUrl);
+  }
+
+  // Processar fotos da Vistoria de Entrada para Base64 se existirem
+  let vistoriaEntradaProcessada = data.vistoriaEntrada;
+  if (data.vistoriaEntrada && data.vistoriaEntrada.itens) {
+    const itensAtualizados = await Promise.all(
+      data.vistoriaEntrada.itens.map(async (item) => {
+        if (!item.fotosUrl || item.fotosUrl.length === 0) return item;
+        const base64Fotos = await Promise.all(
+          item.fotosUrl.map((url) => (url.startsWith("data:image") ? url : convertUrlToBase64(url)))
+        );
+        return { ...item, fotosUrl: base64Fotos };
+      })
+    );
+    vistoriaEntradaProcessada = {
+      ...data.vistoriaEntrada,
+      itens: itensAtualizados,
+    };
   }
 
   const sha256 = data.documentoHashSha256 || calculateSha256(`${data.empresaCnpj}-${data.locatarioCpf}-${data.flatNumero}-${data.dataEmissao}-${data.valorMensal}`);
@@ -331,6 +545,8 @@ export async function prepareContratoDataWithBase64Images(data: ContratoPDFData)
     ...data,
     empresaLogomarcaUrl: logoUrl,
     empresaAssinaturaUrl: assUrl,
+    locatarioAssinaturaUrl: locatarioAssUrl,
+    vistoriaEntrada: vistoriaEntradaProcessada,
     documentoHashSha256: sha256,
     validationUrl,
     qrCodeDataUrl,

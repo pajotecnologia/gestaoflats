@@ -22,6 +22,8 @@ import {
 
 export default function AssinarContratoPublicPage({ params }: { params: { token: string } }) {
   const [contrato, setContrato] = useState<any>(null);
+  const [vistoriaEntrada, setVistoriaEntrada] = useState<any>(null);
+  const [selectedZoomFoto, setSelectedZoomFoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [assinaturaBase64, setAssinaturaBase64] = useState("");
@@ -38,6 +40,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
         setErrorMsg(data.error || "Link de assinatura inválido ou expirado.");
       } else {
         setContrato(data.contrato);
+        setVistoriaEntrada(data.vistoriaEntrada || null);
         if (data.contrato.statusAssinatura === "ASSINADO") {
           setSignedSuccess(true);
         }
@@ -90,6 +93,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
         ? new Date(contrato.dataAssinaturaLocatario).toLocaleDateString("pt-BR")
         : new Date().toLocaleDateString("pt-BR"),
       ipAssinaturaLocatario: contrato.ipAssinaturaLocatario || "127.0.0.1",
+      vistoriaEntrada: vistoriaEntrada || undefined,
     });
 
     const link = document.createElement("a");
@@ -399,25 +403,113 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
             }}
           />
 
-          {/* FOTOS ANEXADAS DO IMÓVEL (SE HOUVER) */}
-          {fotosList.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 print:text-black flex items-center space-x-1.5">
-                <ImageIcon className="w-4 h-4 text-blue-600 print:hidden" />
-                <span>Anexo Fotográfico de Vistoria do Flat ({fotosList.length} fotos):</span>
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-3 gap-3">
-                {fotosList.map((url, i) => (
-                  <img
-                    key={i}
-                    src={url}
-                    alt="Foto do Flat"
-                    className="w-full h-28 object-cover rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm"
-                  />
-                ))}
+          {/* ANEXO I: LAUDO DE VISTORIA DE ENTRADA DO IMÓVEL & FOTOS REAIS DA VISTORIA */}
+          {vistoriaEntrada && vistoriaEntrada.itens && vistoriaEntrada.itens.length > 0 ? (
+            <div className="space-y-4 pt-4 border-t-2 border-slate-200 dark:border-slate-800 print:border-black">
+              <div className="bg-slate-50 dark:bg-slate-950/90 print:bg-gray-50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 print:border-gray-300 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 print:border-gray-200 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <FileCheck className="w-5 h-5 text-blue-600 print:text-black" />
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 print:text-black uppercase">
+                        ANEXO I: LAUDO DE VISTORIA DE ENTRADA (CHECKLIST DO IMÓVEL)
+                      </h3>
+                      <p className="text-[11px] text-slate-500 print:text-gray-600">
+                        Vistoriador: <strong>{vistoriaEntrada.responsavel || "Vistoriador Oficial"}</strong> • Data:{" "}
+                        <strong>{vistoriaEntrada.dataVistoria || new Date().toLocaleDateString("pt-BR")}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 self-start sm:self-center">
+                    ✓ VISTORIA REALIZADA
+                  </span>
+                </div>
+
+                {/* Tabela de Itens do Checklist */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-200/70 dark:bg-slate-800/80 print:bg-gray-200 text-slate-700 print:text-black font-bold">
+                        <th className="py-2 px-3 rounded-l-lg">Item / Cômodo</th>
+                        <th className="py-2 px-3">Status</th>
+                        <th className="py-2 px-3 rounded-r-lg">Observações / Avarias</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 print:divide-gray-200">
+                      {vistoriaEntrada.itens.map((item: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/50">
+                          <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200 print:text-black">
+                            {item.categoria} - {item.item}
+                          </td>
+                          <td className="py-2 px-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                                item.status === "OK"
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300"
+                                  : item.status === "ATENCAO"
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300"
+                                  : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300"
+                              }`}
+                            >
+                              {item.status === "OK" ? "✓ OK / BOM" : item.status === "ATENCAO" ? "! ATENÇÃO" : "✕ AVARIA"}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-slate-600 dark:text-slate-400 print:text-gray-700">
+                            {item.observacao || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Galeria de Fotos Reais da Vistoria */}
+                {(() => {
+                  const allVistoriaFotos: Array<{ url: string; label: string }> = [];
+                  vistoriaEntrada.itens.forEach((it: any) => {
+                    if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
+                      it.fotosUrl.forEach((fUrl: string) => {
+                        allVistoriaFotos.push({ url: fUrl, label: `${it.categoria} - ${it.item}` });
+                      });
+                    }
+                  });
+
+                  if (allVistoriaFotos.length === 0) return null;
+
+                  return (
+                    <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-slate-800 print:border-gray-200">
+                      <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 print:text-black flex items-center space-x-1.5">
+                        <ImageIcon className="w-4 h-4 text-blue-600 print:hidden" />
+                        <span>Fotos Reais da Vistoria de Entrada ({allVistoriaFotos.length} fotos anexadas):</span>
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-3 gap-3">
+                        {allVistoriaFotos.map((foto, fIdx) => (
+                          <div
+                            key={fIdx}
+                            className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs"
+                            onClick={() => setSelectedZoomFoto(foto.url)}
+                          >
+                            <img
+                              src={foto.url}
+                              alt={foto.label}
+                              className="w-full h-28 object-cover group-hover:scale-105 transition duration-300"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 p-1.5 text-[9px] text-slate-200 truncate font-semibold">
+                              📷 {foto.label}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <p className="text-[10px] text-slate-500 print:text-gray-600 italic pt-2">
+                  ✓ O Locatário declara ter inspecionado o imóvel e concorda com o estado de conservação descrito neste Laudo de Vistoria de Entrada integrante do contrato.
+                </p>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* SEÇÃO DE ASSINATURAS DAS DUAS PARTES (LOCADORA & LOCATÁRIO) */}
           <div className="pt-8 border-t-2 border-slate-200 dark:border-slate-800 print:border-black space-y-6">
@@ -538,6 +630,28 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
           </div>
         )}
       </div>
+
+      {/* MODAL DE ZOOM / LIGHTBOX DA FOTO DA VISTORIA */}
+      {selectedZoomFoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setSelectedZoomFoto(null)}
+        >
+          <div className="relative max-w-3xl max-h-[90vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 p-2">
+            <button
+              onClick={() => setSelectedZoomFoto(null)}
+              className="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-bold text-xs"
+            >
+              ✕ Fechar
+            </button>
+            <img
+              src={selectedZoomFoto}
+              alt="Foto Ampliada da Vistoria"
+              className="max-h-[80vh] w-auto object-contain rounded-xl mx-auto"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

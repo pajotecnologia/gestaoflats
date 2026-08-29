@@ -31,7 +31,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Contrato não encontrado ou link expirado." }, { status: 404 });
     }
 
-    return NextResponse.json({ contrato });
+    // Busca a vistoria de entrada vinculada ao contrato ou ao flat
+    const vistoriaEntradaRaw = await prisma.vistoriaChecklist.findFirst({
+      where: {
+        OR: [
+          { contratoId: contrato.id, tipoVistoria: "ENTRADA" },
+          { flatId: contrato.flatId, tipoVistoria: "ENTRADA" },
+        ],
+      },
+      orderBy: [
+        { statusAssinatura: "desc" },
+        { updatedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+    });
+
+    let vistoriaEntrada = null;
+    if (vistoriaEntradaRaw) {
+      let itens = [];
+      let observacoesGerais = "";
+      try {
+        const parsed = JSON.parse(vistoriaEntradaRaw.itensJson);
+        itens = Array.isArray(parsed) ? parsed : (parsed.itens || []);
+        observacoesGerais = parsed.observacoesGerais || "";
+      } catch (e) {}
+
+      vistoriaEntrada = {
+        id: vistoriaEntradaRaw.id,
+        responsavel: vistoriaEntradaRaw.responsavelVistoria,
+        dataVistoria: vistoriaEntradaRaw.dataVistoria ? new Date(vistoriaEntradaRaw.dataVistoria).toLocaleDateString("pt-BR") : undefined,
+        statusAssinatura: vistoriaEntradaRaw.statusAssinatura,
+        assinaturaLocatarioUrl: vistoriaEntradaRaw.assinaturaLocatarioUrl,
+        laudoImpressoUrl: vistoriaEntradaRaw.laudoImpressoUrl,
+        itens,
+        observacoesGerais,
+      };
+    }
+
+    return NextResponse.json({ contrato, vistoriaEntrada });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -64,6 +101,54 @@ export async function POST(request: NextRequest) {
     const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
     const dataAssinatura = new Date();
 
+    // Busca e atualiza a Vistoria de Entrada para assinada também
+    const vistoriaEntradaRaw = await prisma.vistoriaChecklist.findFirst({
+      where: {
+        OR: [
+          { contratoId: contrato.id, tipoVistoria: "ENTRADA" },
+          { flatId: contrato.flatId, tipoVistoria: "ENTRADA" },
+        ],
+      },
+      orderBy: [
+        { statusAssinatura: "desc" },
+        { updatedAt: "desc" },
+      ],
+    });
+
+    let vistoriaEntradaPDF = undefined;
+    if (vistoriaEntradaRaw) {
+      // Se a vistoria ainda não estiver assinada, atualiza com a assinatura do locatário
+      if (vistoriaEntradaRaw.statusAssinatura !== "ASSINADO") {
+        await prisma.vistoriaChecklist.update({
+          where: { id: vistoriaEntradaRaw.id },
+          data: {
+            contratoId: contrato.id,
+            locatarioId: contrato.locatarioId,
+            statusAssinatura: "ASSINADO",
+            assinaturaLocatarioUrl: assinaturaBase64,
+            dataAssinaturaLocatario: dataAssinatura,
+            ipAssinaturaLocatario: clientIp,
+          },
+        });
+      }
+
+      let itens = [];
+      let observacoesGerais = "";
+      try {
+        const parsed = JSON.parse(vistoriaEntradaRaw.itensJson);
+        itens = Array.isArray(parsed) ? parsed : (parsed.itens || []);
+        observacoesGerais = parsed.observacoesGerais || "";
+      } catch (e) {}
+
+      vistoriaEntradaPDF = {
+        responsavel: vistoriaEntradaRaw.responsavelVistoria,
+        dataVistoria: vistoriaEntradaRaw.dataVistoria ? new Date(vistoriaEntradaRaw.dataVistoria).toLocaleDateString("pt-BR") : undefined,
+        statusAssinatura: "ASSINADO",
+        itens,
+        observacoesGerais,
+      };
+    }
+
     // 1. Gerar Hash inicial para URL de Validação
     const rawHashInput = `${contrato.id}_${contrato.locatario.cpf}_${dataAssinatura.toISOString()}_${clientIp}`;
     const initialHash = calculateSha256(rawHashInput);
@@ -77,7 +162,7 @@ export async function POST(request: NextRequest) {
       console.warn("Erro ao gerar QR Code:", e);
     }
 
-    // 2. Gerar o PDF com a Assinatura, Selo Criptográfico e QR Code
+    // 2. Gerar o PDF com a Assinatura, Selo Criptográfico, QR Code e Anexo I de Vistoria
     const pdfBase64DataUri = await getContratoPDFBase64({
       empresaNome: contrato.empresa.nomeFantasia,
       empresaCnpj: contrato.empresa.cnpj,
@@ -93,7 +178,9 @@ export async function POST(request: NextRequest) {
       flatNumero: contrato.flat.numero,
       localNome: contrato.flat.local?.nome,
       valorMensal: contrato.valorMensal,
+      tipoValidade: contrato.tipoValidade,
       validadeMeses: contrato.validadeMeses,
+      validadeDias: contrato.validadeDias || undefined,
       dataEmissao: contrato.dataEmissao.toLocaleDateString("pt-BR"),
       dataFinal: contrato.dataFinal.toLocaleDateString("pt-BR"),
       conteudoHtml: contrato.modeloContrato?.conteudoHtml || undefined,
@@ -107,6 +194,7 @@ export async function POST(request: NextRequest) {
       dataHashGerado: dataAssinatura.toISOString(),
       validationUrl,
       qrCodeDataUrl,
+      vistoriaEntrada: vistoriaEntradaPDF,
     });
 
     // 3. Calcular Hash SHA-256 exato do PDF final gerado

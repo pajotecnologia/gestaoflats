@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
-import { FileText, Plus, X, Image as ImageIcon } from "lucide-react";
+import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
+import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera } from "lucide-react";
 
 export default function ContratosPage() {
   const [contratos, setContratos] = useState<any[]>([]);
@@ -14,6 +15,10 @@ export default function ContratosPage() {
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+
+  // Modal de Vistoria Aberto a partir da Emissão de Contrato
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
+  const [checklistFlat, setChecklistFlat] = useState<any>(null);
 
   // Form State Emissão Contrato
   const [locatarioId, setLocatarioId] = useState("");
@@ -35,9 +40,20 @@ export default function ContratosPage() {
   const [caucaoParcelas, setCaucaoParcelas] = useState("0");
   const [multaRescisaoMeses, setMultaRescisaoMeses] = useState("3");
 
-  // Fotos Anexadas do Flat
-  const [availableFlatFotos, setAvailableFlatFotos] = useState<string[]>([]);
-  const [selectedFotosToAttach, setSelectedFotosToAttach] = useState<string[]>([]);
+  // Informações da Vistoria de Entrada Vinculada
+  const [vistoriaStatusInfo, setVistoriaStatusInfo] = useState<{
+    checking: boolean;
+    existe: boolean;
+    itensCount: number;
+    fotosCount: number;
+    statusAssinatura: string;
+  }>({
+    checking: false,
+    existe: false,
+    itensCount: 0,
+    fotosCount: 0,
+    statusAssinatura: "PENDENTE",
+  });
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -68,11 +84,49 @@ export default function ContratosPage() {
     loadData();
   }, []);
 
+  const checkVistoriaForFlat = async (selectedFlatId: string) => {
+    if (!selectedFlatId) {
+      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+      return;
+    }
+
+    setVistoriaStatusInfo((prev) => ({ ...prev, checking: true }));
+    try {
+      const res = await fetch(`/api/assinar/vistoria?flatId=${selectedFlatId}&tipoVistoria=ENTRADA`);
+      const data = await res.json();
+
+      if (res.ok && data.vistoria) {
+        let itens = [];
+        let totalFotos = 0;
+        try {
+          const parsed = JSON.parse(data.vistoria.itensJson);
+          itens = Array.isArray(parsed) ? parsed : (parsed.itens || []);
+          itens.forEach((it: any) => {
+            if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
+              totalFotos += it.fotosUrl.length;
+            }
+          });
+        } catch (e) {}
+
+        setVistoriaStatusInfo({
+          checking: false,
+          existe: true,
+          itensCount: itens.length,
+          fotosCount: totalFotos,
+          statusAssinatura: data.vistoria.statusAssinatura || "CONCLUÍDO",
+        });
+      } else {
+        setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+      }
+    } catch (e) {
+      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+    }
+  };
+
   const handleFlatChange = (selectedFlatId: string) => {
     if (!selectedFlatId) {
       setFlatId("");
-      setAvailableFlatFotos([]);
-      setSelectedFotosToAttach([]);
+      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
       return;
     }
 
@@ -84,27 +138,27 @@ export default function ContratosPage() {
           `⚠️ NÃO É POSSÍVEL EMITIR CONTRATO\n\nO flat "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente ${statusText}.\n\nApenas imóveis com status DISPONÍVEL podem ser selecionados para a emissão de novos contratos.`
         );
         setFlatId("");
-        setAvailableFlatFotos([]);
-        setSelectedFotosToAttach([]);
+        setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
         return;
       }
 
       setFlatId(selectedFlatId);
       if (flatSelected.valorPadrao) setValorMensal(flatSelected.valorPadrao.toString());
-      const fotos: string[] = flatSelected.fotosUrl ? JSON.parse(flatSelected.fotosUrl) : [];
-      setAvailableFlatFotos(fotos);
-      setSelectedFotosToAttach(fotos);
+      checkVistoriaForFlat(selectedFlatId);
     } else {
-      setAvailableFlatFotos([]);
-      setSelectedFotosToAttach([]);
+      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
     }
   };
 
-  const toggleFotoSelection = (url: string) => {
-    if (selectedFotosToAttach.includes(url)) {
-      setSelectedFotosToAttach(selectedFotosToAttach.filter((u) => u !== url));
-    } else {
-      setSelectedFotosToAttach([...selectedFotosToAttach, url]);
+  const handleAbrirVistoria = () => {
+    if (!flatId) {
+      alert("Selecione um flat primeiro para realizar a vistoria.");
+      return;
+    }
+    const flatSelected = flats.find((f) => f.id === flatId);
+    if (flatSelected) {
+      setChecklistFlat(flatSelected);
+      setShowChecklistModal(true);
     }
   };
 
@@ -135,7 +189,6 @@ export default function ContratosPage() {
           valorCaucao: parseFloat(valorCaucao),
           caucaoParcelas: parseInt(caucaoParcelas, 10),
           multaRescisaoMeses: parseInt(multaRescisaoMeses, 10),
-          fotosAnexadasUrl: JSON.stringify(selectedFotosToAttach),
         }),
       });
 
@@ -291,34 +344,62 @@ export default function ContratosPage() {
                   </select>
                 </div>
 
-                {/* Selecionar Fotos do Flat para Anexar */}
-                {availableFlatFotos.length > 0 && (
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
-                      <ImageIcon className="w-4 h-4 text-blue-600" />
-                      <span>Anexar Fotos do Imóvel ao Contrato ({selectedFotosToAttach.length} selecionadas):</span>
-                    </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {availableFlatFotos.map((url, i) => {
-                        const isSelected = selectedFotosToAttach.includes(url);
-                        return (
-                          <div
-                            key={i}
-                            onClick={() => toggleFotoSelection(url)}
-                            className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition ${
-                              isSelected ? "border-blue-600" : "border-transparent opacity-50"
-                            }`}
-                          >
-                            <img src={url} alt="Foto Flat" className="w-full h-14 object-cover" />
-                            {isSelected && (
-                              <div className="absolute top-1 right-1 bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
-                                ✓
-                              </div>
-                            )}
+                {/* Status da Vistoria de Entrada Vinculada ao Flat */}
+                {flatId && (
+                  <div>
+                    {vistoriaStatusInfo.checking ? (
+                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
+                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        <span>Verificando laudo de vistoria de entrada do flat...</span>
+                      </div>
+                    ) : vistoriaStatusInfo.existe ? (
+                      <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center space-x-2.5">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <div>
+                            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
+                              <span>✓ Vistoria de Entrada Localizada</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
+                                {vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos
+                              </span>
+                            </span>
+                            <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
+                              O laudo com as fotos reais da vistoria será <strong>anexado automaticamente ao contrato</strong> para assinatura do locatário.
+                            </p>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAbrirVistoria}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1.5 shadow-xs self-start sm:self-center"
+                        >
+                          <FileCheck className="w-3.5 h-3.5" />
+                          <span>Revisar Vistoria</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center space-x-2.5">
+                          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <div>
+                            <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase">
+                              ⚠️ Vistoria de Entrada não realizada
+                            </span>
+                            <p className="text-[11px] text-amber-700/90 dark:text-amber-400 mt-0.5">
+                              Recomendado: Faça a vistoria e tire as fotos do imóvel antes para que o locatário assine o contrato com o laudo já anexado.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAbrirVistoria}
+                          className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1.5 shadow-xs self-start sm:self-center"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>Fazer Vistoria Agora</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -572,6 +653,26 @@ export default function ContratosPage() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Modal de Checklist / Vistoria de Entrada */}
+        {showChecklistModal && checklistFlat && (
+          <ChecklistVistoriaModal
+            flatId={checklistFlat.id}
+            flatNumero={checklistFlat.numero}
+            locatarioId={locatarioId || undefined}
+            locatarioNome={locatarios.find((l) => l.id === locatarioId)?.nome}
+            locatarioCpf={locatarios.find((l) => l.id === locatarioId)?.cpf}
+            locatarioTelefone={locatarios.find((l) => l.id === locatarioId)?.telefone}
+            initialTipoVistoria="ENTRADA"
+            empresaData={empresaData}
+            onClose={() => {
+              setShowChecklistModal(false);
+              if (checklistFlat?.id) {
+                checkVistoriaForFlat(checklistFlat.id);
+              }
+            }}
+          />
         )}
       </div>
     </Shell>

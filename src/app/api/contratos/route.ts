@@ -117,6 +117,20 @@ export async function POST(request: NextRequest) {
 
     const tokenAssinatura = crypto.randomBytes(16).toString("hex");
 
+    // 1. Buscar se já existe Vistoria de Entrada para este Flat
+    const vistoriaExistente = await prisma.vistoriaChecklist.findFirst({
+      where: {
+        empresaId: session.empresaId,
+        flatId: flatId,
+        tipoVistoria: "ENTRADA",
+      },
+      orderBy: [
+        { statusAssinatura: "desc" },
+        { updatedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+    });
+
     const newContrato = await prisma.contrato.create({
       data: {
         empresaId: session.empresaId,
@@ -138,14 +152,26 @@ export async function POST(request: NextRequest) {
         valorCaucao: caucaoNum,
         caucaoParcelas: caucaoParcNum,
         multaRescisaoMeses: multaRescisaoNum,
-        fotosAnexadasUrl: fotosAnexadasUrl || null,
+        fotosAnexadasUrl: null, // As fotos devem vir exclusivamente da vistoria de entrada
+        anexoChecklistEntrada: vistoriaExistente?.itensJson || null,
         tokenAssinatura,
         statusAssinatura: "PENDENTE",
         status: "ATIVO",
       },
     });
 
-    // Atualizar flat para OCUPADO
+    // 2. Vincular Vistoria de Entrada ao novo Contrato
+    if (vistoriaExistente) {
+      await prisma.vistoriaChecklist.update({
+        where: { id: vistoriaExistente.id },
+        data: {
+          contratoId: newContrato.id,
+          locatarioId: locatarioId,
+        },
+      });
+    }
+
+    // 3. Atualizar flat para OCUPADO
     await prisma.flat.update({
       where: { id: flatId },
       data: { status: "OCUPADO" },
