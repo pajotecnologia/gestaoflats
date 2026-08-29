@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verificarStatusAcesso } from "@/lib/saasConfig";
 
 export async function GET() {
   const session = await getAuthSessionOrFallback();
@@ -18,6 +19,8 @@ export async function GET() {
     return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
+  const statusAcesso = await verificarStatusAcesso(user.empresaId);
+
   return NextResponse.json({
     user: {
       id: user.id,
@@ -25,6 +28,7 @@ export async function GET() {
       email: user.email,
       cargo: user.cargo,
       empresa: user.empresa,
+      statusAcesso,
     },
   });
 }

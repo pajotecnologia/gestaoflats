@@ -22,6 +22,15 @@ model Empresa {
   cep                   String?
   logomarcaUrl          String?
   assinaturaUrl         String?                // Assinatura/Carimbo Digital do Representante
+  
+  // Controle de Teste Grátis (Trial) e Assinatura SaaS
+  statusAssinatura      String                 @default("TRIAL") // TRIAL, ATIVO, EXPIRADO, BLOQUEADO
+  dataInicioTrial       DateTime               @default(now())
+  dataFimTrial          DateTime?
+  dataFimAcesso         DateTime?
+  planoAtual            String?                @default("TRIAL") // TRIAL, MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL
+  ultimoAvisoWhatsAppEm DateTime?
+
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
@@ -37,6 +46,24 @@ model Empresa {
   vistoriasChecklist    VistoriaChecklist[]
   formasPagamento       FormaPagamento[]
   configuracaoParametros ConfiguracaoParametros?
+}
+
+model ConfiguracaoSaaS {
+  id                      String   @id @default("saas-global-config")
+  diasTrialPadrao         Int      @default(7)
+  chavePix                String?  @default("contato@pajotech.com.br")
+  tipoChavePix            String?  @default("EMAIL")
+  nomeBeneficiarioPix     String?  @default("Pajo Tecnologia")
+  cidadePix               String?  @default("Recife")
+  valorMensal             Float    @default(97.0)
+  valorTrimestral         Float    @default(260.0)
+  valorSemestral          Float    @default(490.0)
+  valorAnual              Float    @default(890.0)
+  diasAvisoAntesExpirar   Int      @default(3)
+  telefoneSuporteWhatsApp String?  @default("(87) 99654-0551")
+  mensagemAvisoWhatsApp   String?  @default("Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model ConfiguracaoParametros {

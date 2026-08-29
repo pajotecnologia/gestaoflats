@@ -70,6 +70,12 @@ export async function POST(request: NextRequest) {
   <p>{{empresa.cidade}}, {{contrato.data_emissao}}</p>
 </div>`;
 
+    // Buscar configurações globais do SaaS (dias de trial)
+    const saasConfig = await prisma.configuracaoSaaS.findFirst();
+    const diasTrial = saasConfig?.diasTrialPadrao ?? 7;
+    const agora = new Date();
+    const dataFimTrial = new Date(agora.getTime() + diasTrial * 24 * 60 * 60 * 1000);
+
     // Transação atômica para criar todo o ecossistema da nova empresa SaaS
     const result = await prisma.$transaction(async (tx) => {
       // 1. Criar Empresa
@@ -83,6 +89,11 @@ export async function POST(request: NextRequest) {
           endereco: (endereco || "Endereço Principal").trim(),
           cidade: cidade?.trim() || null,
           estado: estado?.trim() || null,
+          statusAssinatura: "TRIAL",
+          dataInicioTrial: agora,
+          dataFimTrial: dataFimTrial,
+          dataFimAcesso: dataFimTrial,
+          planoAtual: "TRIAL",
         },
       });
 

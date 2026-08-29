@@ -29,7 +29,13 @@ import {
   CreditCard,
   MessageSquare,
   Mail,
+  Zap,
+  BookOpen,
+  Sparkles,
+  Clock,
+  ShieldCheck,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -38,6 +44,7 @@ interface ShellProps {
 function ShellContent({ children }: ShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const abaParam = searchParams?.get("aba");
 
   const [currentAba, setCurrentAba] = useState("checklist");
@@ -47,7 +54,22 @@ function ShellContent({ children }: ShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [relatoriosExpanded, setRelatoriosExpanded] = useState(true);
   const [parametrosExpanded, setParametrosExpanded] = useState(true);
-  const [user, setUser] = useState<{ nome: string; email: string; empresaNome: string; logomarcaUrl?: string } | null>(null);
+  const [user, setUser] = useState<{
+    nome: string;
+    email: string;
+    empresaNome: string;
+    logomarcaUrl?: string;
+    cargo?: string;
+  } | null>(null);
+  const [statusAcesso, setStatusAcesso] = useState<{
+    status: string;
+    planoAtual: string;
+    isTrial: boolean;
+    isExpirado: boolean;
+    diasRestantes: number;
+    dataExpiracao: string | null;
+    podeAcessar: boolean;
+  } | null>(null);
 
   // Auto-expandir relatórios/parâmetros e sincronizar aba ativa reativamente
   useEffect(() => {
@@ -90,11 +112,24 @@ function ShellContent({ children }: ShellProps) {
             email: data.user.email,
             empresaNome: data.user.empresa?.nomeFantasia || 'Prime Flats',
             logomarcaUrl: data.user.empresa?.logomarcaUrl,
+            cargo: data.user.cargo,
           });
+          if (data.user.statusAcesso) {
+            setStatusAcesso(data.user.statusAcesso);
+            // Se expirado e não estiver nas páginas liberadas, redireciona para renovação
+            if (
+              data.user.statusAcesso.isExpirado &&
+              !pathname.startsWith("/renovar") &&
+              !pathname.startsWith("/ajuda") &&
+              !pathname.startsWith("/parametros")
+            ) {
+              router.push("/renovar");
+            }
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [pathname, router]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -110,6 +145,7 @@ function ShellContent({ children }: ShellProps) {
     { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
     { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
     { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
+    { label: "Manual do Sistema", href: "/ajuda", icon: BookOpen },
   ];
 
   const relatoriosSubItems = [
@@ -126,6 +162,7 @@ function ShellContent({ children }: ShellProps) {
     { label: "Servidor de E-mail", href: "/parametros?aba=email", aba: "email", icon: Mail },
     { label: "Usuários & Permissões", href: "/parametros?aba=funcionarios", aba: "funcionarios", icon: Users },
     { label: "Formas de Pagamento", href: "/parametros?aba=formas", aba: "formas", icon: CreditCard },
+    { label: "⚡ Gestão SaaS & Assinaturas", href: "/parametros?aba=saas", aba: "saas", icon: Zap },
   ];
 
   const isRelatoriosActive = pathname.startsWith("/relatorios");
@@ -295,7 +332,50 @@ function ShellContent({ children }: ShellProps) {
             </span>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Badge de Teste Grátis / Assinatura */}
+            {statusAcesso && (
+              <Link
+                href="/renovar"
+                className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                  statusAcesso.isExpirado
+                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 animate-pulse"
+                    : statusAcesso.isTrial
+                    ? statusAcesso.diasRestantes <= 3
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 animate-bounce"
+                      : "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                }`}
+                title="Clique para gerenciar sua assinatura e ver planos"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">
+                  {statusAcesso.isExpirado
+                    ? "⚠️ Expirado - Renovar"
+                    : statusAcesso.isTrial
+                    ? `Teste: ${statusAcesso.diasRestantes} dia(s)`
+                    : `Plano Ativo`}
+                </span>
+                <span className="sm:hidden">
+                  {statusAcesso.isExpirado
+                    ? "Renovar"
+                    : statusAcesso.isTrial
+                    ? `${statusAcesso.diasRestantes}d`
+                    : "Ativo"}
+                </span>
+              </Link>
+            )}
+
+            {/* Link para Manual do Sistema */}
+            <Link
+              href="/ajuda"
+              className="hidden lg:flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+              title="Manual de Primeiros Passos e Ajuda"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+              <span>Manual</span>
+            </Link>
+
             {/* Alternar Tema Escuro / Claro */}
             <button
               onClick={toggleDarkMode}
@@ -307,11 +387,12 @@ function ShellContent({ children }: ShellProps) {
 
             {/* Badge de Versão Atual do Sistema */}
             <div
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-extrabold text-xs shadow-xs select-none"
+              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-extrabold text-xs shadow-xs select-none"
               title="Versão Oficial do Sistema Gestão Flats"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Versão: {SYSTEM_VERSION}</span>
+              <span className="hidden sm:inline">Versão: {SYSTEM_VERSION}</span>
+              <span className="sm:hidden">{SYSTEM_VERSION}</span>
             </div>
 
             {/* Perfil do Usuário */}

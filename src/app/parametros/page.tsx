@@ -28,17 +28,23 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Zap,
+  Clock,
+  Sparkles,
+  Unlock,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 
 function ParametrosContent() {
   const searchParams = useSearchParams();
   const abaParam = searchParams.get("aba");
-  const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas">("empresa");
+  const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas" | "saas">("empresa");
   const [empresa, setEmpresa] = useState<any>(null);
 
   // Sync tab reativamente do parâmetro URL ?aba=
   useEffect(() => {
-    if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas"].includes(abaParam)) {
+    if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "saas"].includes(abaParam)) {
       setActiveTab(abaParam as any);
     }
   }, [abaParam]);
@@ -101,8 +107,170 @@ function ParametrosContent() {
   const [testEmailDestino, setTestEmailDestino] = useState("");
   const [testingSmtp, setTestingSmtp] = useState(false);
 
+  // Estados do SaaS & Assinaturas
+  const [saasSubTab, setSaasSubTab] = useState<"empresas" | "config">("empresas");
+  const [saasDiasTrial, setSaasDiasTrial] = useState(7);
+  const [saasChavePix, setSaasChavePix] = useState("contato@pajotech.com.br");
+  const [saasTipoPix, setSaasTipoPix] = useState("EMAIL");
+  const [saasNomePix, setSaasNomePix] = useState("PAJO TECNOLOGIA");
+  const [saasCidadePix, setSaasCidadePix] = useState("RECIFE");
+  const [saasValorMensal, setSaasValorMensal] = useState(97);
+  const [saasValorTrimestral, setSaasValorTrimestral] = useState(260);
+  const [saasValorSemestral, setSaasValorSemestral] = useState(490);
+  const [saasValorAnual, setSaasValorAnual] = useState(890);
+  const [saasDiasAviso, setSaasDiasAviso] = useState(3);
+  const [saasTelSuporte, setSaasTelSuporte] = useState("(87) 99654-0551");
+  const [saasMsgAviso, setSaasMsgAviso] = useState("");
+  const [savingSaasConfig, setSavingSaasConfig] = useState(false);
+
+  // Gestão de Empresas
+  const [empresasSaaS, setEmpresasSaaS] = useState<any[]>([]);
+  const [loadingEmpresasSaaS, setLoadingEmpresasSaaS] = useState(false);
+  const [showLiberarModal, setShowLiberarModal] = useState(false);
+  const [empresaLiberar, setEmpresaLiberar] = useState<any>(null);
+  const [liberarTipo, setLiberarTipo] = useState<"MESES" | "DIAS" | "CUSTOM">("MESES");
+  const [liberarQtd, setLiberarQtd] = useState(1);
+  const [liberarPlano, setLiberarPlano] = useState("MENSAL");
+  const [liberarDataCustom, setLiberarDataCustom] = useState("");
+  const [submittingLiberar, setSubmittingLiberar] = useState(false);
+  const [disparandoAvisos, setDisparandoAvisos] = useState(false);
+
   const [savingAll, setSavingAll] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
+
+  const loadSaasConfig = async () => {
+    try {
+      const res = await fetch("/api/saas/config");
+      const data = await res.json();
+      if (data.config) {
+        setSaasDiasTrial(data.config.diasTrialPadrao ?? 7);
+        setSaasChavePix(data.config.chavePix || "");
+        setSaasTipoPix(data.config.tipoChavePix || "EMAIL");
+        setSaasNomePix(data.config.nomeBeneficiarioPix || "PAJO TECNOLOGIA");
+        setSaasCidadePix(data.config.cidadePix || "RECIFE");
+        setSaasValorMensal(data.config.valorMensal ?? 97);
+        setSaasValorTrimestral(data.config.valorTrimestral ?? 260);
+        setSaasValorSemestral(data.config.valorSemestral ?? 490);
+        setSaasValorAnual(data.config.valorAnual ?? 890);
+        setSaasDiasAviso(data.config.diasAvisoAntesExpirar ?? 3);
+        setSaasTelSuporte(data.config.telefoneSuporteWhatsApp || "(87) 99654-0551");
+        setSaasMsgAviso(data.config.mensagemAvisoWhatsApp || "");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const loadEmpresasSaaS = async () => {
+    setLoadingEmpresasSaaS(true);
+    try {
+      const res = await fetch("/api/saas/empresas");
+      const data = await res.json();
+      setEmpresasSaaS(data.empresas || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingEmpresasSaaS(false);
+    }
+  };
+
+  const handleSaveSaasConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSaasConfig(true);
+    try {
+      const res = await fetch("/api/saas/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          diasTrialPadrao: Number(saasDiasTrial),
+          chavePix: saasChavePix,
+          tipoChavePix: saasTipoPix,
+          nomeBeneficiarioPix: saasNomePix,
+          cidadePix: saasCidadePix,
+          valorMensal: Number(saasValorMensal),
+          valorTrimestral: Number(saasValorTrimestral),
+          valorSemestral: Number(saasValorSemestral),
+          valorAnual: Number(saasValorAnual),
+          diasAvisoAntesExpirar: Number(saasDiasAviso),
+          telefoneSuporteWhatsApp: saasTelSuporte,
+          mensagemAvisoWhatsApp: saasMsgAviso,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFeedback({ type: "success", message: "✅ Parâmetros globais do SaaS salvos com sucesso!" });
+      } else {
+        setFeedback({ type: "error", message: `❌ Erro: ${data.error}` });
+      }
+    } catch (e: any) {
+      setFeedback({ type: "error", message: `❌ Erro ao salvar: ${e.message}` });
+    } finally {
+      setSavingSaasConfig(false);
+    }
+  };
+
+  const handleOpenLiberarModal = (emp: any) => {
+    setEmpresaLiberar(emp);
+    setLiberarTipo("MESES");
+    setLiberarQtd(1);
+    setLiberarPlano("MENSAL");
+    setLiberarDataCustom("");
+    setShowLiberarModal(true);
+  };
+
+  const handleConfirmarLiberacao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!empresaLiberar) return;
+    setSubmittingLiberar(true);
+    try {
+      const res = await fetch("/api/saas/liberar-acesso", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empresaId: empresaLiberar.id,
+          tipo: liberarTipo,
+          quantidade: liberarQtd,
+          dataExpiracaoCustom: liberarDataCustom,
+          plano: liberarPlano,
+          status: "ATIVO",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowLiberarModal(false);
+        await loadEmpresasSaaS();
+        setFeedback({ type: "success", message: `✅ ${data.message || "Acesso liberado com sucesso!"}` });
+      } else {
+        alert(data.error || "Erro ao liberar acesso");
+      }
+    } catch (e: any) {
+      alert(`Erro: ${e.message}`);
+    } finally {
+      setSubmittingLiberar(false);
+    }
+  };
+
+  const handleDispararAvisosWhatsApp = async () => {
+    if (!confirm("Deseja disparar agora os avisos de vencimento de teste/plano para todas as empresas com expiração próxima?")) return;
+    setDisparandoAvisos(true);
+    try {
+      const res = await fetch("/api/saas/avisos-expiracao", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        await loadEmpresasSaaS();
+        setFeedback({
+          type: "success",
+          message: `✅ Avisos processados! Total verificadas: ${data.totalVerificadas}, Avisos: ${data.avisosProcessados}.`,
+        });
+      } else {
+        setFeedback({ type: "error", message: `❌ Erro ao disparar avisos: ${data.error}` });
+      }
+    } catch (e: any) {
+      setFeedback({ type: "error", message: `❌ Erro: ${e.message}` });
+    } finally {
+      setDisparandoAvisos(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -176,11 +344,14 @@ function ParametrosContent() {
     loadData();
     loadFuncionarios();
     loadFormas();
+    loadSaasConfig();
+    loadEmpresasSaaS();
     if (typeof window !== "undefined" && window.location.hash) {
       if (window.location.hash.includes("evolution")) setActiveTab("evolution");
       if (window.location.hash.includes("smtp") || window.location.hash.includes("email")) setActiveTab("email");
       if (window.location.hash.includes("funcionarios")) setActiveTab("funcionarios");
       if (window.location.hash.includes("formas")) setActiveTab("formas");
+      if (window.location.hash.includes("saas")) setActiveTab("saas");
     }
   }, []);
 
@@ -684,6 +855,19 @@ function ParametrosContent() {
           >
             <CreditCard className="w-4 h-4" />
             <span>💳 Formas de Pagamento</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("saas")}
+            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+              activeTab === "saas"
+                ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-slate-900"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+            }`}
+          >
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span>⚡ Gestão SaaS & Assinaturas</span>
           </button>
         </div>
 
@@ -1445,6 +1629,495 @@ function ParametrosContent() {
                     className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold shadow-md disabled:opacity-50"
                   >
                     {submittingForma ? "Salvando..." : "Salvar Forma de Pagamento"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* CONTEÚDO DA ABA 6: GESTÃO SAAS & ASSINATURAS (SUPER ADMIN) */}
+        {activeTab === "saas" && (
+          <div className="space-y-6">
+            {/* Sub-navegação interna da aba SaaS */}
+            <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-2xl">
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setSaasSubTab("empresas")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+                    saasSubTab === "empresas"
+                      ? "bg-amber-600 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>🏢 Empresas & Assinaturas ({empresasSaaS.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSaasSubTab("config")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+                    saasSubTab === "config"
+                      ? "bg-amber-600 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>⚙️ Configurações Globais do SaaS</span>
+                </button>
+              </div>
+
+              {saasSubTab === "empresas" && (
+                <button
+                  type="button"
+                  onClick={handleDispararAvisosWhatsApp}
+                  disabled={disparandoAvisos}
+                  className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                  title="Envia WhatsApp para todas as empresas que estão vencendo nos próximos dias"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>{disparandoAvisos ? "Disparando..." : "Disparar Avisos WhatsApp"}</span>
+                </button>
+              )}
+            </div>
+
+            {/* SUB-ABA 1: LISTAGEM DE EMPRESAS & LIBERAÇÃO */}
+            {saasSubTab === "empresas" && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <div>
+                    <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Empresas Cadastradas no Sistema</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Acompanhe o período de teste grátis (trial), assinaturas ativas e libere acesso
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadEmpresasSaaS}
+                    className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    title="Atualizar lista"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {loadingEmpresasSaaS ? (
+                  <div className="py-8 text-center text-xs text-slate-500">Carregando empresas cadastradas...</div>
+                ) : empresasSaaS.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-500">Nenhuma empresa encontrada.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-bold">
+                          <th className="py-3 px-4">Empresa / CNPJ</th>
+                          <th className="py-3 px-4">Contato / Admin</th>
+                          <th className="py-3 px-4">Plano</th>
+                          <th className="py-3 px-4 text-center">Status</th>
+                          <th className="py-3 px-4 text-center">Expiração</th>
+                          <th className="py-3 px-4 text-right">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {empresasSaaS.map((emp) => {
+                          const status = emp.statusAcesso;
+                          const dataFimFormatada = status?.dataExpiracao
+                            ? new Date(status.dataExpiracao).toLocaleDateString("pt-BR")
+                            : "—";
+
+                          return (
+                            <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                              <td className="py-3 px-4">
+                                <div className="font-bold text-slate-900 dark:text-slate-100">{emp.nomeFantasia}</div>
+                                <div className="text-[11px] text-slate-500">{emp.cnpj}</div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="text-slate-700 dark:text-slate-300 font-medium">
+                                  {emp.usuarios?.[0]?.nome || "Admin"}
+                                </div>
+                                <div className="text-[11px] text-slate-500">{emp.telefone || emp.email}</div>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">
+                                  {emp.planoAtual || "TRIAL"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    status?.status === "ATIVO"
+                                      ? "bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 text-emerald-700 dark:text-emerald-300"
+                                      : status?.status === "TRIAL"
+                                      ? "bg-blue-100 dark:bg-blue-950/60 border-blue-300 text-blue-700 dark:text-blue-300"
+                                      : "bg-rose-100 dark:bg-rose-950/60 border-rose-300 text-rose-700 dark:text-rose-300"
+                                  }`}
+                                >
+                                  {status?.status === "TRIAL"
+                                    ? `TRIAL (${status.diasRestantes}d)`
+                                    : status?.status === "ATIVO"
+                                    ? "ATIVO"
+                                    : "EXPIRADO"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-center font-medium text-slate-700 dark:text-slate-300">
+                                {dataFimFormatada}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenLiberarModal(emp)}
+                                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1.5 ml-auto transition shadow-xs"
+                                >
+                                  <Unlock className="w-3.5 h-3.5" />
+                                  <span>Liberar Acesso</span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-ABA 2: CONFIGURAÇÃO GLOBAL DO SAAS */}
+            {saasSubTab === "config" && (
+              <form onSubmit={handleSaveSaasConfig} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 text-xs">
+                <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Parâmetros de Assinatura, PIX e Mensagens</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Defina dias de teste grátis para novos cadastros, valores dos planos e chave PIX para pagamentos
+                  </p>
+                </div>
+
+                {/* Bloco 1: Período de Teste Grátis */}
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    <span>Período de Teste Grátis (Trial)</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Dias de Teste Grátis Padrão para Novos Cadastros *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        required
+                        value={saasDiasTrial}
+                        onChange={(e) => setSaasDiasTrial(Number(e.target.value))}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                      <span className="text-[11px] text-slate-500 mt-1 block">Ex: 7 dias, 15 dias ou 30 dias de teste grátis.</span>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Dias de Aviso Antes de Expirar (WhatsApp) *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        required
+                        value={saasDiasAviso}
+                        onChange={(e) => setSaasDiasAviso(Number(e.target.value))}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                      <span className="text-[11px] text-slate-500 mt-1 block">Dispara o aviso de WhatsApp quando faltarem X dias para o fim do teste/plano.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloco 2: Valores dos Planos SaaS */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
+                    <DollarSign className="w-4 h-4 text-emerald-500" />
+                    <span>Valores dos Planos (R$)</span>
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Mensal (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={saasValorMensal}
+                        onChange={(e) => setSaasValorMensal(Number(e.target.value))}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Trimestral (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={saasValorTrimestral}
+                        onChange={(e) => setSaasValorTrimestral(Number(e.target.value))}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Semestral (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={saasValorSemestral}
+                        onChange={(e) => setSaasValorSemestral(Number(e.target.value))}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Anual (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={saasValorAnual}
+                        onChange={(e) => setSaasValorAnual(Number(e.target.value))}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloco 3: Dados do PIX para Recebimento */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
+                    <CreditCard className="w-4 h-4 text-cyan-500" />
+                    <span>Dados do PIX para Recebimento das Assinaturas</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Chave PIX *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="contato@pajotech.com.br"
+                        value={saasChavePix}
+                        onChange={(e) => setSaasChavePix(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-mono text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Tipo de Chave</label>
+                      <select
+                        value={saasTipoPix}
+                        onChange={(e) => setSaasTipoPix(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                      >
+                        <option value="EMAIL">E-mail</option>
+                        <option value="CNPJ">CNPJ</option>
+                        <option value="CPF">CPF</option>
+                        <option value="TELEFONE">Telefone</option>
+                        <option value="ALEATORIA">Chave Aleatória</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Beneficiário (Nome) *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="PAJO TECNOLOGIA"
+                        value={saasNomePix}
+                        onChange={(e) => setSaasNomePix(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Cidade do PIX *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="RECIFE"
+                        value={saasCidadePix}
+                        onChange={(e) => setSaasCidadePix(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloco 4: Telefone de Suporte e Mensagem WhatsApp */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
+                    <MessageSquare className="w-4 h-4 text-emerald-500" />
+                    <span>WhatsApp de Suporte & Template de Mensagem</span>
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Telefone / WhatsApp de Suporte para Receber Comprovantes
+                      </label>
+                      <input
+                        type="text"
+                        value={saasTelSuporte}
+                        onChange={(e) => setSaasTelSuporte(e.target.value)}
+                        className="w-full sm:w-80 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Modelo de Mensagem de Aviso de Expiração via WhatsApp
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={saasMsgAviso}
+                        onChange={(e) => setSaasMsgAviso(e.target.value)}
+                        placeholder="Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats..."
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-slate-100 font-mono text-xs"
+                      />
+                      <span className="text-[11px] text-slate-500 mt-1 block">
+                        Tags dinâmicas disponíveis: <code>{"{{nome}}"}</code>, <code>{"{{empresa}}"}</code>, <code>{"{{dias_restantes}}"}</code>, <code>{"{{data_expiracao}}"}</code>, <code>{"{{link_renovacao}}"}</code>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={savingSaasConfig}
+                    className="py-2.5 px-6 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition disabled:opacity-50"
+                  >
+                    {savingSaasConfig ? "Salvando..." : "Salvar Configurações SaaS"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {/* MODAL LIBERAR / RENOVAR ACESSO DE EMPRESA */}
+        {showLiberarModal && empresaLiberar && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center space-x-2">
+                  <Unlock className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                    Liberar / Renovar Acesso
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLiberarModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                <span className="text-slate-500 block">Empresa:</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{empresaLiberar.nomeFantasia}</span>
+                <span className="text-slate-400 text-[11px] block">{empresaLiberar.cnpj}</span>
+              </div>
+
+              <form onSubmit={handleConfirmarLiberacao} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Período de Liberação</label>
+                  <select
+                    value={liberarTipo}
+                    onChange={(e) => setLiberarTipo(e.target.value as any)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="MESES">Meses (ex: 1 mês, 3 meses, 12 meses)</option>
+                    <option value="DIAS">Dias (ex: 7 dias, 15 dias, 30 dias)</option>
+                    <option value="CUSTOM">Data de Vencimento Específica</option>
+                  </select>
+                </div>
+
+                {liberarTipo === "MESES" && (
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Quantidade de Meses</label>
+                    <select
+                      value={liberarQtd}
+                      onChange={(e) => {
+                        const qtd = Number(e.target.value);
+                        setLiberarQtd(qtd);
+                        if (qtd === 1) setLiberarPlano("MENSAL");
+                        else if (qtd === 3) setLiberarPlano("TRIMESTRAL");
+                        else if (qtd === 6) setLiberarPlano("SEMESTRAL");
+                        else if (qtd === 12) setLiberarPlano("ANUAL");
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="1">+1 Mês (Plano Mensal)</option>
+                      <option value="3">+3 Meses (Plano Trimestral)</option>
+                      <option value="6">+6 Meses (Plano Semestral)</option>
+                      <option value="12">+12 Meses (Plano Anual)</option>
+                    </select>
+                  </div>
+                )}
+
+                {liberarTipo === "DIAS" && (
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Quantidade de Dias</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={liberarQtd}
+                      onChange={(e) => setLiberarQtd(Number(e.target.value))}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                )}
+
+                {liberarTipo === "CUSTOM" && (
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nova Data de Expiração</label>
+                    <input
+                      type="date"
+                      required
+                      value={liberarDataCustom}
+                      onChange={(e) => setLiberarDataCustom(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Identificação do Plano</label>
+                  <select
+                    value={liberarPlano}
+                    onChange={(e) => setLiberarPlano(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="TRIAL">TRIAL (Teste Grátis)</option>
+                    <option value="MENSAL">MENSAL</option>
+                    <option value="TRIMESTRAL">TRIMESTRAL</option>
+                    <option value="SEMESTRAL">SEMESTRAL</option>
+                    <option value="ANUAL">ANUAL</option>
+                  </select>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLiberarModal(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingLiberar}
+                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-md disabled:opacity-50"
+                  >
+                    {submittingLiberar ? "Liberando..." : "Confirmar Liberação"}
                   </button>
                 </div>
               </form>
