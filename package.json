@@ -20,6 +20,7 @@
     "autoprefixer": "^10.4.20",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "javascript-opentimestamps": "^0.4.5",
     "jose": "^5.9.6",
     "jspdf": "^2.5.2",
@@ -45,4 +46,3 @@
     "tsx": "^4.19.2"
   }
 }
-
