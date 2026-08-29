@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthSessionOrFallback } from "@/lib/auth";
+import { getAuthSessionOrFallback, isUserSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSaasConfig } from "@/lib/saasConfig";
 
@@ -17,6 +17,13 @@ export async function POST(request: NextRequest) {
     const session = await getAuthSessionOrFallback();
     if (!session) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    if (!isUserSuperAdmin(session.email, session.cargo)) {
+      return NextResponse.json(
+        { error: "Apenas o Super Administrador pode alterar as configurações globais do SaaS." },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();

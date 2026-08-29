@@ -9,12 +9,36 @@ const JWT_SECRET = new TextEncoder().encode(
 const ACCESS_TOKEN_NAME = "access_token";
 const REFRESH_TOKEN_NAME = "refresh_token";
 
+export const SUPER_ADMIN_EMAILS = [
+  "pajotecnologia@gmail.com",
+  "admin@primeflats.com.br",
+  "contato@pajotech.com.br",
+  "admin@pajotech.com.br",
+  "admin@pajotecnologia.com.br",
+];
+
+/**
+ * Valida se um usuário é Super Administrador global do SaaS
+ */
+export function isUserSuperAdmin(email?: string | null, cargo?: string | null): boolean {
+  if (!email) return false;
+  const cleanEmail = email.trim().toLowerCase();
+  
+  if (cargo === "SUPER_ADMIN") return true;
+  if (SUPER_ADMIN_EMAILS.includes(cleanEmail)) return true;
+  if (process.env.ADMIN_NOTIFICATION_EMAIL && cleanEmail === process.env.ADMIN_NOTIFICATION_EMAIL.trim().toLowerCase()) {
+    return true;
+  }
+  return false;
+}
+
 export interface TokenPayload {
   userId: string;
   empresaId: string;
   email: string;
   nome: string;
   cargo: string;
+  isSuperAdmin?: boolean;
   [key: string]: unknown;
 }
 

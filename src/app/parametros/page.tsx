@@ -41,12 +41,30 @@ function ParametrosContent() {
   const abaParam = searchParams.get("aba");
   const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas" | "saas">("empresa");
   const [empresa, setEmpresa] = useState<any>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Sync tab reativamente do parâmetro URL ?aba=
   useEffect(() => {
-    if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "saas"].includes(abaParam)) {
-      setActiveTab(abaParam as any);
-    }
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          const superAdmin = Boolean(data.user.isSuperAdmin);
+          setIsSuperAdmin(superAdmin);
+          if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "saas"].includes(abaParam)) {
+            if (abaParam === "saas" && !superAdmin) {
+              setActiveTab("empresa");
+            } else {
+              setActiveTab(abaParam as any);
+            }
+          }
+        }
+      })
+      .catch(() => {
+        if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas"].includes(abaParam)) {
+          setActiveTab(abaParam as any);
+        }
+      });
   }, [abaParam]);
 
   // Form Empresa
@@ -862,18 +880,20 @@ function ParametrosContent() {
             <span>💳 Formas de Pagamento</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("saas")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
-              activeTab === "saas"
-                ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
-            }`}
-          >
-            <Zap className="w-4 h-4 text-amber-500" />
-            <span>⚡ Gestão SaaS & Assinaturas</span>
-          </button>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("saas")}
+              className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+                activeTab === "saas"
+                  ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-slate-900"
+                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+              }`}
+            >
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span>⚡ Gestão SaaS & Assinaturas</span>
+            </button>
+          )}
         </div>
 
         {/* CONTEÚDO DA ABA 1: EMPRESA */}
@@ -1642,7 +1662,7 @@ function ParametrosContent() {
         )}
 
         {/* CONTEÚDO DA ABA 6: GESTÃO SAAS & ASSINATURAS (SUPER ADMIN) */}
-        {activeTab === "saas" && (
+        {activeTab === "saas" && isSuperAdmin && (
           <div className="space-y-6">
             {/* Sub-navegação interna da aba SaaS */}
             <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-2xl">

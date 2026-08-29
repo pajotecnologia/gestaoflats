@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthSessionOrFallback } from "@/lib/auth";
+import { getAuthSessionOrFallback, isUserSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verificarStatusAcesso } from "@/lib/saasConfig";
 
@@ -20,6 +20,7 @@ export async function GET() {
   }
 
   const statusAcesso = await verificarStatusAcesso(user.empresaId);
+  const isSuperAdmin = isUserSuperAdmin(user.email, user.cargo);
 
   return NextResponse.json({
     user: {
@@ -27,6 +28,7 @@ export async function GET() {
       nome: user.nome,
       email: user.email,
       cargo: user.cargo,
+      isSuperAdmin,
       empresa: user.empresa,
       statusAcesso,
     },

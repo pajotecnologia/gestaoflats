@@ -60,6 +60,7 @@ function ShellContent({ children }: ShellProps) {
     empresaNome: string;
     logomarcaUrl?: string;
     cargo?: string;
+    isSuperAdmin?: boolean;
   } | null>(null);
   const [statusAcesso, setStatusAcesso] = useState<{
     status: string;
@@ -113,6 +114,7 @@ function ShellContent({ children }: ShellProps) {
             empresaNome: data.user.empresa?.nomeFantasia || 'Prime Flats',
             logomarcaUrl: data.user.empresa?.logomarcaUrl,
             cargo: data.user.cargo,
+            isSuperAdmin: Boolean(data.user.isSuperAdmin),
           });
           if (data.user.statusAcesso) {
             setStatusAcesso(data.user.statusAcesso);
@@ -146,7 +148,9 @@ function ShellContent({ children }: ShellProps) {
     { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
     { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
     { label: "Manual do Sistema", href: "/ajuda", icon: BookOpen },
-    { label: "⚡ Gestão SaaS (Super Admin)", href: "/parametros?aba=saas", icon: Zap },
+    ...(user?.isSuperAdmin
+      ? [{ label: "⚡ Gestão SaaS (Super Admin)", href: "/parametros?aba=saas", icon: Zap }]
+      : []),
   ];
 
   const relatoriosSubItems = [
@@ -163,7 +167,9 @@ function ShellContent({ children }: ShellProps) {
     { label: "Servidor de E-mail", href: "/parametros?aba=email", aba: "email", icon: Mail },
     { label: "Usuários & Permissões", href: "/parametros?aba=funcionarios", aba: "funcionarios", icon: Users },
     { label: "Formas de Pagamento", href: "/parametros?aba=formas", aba: "formas", icon: CreditCard },
-    { label: "⚡ Gestão SaaS & Assinaturas", href: "/parametros?aba=saas", aba: "saas", icon: Zap },
+    ...(user?.isSuperAdmin
+      ? [{ label: "⚡ Gestão SaaS & Assinaturas", href: "/parametros?aba=saas", aba: "saas", icon: Zap }]
+      : []),
   ];
 
   const isRelatoriosActive = pathname.startsWith("/relatorios");
