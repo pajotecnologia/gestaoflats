@@ -30,6 +30,10 @@ export async function ensureDatabaseSchema() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "planoAtual" TEXT DEFAULT 'MENSAL';`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "ultimoAvisoWhatsAppEm" TIMESTAMP(3);`).catch(() => {});
 
+    // 1.1 Preenche registros existentes que estejam com dataInicioTrial ou statusAssinatura nulos
+    await prisma.$executeRawUnsafe(`UPDATE "Empresa" SET "dataInicioTrial" = COALESCE("createdAt", NOW()) WHERE "dataInicioTrial" IS NULL;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`UPDATE "Empresa" SET "statusAssinatura" = 'TRIAL' WHERE "statusAssinatura" IS NULL;`).catch(() => {});
+
     // 2. Tabela ConfiguracaoSaaS
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "ConfiguracaoSaaS" (

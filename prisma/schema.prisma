@@ -24,8 +24,8 @@ model Empresa {
   assinaturaUrl         String?                // Assinatura/Carimbo Digital do Representante
   
   // Controle de Teste Grátis (Trial) e Assinatura SaaS
-  statusAssinatura      String                 @default("TRIAL") // TRIAL, ATIVO, EXPIRADO, BLOQUEADO
-  dataInicioTrial       DateTime               @default(now())
+  statusAssinatura      String?                @default("TRIAL") // TRIAL, ATIVO, EXPIRADO, BLOQUEADO
+  dataInicioTrial       DateTime?              @default(now())
   dataFimTrial          DateTime?
   dataFimAcesso         DateTime?
   planoAtual            String?                @default("TRIAL") // TRIAL, MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL
