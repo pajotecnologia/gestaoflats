@@ -133,9 +133,16 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
       if (!res.ok) {
         setErrorMsg(data.error || "Erro ao registrar assinatura.");
       } else {
+        setContrato((prev: any) => ({
+          ...prev,
+          statusAssinatura: "ASSINADO",
+          assinaturaLocatarioUrl: assinaturaBase64,
+          dataAssinaturaLocatario: new Date().toISOString(),
+          ipAssinaturaLocatario: "✓ Confirmado",
+          ...(data.contrato || {}),
+        }));
         setSignedSuccess(true);
-        await loadContrato();
-        handleDownloadContratoPDF();
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch (err) {
       setErrorMsg("Erro de conexão ao salvar assinatura.");

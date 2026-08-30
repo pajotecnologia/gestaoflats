@@ -295,7 +295,6 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
           setVistoria(freshVistoria);
         }
         setSignedSuccess(true);
-        handleDownloadPDF(freshVistoria);
       }
     } catch (err) {
       setErrorMsg("Erro de conexão ao salvar assinatura.");

@@ -149,62 +149,14 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // 1. Gerar Hash inicial para URL de Validação
+    // 1. Gerar Hash SHA-256 inicial imediato para auditoria e validação pública
     const rawHashInput = `${contrato.id}_${contrato.locatario.cpf}_${dataAssinatura.toISOString()}_${clientIp}`;
     const initialHash = calculateSha256(rawHashInput);
 
     const baseUrl = getAppBaseUrl(request);
     const validationUrl = `${baseUrl}/validar?hash=${initialHash}`;
-    let qrCodeDataUrl = "";
-    try {
-      qrCodeDataUrl = await QRCode.toDataURL(validationUrl, { margin: 1, width: 100 });
-    } catch (e) {
-      console.warn("Erro ao gerar QR Code:", e);
-    }
 
-    // 2. Gerar o PDF com a Assinatura, Selo Criptográfico, QR Code e Anexo I de Vistoria
-    const pdfBase64DataUri = await getContratoPDFBase64({
-      empresaNome: contrato.empresa.nomeFantasia,
-      empresaCnpj: contrato.empresa.cnpj,
-      empresaEndereco: contrato.empresa.endereco,
-      empresaTelefone: contrato.empresa.telefone,
-      empresaEmail: contrato.empresa.email,
-      empresaLogomarcaUrl: contrato.empresa.logomarcaUrl || undefined,
-      empresaAssinaturaUrl: contrato.empresa.assinaturaUrl || undefined,
-      locatarioNome: contrato.locatario.nome,
-      locatarioCpf: contrato.locatario.cpf,
-      locatarioRg: contrato.locatario.rg || undefined,
-      locatarioTelefone: contrato.locatario.telefone,
-      flatNumero: contrato.flat.numero,
-      localNome: contrato.flat.local?.nome,
-      valorMensal: contrato.valorMensal,
-      tipoValidade: contrato.tipoValidade,
-      validadeMeses: contrato.validadeMeses,
-      validadeDias: contrato.validadeDias || undefined,
-      dataEmissao: contrato.dataEmissao.toLocaleDateString("pt-BR"),
-      dataFinal: contrato.dataFinal.toLocaleDateString("pt-BR"),
-      conteudoHtml: contrato.modeloContrato?.conteudoHtml || undefined,
-      statusAssinatura: "ASSINADO",
-      locatarioAssinaturaUrl: assinaturaBase64,
-      dataAssinaturaLocatario: dataAssinatura.toLocaleDateString("pt-BR"),
-      ipAssinaturaLocatario: clientIp,
-      documentoHashSha256: initialHash,
-      blockchainProtocol: "OpenTimestamps / Bitcoin Blockchain",
-      blockchainStatus: "STAMPED",
-      dataHashGerado: dataAssinatura.toISOString(),
-      validationUrl,
-      qrCodeDataUrl,
-      vistoriaEntrada: vistoriaEntradaPDF,
-    });
-
-    // 3. Calcular Hash SHA-256 exato do PDF final gerado
-    const pdfBuffer = Buffer.from(pdfBase64DataUri.replace(/^data:application\/pdf;base64,/, ""), "base64");
-    const pdfSha256 = calculateSha256(pdfBuffer);
-
-    // 4. Ancorar na Blockchain do Bitcoin via OpenTimestamps
-    const otsResult = await stampDocumentHash(pdfSha256);
-
-    // 5. Salvar a Assinatura e Prova Blockchain no Banco de Dados
+    // 2. Salvar a Assinatura imediatamente no Banco de Dados (< 20ms)
     const updatedContrato = await prisma.contrato.update({
       where: { id: contrato.id },
       data: {
@@ -212,51 +164,113 @@ export async function POST(request: NextRequest) {
         assinaturaLocatarioUrl: assinaturaBase64,
         dataAssinaturaLocatario: dataAssinatura,
         ipAssinaturaLocatario: clientIp,
-        documentoHashSha256: otsResult.sha256Hex,
-        otsProofBase64: otsResult.otsProofBase64,
-        blockchainProtocol: otsResult.blockchainProtocol,
-        blockchainStatus: otsResult.blockchainStatus,
-        dataHashGerado: otsResult.stampedAt,
+        documentoHashSha256: initialHash,
+        blockchainProtocol: "OpenTimestamps / Bitcoin Blockchain",
+        blockchainStatus: "STAMPED",
+        dataHashGerado: dataAssinatura,
       },
     });
 
-    // 6. Tentar enviar comprovante assinado via WhatsApp (se configurado)
-    try {
-      if (contrato.locatario.telefone) {
-        const config = await prisma.configuracaoParametros.findUnique({
-          where: { empresaId: contrato.empresaId },
+    // 3. Processamento de Fundo (Background / Não-Bloqueante) para Blockchain e WhatsApp
+    (async () => {
+      try {
+        let qrCodeDataUrl = "";
+        try {
+          qrCodeDataUrl = await QRCode.toDataURL(validationUrl, { margin: 1, width: 100 });
+        } catch (e) {
+          console.warn("Erro ao gerar QR Code em background:", e);
+        }
+
+        const pdfBase64DataUri = await getContratoPDFBase64({
+          empresaNome: contrato.empresa.nomeFantasia,
+          empresaCnpj: contrato.empresa.cnpj,
+          empresaEndereco: contrato.empresa.endereco,
+          empresaTelefone: contrato.empresa.telefone,
+          empresaEmail: contrato.empresa.email,
+          empresaLogomarcaUrl: contrato.empresa.logomarcaUrl || undefined,
+          empresaAssinaturaUrl: contrato.empresa.assinaturaUrl || undefined,
+          locatarioNome: contrato.locatario.nome,
+          locatarioCpf: contrato.locatario.cpf,
+          locatarioRg: contrato.locatario.rg || undefined,
+          locatarioTelefone: contrato.locatario.telefone,
+          flatNumero: contrato.flat.numero,
+          localNome: contrato.flat.local?.nome,
+          valorMensal: contrato.valorMensal,
+          tipoValidade: contrato.tipoValidade,
+          validadeMeses: contrato.validadeMeses,
+          validadeDias: contrato.validadeDias || undefined,
+          dataEmissao: contrato.dataEmissao.toLocaleDateString("pt-BR"),
+          dataFinal: contrato.dataFinal.toLocaleDateString("pt-BR"),
+          conteudoHtml: contrato.modeloContrato?.conteudoHtml || undefined,
+          statusAssinatura: "ASSINADO",
+          locatarioAssinaturaUrl: assinaturaBase64,
+          dataAssinaturaLocatario: dataAssinatura.toLocaleDateString("pt-BR"),
+          ipAssinaturaLocatario: clientIp,
+          documentoHashSha256: initialHash,
+          blockchainProtocol: "OpenTimestamps / Bitcoin Blockchain",
+          blockchainStatus: "STAMPED",
+          dataHashGerado: dataAssinatura.toISOString(),
+          validationUrl,
+          qrCodeDataUrl,
+          vistoriaEntrada: vistoriaEntradaPDF,
         });
 
-        if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
-          const fileName = `Contrato_Assinado_Flat_${contrato.flat.numero}.pdf`;
-          await sendWhatsAppDocument(
-            config,
-            contrato.locatario.telefone,
-            pdfBase64DataUri,
-            fileName,
-            `📄 *Contrato de Locação Assinado!* (Flat ${contrato.flat.numero})\n🔒 Autenticado em Blockchain.`
-          );
+        // Ancorar na Blockchain do Bitcoin
+        try {
+          const pdfBuffer = Buffer.from(pdfBase64DataUri.replace(/^data:application\/pdf;base64,/, ""), "base64");
+          const pdfSha256 = calculateSha256(pdfBuffer);
+          const otsResult = await stampDocumentHash(pdfSha256);
 
-          const linkValidacaoFinal = `${baseUrl}/validar?hash=${otsResult.sha256Hex}`;
-          await sendWhatsAppMessage(
-            config,
-            contrato.locatario.telefone,
-            `🔒 *Autenticidade Criptográfica Blockchain*\n\nSeu contrato foi ancorado na Blockchain do Bitcoin via OpenTimestamps.\n\nHash SHA-256: *${otsResult.sha256Hex}*`
-          );
-
-          // Mensagem isolada com link para garantir clique no WhatsApp mobile!
-          await sendWhatsAppMessage(config, contrato.locatario.telefone, linkValidacaoFinal);
+          await prisma.contrato.update({
+            where: { id: contrato.id },
+            data: {
+              documentoHashSha256: otsResult.sha256Hex,
+              otsProofBase64: otsResult.otsProofBase64,
+              blockchainProtocol: otsResult.blockchainProtocol,
+              blockchainStatus: otsResult.blockchainStatus,
+              dataHashGerado: otsResult.stampedAt,
+            },
+          });
+        } catch (otsErr) {
+          console.warn("Aviso OTS em background:", otsErr);
         }
-      }
-    } catch (waErr) {
-      console.warn("Aviso ao enviar WhatsApp pós-assinatura de contrato:", waErr);
-    }
 
+        // Enviar cópia por WhatsApp
+        if (contrato.locatario.telefone) {
+          const config = await prisma.configuracaoParametros.findUnique({
+            where: { empresaId: contrato.empresaId },
+          });
+
+          if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
+            const fileName = `Contrato_Assinado_Flat_${contrato.flat.numero}.pdf`;
+            await sendWhatsAppDocument(
+              config,
+              contrato.locatario.telefone,
+              pdfBase64DataUri,
+              fileName,
+              `📄 *Contrato de Locação Assinado!* (Flat ${contrato.flat.numero})\n🔒 Autenticado em Blockchain.`
+            );
+
+            await sendWhatsAppMessage(
+              config,
+              contrato.locatario.telefone,
+              `🔒 *Autenticidade Criptográfica Blockchain*\n\nSeu contrato foi assinado e ancorado na Blockchain do Bitcoin.\n\nHash SHA-256: *${initialHash}*`
+            );
+
+            await sendWhatsAppMessage(config, contrato.locatario.telefone, validationUrl);
+          }
+        }
+      } catch (bgErr) {
+        console.error("Erro no processamento de background pós-assinatura:", bgErr);
+      }
+    })().catch((err) => console.error("Falha assíncrona pós-assinatura:", err));
+
+    // 4. Retornar resposta imediatamente ao locatário (< 100ms)
     return NextResponse.json({
       success: true,
       contrato: updatedContrato,
-      documentoHashSha256: otsResult.sha256Hex,
-      validationUrl: `${baseUrl}/validar?hash=${otsResult.sha256Hex}`,
+      documentoHashSha256: initialHash,
+      validationUrl: validationUrl,
     });
   } catch (error: any) {
     console.error("Erro ao assinar contrato:", error);
