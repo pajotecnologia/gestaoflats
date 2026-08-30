@@ -34,6 +34,10 @@ import {
   Unlock,
   Calendar,
   DollarSign,
+  TrendingUp,
+  BarChart3,
+  Layers,
+  Activity,
 } from "lucide-react";
 
 function ParametrosContent() {
@@ -148,6 +152,7 @@ function ParametrosContent() {
 
   // Gestão de Empresas
   const [empresasSaaS, setEmpresasSaaS] = useState<any[]>([]);
+  const [summarySaaS, setSummarySaaS] = useState<any>(null);
   const [loadingEmpresasSaaS, setLoadingEmpresasSaaS] = useState(false);
   const [searchTermEmpresa, setSearchTermEmpresa] = useState("");
   const [statusFilterEmpresa, setStatusFilterEmpresa] = useState("TODOS");
@@ -193,6 +198,7 @@ function ParametrosContent() {
       const res = await fetch("/api/saas/empresas");
       const data = await res.json();
       setEmpresasSaaS(data.empresas || []);
+      setSummarySaaS(data.summary || null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -1823,56 +1829,113 @@ function ParametrosContent() {
 
             {/* SUB-ABA 1: LISTAGEM DE EMPRESAS & LIBERAÇÃO */}
             {saasSubTab === "empresas" && (
-              <div className="space-y-4">
-                {/* CARDS DE RESUMO / KPIS PARA O SUPER ADMIN */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Total Empresas</span>
-                    <span className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1 block">
-                      {empresasSaaS.length}
-                    </span>
-                    <span className="text-[10px] text-blue-500 font-semibold">Clientes Cadastrados</span>
+              <div className="space-y-5">
+                {/* PAINEL DE INTELIGÊNCIA FINANCEIRA & ANALYTICS SAAS (EXCLUSIVO EMPRESA MESTRE) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {/* CARD 1: MRR SAAS */}
+                  <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                        Receita Mensal SaaS (MRR)
+                      </span>
+                      <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-2xl font-black text-emerald-800 dark:text-emerald-200">
+                        R$ {(summarySaaS?.mrrSaaSTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold ml-1">/mês</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-emerald-700/80 dark:text-emerald-400/80 font-medium">
+                      <span>ARR: R$ {(summarySaaS?.arrSaaSTotal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/ano</span>
+                      <span className="font-bold">{summarySaaS?.empresasAtivas || 0} ativas</span>
+                    </div>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                    <span className="text-[11px] font-bold text-amber-500 uppercase block">Em Teste (Trial)</span>
-                    <span className="text-2xl font-black text-amber-500 mt-1 block">
-                      {empresasSaaS.filter((e) => e.statusAcesso?.isTrial).length}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-semibold">Período Gratuito</span>
+                  {/* CARD 2: VOLUME DE ALUGUÉIS SOB GESTÃO (VGV) */}
+                  <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-200 dark:border-blue-800/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                        Aluguéis sob Gestão (VGV)
+                      </span>
+                      <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-300">
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-2xl font-black text-blue-800 dark:text-blue-200">
+                        R$ {(summarySaaS?.volumeTotalAluguelMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold ml-1">/mês</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-blue-700/80 dark:text-blue-400/80 font-medium">
+                      <span>{summarySaaS?.totalContratosAtivosGlobal || 0} contratos ativos</span>
+                      <span className="font-bold">Total nos Flats</span>
+                    </div>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                    <span className="text-[11px] font-bold text-emerald-500 uppercase block">Assinantes Ativos</span>
-                    <span className="text-2xl font-black text-emerald-500 mt-1 block">
-                      {empresasSaaS.filter((e) => e.statusAssinatura === "ATIVO" || (!e.statusAcesso?.isTrial && !e.statusAcesso?.isExpirado)).length}
-                    </span>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Planos Pagos</span>
+                  {/* CARD 3: BASE DE EMPRESAS CONTRATANTES */}
+                  <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                        Empresas Clientes
+                      </span>
+                      <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300">
+                        <Users className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-2xl font-black text-amber-800 dark:text-amber-200">
+                        {summarySaaS?.totalEmpresasContratantes || 0}
+                      </span>
+                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold ml-1">Locadores</span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold">
+                      <span className="text-emerald-600 dark:text-emerald-400">{summarySaaS?.empresasAtivas || 0} Ativas</span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-blue-600 dark:text-blue-400">{summarySaaS?.empresasTrial || 0} Trial</span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-rose-600 dark:text-rose-400">{summarySaaS?.empresasExpiradas || 0} Exp.</span>
+                    </div>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                    <span className="text-[11px] font-bold text-rose-500 uppercase block">Expirados / Bloq.</span>
-                    <span className="text-2xl font-black text-rose-500 mt-1 block">
-                      {empresasSaaS.filter((e) => e.statusAcesso?.isExpirado).length}
-                    </span>
-                    <span className="text-[10px] text-rose-400 font-semibold">Aguardando Renovação</span>
-                  </div>
-
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm col-span-2 sm:col-span-1">
-                    <span className="text-[11px] font-bold text-indigo-500 uppercase block">Total de Flats</span>
-                    <span className="text-2xl font-black text-indigo-500 mt-1 block">
-                      {empresasSaaS.reduce((acc, e) => acc + (e.counts?.flats || 0), 0)}
-                    </span>
-                    <span className="text-[10px] text-indigo-400 font-semibold">Imóveis na Plataforma</span>
+                  {/* CARD 4: FLATS & TAXA DE OCUPAÇÃO */}
+                  <div className="bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent border border-indigo-200 dark:border-indigo-800/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                        Flats no Ecossistema
+                      </span>
+                      <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-2xl font-black text-indigo-800 dark:text-indigo-200">
+                        {summarySaaS?.totalFlatsGlobal || 0}
+                      </span>
+                      <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold ml-1">Unidades</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-indigo-700/80 dark:text-indigo-400/80 font-medium">
+                      <span>{summarySaaS?.totalFlatsOcupadosGlobal || 0} Ocupados</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-300">{summarySaaS?.taxaOcupacaoGlobal || 0}% Ocupação Média</span>
+                    </div>
                   </div>
                 </div>
 
+                {/* TABELA DETALHADA DE EMPRESAS CONTRATANTES */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                     <div>
-                      <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Empresas & Clientes Cadastrados</h2>
+                      <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                        <span>Empresas & Clientes Cadastrados</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {empresasSaaS.length} empresas
+                        </span>
+                      </h2>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Gerenciamento completo de acessos, planos contratados e comunicação direta
+                        Métricas individuais, portfólio de imóveis, receita gerada e controle de mensalidade SaaS
                       </p>
                     </div>
 
@@ -1908,7 +1971,7 @@ function ParametrosContent() {
                   </div>
 
                 {loadingEmpresasSaaS ? (
-                  <div className="py-8 text-center text-xs text-slate-500">Carregando empresas cadastradas...</div>
+                  <div className="py-8 text-center text-xs text-slate-500">Carregando métricas e empresas cadastradas...</div>
                 ) : empresasSaaS.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-500">Nenhuma empresa encontrada.</div>
                 ) : (
@@ -1916,12 +1979,14 @@ function ParametrosContent() {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-bold">
-                          <th className="py-3 px-4">Empresa / CNPJ</th>
-                          <th className="py-3 px-4">Contato / Admin</th>
-                          <th className="py-3 px-4">Plano</th>
-                          <th className="py-3 px-4 text-center">Status</th>
-                          <th className="py-3 px-4 text-center">Expiração</th>
-                          <th className="py-3 px-4 text-right">Ação</th>
+                          <th className="py-3 px-3">Empresa / Cidade</th>
+                          <th className="py-3 px-3">Admin & Contato</th>
+                          <th className="py-3 px-3">Portfólio / Imóveis</th>
+                          <th className="py-3 px-3">Aluguéis Geridos (VGV)</th>
+                          <th className="py-3 px-3">Plano & Valor SaaS</th>
+                          <th className="py-3 px-3 text-center">Status</th>
+                          <th className="py-3 px-3 text-center">Expiração</th>
+                          <th className="py-3 px-3 text-right">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1933,6 +1998,7 @@ function ParametrosContent() {
                               emp.cnpj?.includes(searchTermEmpresa) ||
                               emp.email?.toLowerCase().includes(searchTermEmpresa.toLowerCase()) ||
                               emp.telefone?.includes(searchTermEmpresa) ||
+                              emp.cidade?.toLowerCase().includes(searchTermEmpresa.toLowerCase()) ||
                               emp.usuarios?.some(
                                 (u: any) =>
                                   u.nome?.toLowerCase().includes(searchTermEmpresa.toLowerCase()) ||
@@ -1957,8 +2023,9 @@ function ParametrosContent() {
                             const telLimpo = emp.telefone?.replace(/\D/g, "");
 
                             return (
-                              <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                                <td className="py-3 px-4">
+                              <tr key={emp.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                                {/* EMPRESA & CIDADE */}
+                                <td className="py-3.5 px-3">
                                   <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                                     <span>{emp.nomeFantasia}</span>
                                     {emp.isMestre && (
@@ -1967,45 +2034,83 @@ function ParametrosContent() {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-[11px] text-slate-500">{emp.cnpj || "Sem CNPJ"}</div>
-                                  <div className="text-[10px] text-slate-400 mt-0.5">
-                                    {emp.counts?.flats || 0} Flats • {emp.counts?.contratos || 0} Contratos
+                                  <div className="text-[11px] text-slate-500 font-mono mt-0.5">{emp.cnpj || "Sem CNPJ"}</div>
+                                  <div className="text-[10px] text-slate-400">
+                                    {emp.cidade ? `${emp.cidade}/${emp.estado || ""}` : "Brasil"} • Cadastrado em {new Date(emp.createdAt).toLocaleDateString("pt-BR")}
                                   </div>
                                 </td>
-                                <td className="py-3 px-4">
-                                  <div className="text-slate-700 dark:text-slate-300 font-medium">
+
+                                {/* ADMIN & CONTATO */}
+                                <td className="py-3.5 px-3">
+                                  <div className="text-slate-800 dark:text-slate-200 font-medium">
                                     {emp.usuarios?.[0]?.nome || "Admin"}
                                   </div>
                                   <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
                                     <span>{emp.telefone || emp.email}</span>
                                     {telLimpo && (
                                       <a
-                                        href={`https://wa.me/55${telLimpo}`}
+                                        href={`https://wa.me/55${telLimpo}?text=Olá!%20Mensagem%20da%20administração%20do%20sistema%20Gestão%20de%20Flats.`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-emerald-500 hover:text-emerald-400"
-                                        title="Abrir WhatsApp"
+                                        className="text-emerald-600 hover:text-emerald-500 p-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition"
+                                        title="Chamar no WhatsApp"
                                       >
-                                        <MessageSquare className="w-3 h-3 inline" />
+                                        <MessageSquare className="w-3.5 h-3.5 inline" />
                                       </a>
                                     )}
                                     {emp.email && (
                                       <a
                                         href={`mailto:${emp.email}`}
-                                        className="text-blue-500 hover:text-blue-400"
+                                        className="text-blue-600 hover:text-blue-500 p-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-950/40 transition"
                                         title="Enviar E-mail"
                                       >
-                                        <Mail className="w-3 h-3 inline" />
+                                        <Mail className="w-3.5 h-3.5 inline" />
                                       </a>
                                     )}
                                   </div>
                                 </td>
-                                <td className="py-3 px-4">
-                                  <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${emp.isMestre ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
-                                    {emp.isMestre ? "VITALÍCIO" : (emp.planoAtual || "TRIAL")}
-                                  </span>
+
+                                {/* PORTFÓLIO / FLATS */}
+                                <td className="py-3.5 px-3">
+                                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                    <span>🏠 {emp.metrics?.totalFlats || 0} Flats</span>
+                                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                      ({emp.metrics?.flatsOcupados || 0} Ocup. • {emp.metrics?.taxaOcupacao || 0}%)
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 mt-0.5">
+                                    📄 {emp.metrics?.totalContratosAtivos || 0} Contratos Ativos • 👥 {emp.counts?.locatarios || 0} Locatários
+                                  </div>
                                 </td>
-                                <td className="py-3 px-4 text-center">
+
+                                {/* ALUGUÉIS GERIDOS (VGV) */}
+                                <td className="py-3.5 px-3">
+                                  <div className="font-bold text-blue-700 dark:text-blue-400">
+                                    R$ {(emp.metrics?.volumeAluguelMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    <span className="text-[10px] font-normal text-slate-500">/mês</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 mt-0.5">
+                                    Arrecadado: R$ {(emp.metrics?.totalRecebidoHistorico || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </div>
+                                </td>
+
+                                {/* PLANO & MENSALIDADE SAAS */}
+                                <td className="py-3.5 px-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${emp.isMestre ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
+                                      {emp.isMestre ? "VITALÍCIO" : (emp.planoAtual || "MENSAL")}
+                                    </span>
+                                  </div>
+                                  {!emp.isMestre && (
+                                    <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                                      R$ {(emp.metrics?.mensalidadeSaaS || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                      <span className="text-[9px] font-normal text-slate-400">/mês</span>
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* STATUS */}
+                                <td className="py-3.5 px-3 text-center">
                                   {emp.isMestre ? (
                                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300">
                                       👑 VITALÍCIO
@@ -2028,23 +2133,32 @@ function ParametrosContent() {
                                     </span>
                                   )}
                                 </td>
-                                <td className="py-3 px-4 text-center font-medium text-slate-700 dark:text-slate-300">
+
+                                {/* EXPIRAÇÃO */}
+                                <td className="py-3.5 px-3 text-center font-medium text-slate-700 dark:text-slate-300">
                                   {emp.isMestre ? (
                                     <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">Vitalício</span>
                                   ) : (
-                                    dataFimFormatada
+                                    <span className={`text-xs ${status?.status === "EXPIRADO" ? "text-rose-600 dark:text-rose-400 font-bold" : ""}`}>
+                                      {dataFimFormatada}
+                                    </span>
                                   )}
                                 </td>
-                                <td className="py-3 px-4 text-right">
+
+                                {/* AÇÕES */}
+                                <td className="py-3.5 px-3 text-right">
                                   {!emp.isMestre ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleOpenLiberarModal(emp)}
-                                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1.5 ml-auto transition shadow-xs"
-                                    >
-                                      <Unlock className="w-3.5 h-3.5" />
-                                      <span>Liberar Acesso</span>
-                                    </button>
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenLiberarModal(emp)}
+                                        className="px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1 transition shadow-xs"
+                                        title="Liberar acesso ou alterar plano da empresa"
+                                      >
+                                        <Unlock className="w-3.5 h-3.5" />
+                                        <span>Liberar / Plano</span>
+                                      </button>
+                                    </div>
                                   ) : (
                                     <span className="text-[11px] font-bold text-amber-500">Mestre</span>
                                   )}
