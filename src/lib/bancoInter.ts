@@ -366,21 +366,37 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
   }
 
   const tipoPessoa = cpfCnpjLimpo.length === 14 ? "JURIDICA" : "FISICA";
-  const vencimentoIso = new Date(conta.dataVencimento).toISOString().split("T")[0];
+  const hoje = new Date();
+  const hojeStr = hoje.toISOString().split("T")[0];
+  let vencimentoIso = new Date(conta.dataVencimento).toISOString().split("T")[0];
+  if (vencimentoIso < hojeStr) {
+    vencimentoIso = hojeStr;
+  }
   const valorNominal = Number(conta.valor.toFixed(2));
 
   // Endereço do pagador
   const enderecoLimpo = (loc.endereco || "Rua Principal").substring(0, 100);
-  const cepLimpo = "50000000"; // CEP padrão se não informado
-  const cidadeLimpa = "Recife";
+  const cepLimpo = "55290000"; // CEP padrão se não informado
+  const cidadeLimpa = "Garanhuns";
   const ufLimpa = "PE";
+
+  // Formatação de DDD e Telefone conforme especificação do Inter (DDD max 2, telefone max 9)
+  const telNumeros = loc.telefone ? loc.telefone.replace(/\D/g, "") : "";
+  let ddd = undefined;
+  let telefone = undefined;
+  if (telNumeros.length >= 10) {
+    ddd = telNumeros.substring(0, 2);
+    telefone = telNumeros.substring(2, 11);
+  } else if (telNumeros.length > 0) {
+    telefone = telNumeros.substring(0, 9);
+  }
 
   const token = await getInterOAuthToken(config, empresaId);
   const agent = createInterHttpsAgent(config.certCrt, config.certKey);
   const baseUrl = getInterBaseUrl(config.ambiente);
 
-  // Identificador único no sistema
-  const seuNumero = `LOC_${conta.id.replace(/-/g, "").substring(0, 15)}`;
+  // Identificador único no sistema (máximo 15 caracteres permitidos pelo Inter)
+  const seuNumero = conta.id.replace(/[^a-zA-Z0-9]/g, "").substring(0, 15);
 
   // Payload padrão da API Cobrança v3 do Banco Inter (Boleto com Pix)
   const payloadInter: any = {
@@ -398,7 +414,8 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
       uf: ufLimpa,
       cep: cepLimpo,
       email: loc.email || undefined,
-      telefone: loc.telefone ? loc.telefone.replace(/\D/g, "") : undefined,
+      ddd,
+      telefone,
     },
     mensagem: {
       linha1: `Aluguel Ref: ${conta.mesReferencia}`,
