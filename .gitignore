@@ -35,10 +35,11 @@ next-env.d.ts
 # database & temp test scripts
 **/*.db
 **/*.db-journal
-prisma/*.db
-prisma/*.db-journal
+# local database & scratch
+/prisma/*.db
+/prisma/*.db-journal
+dev.db
+scratch/
 test-ots.js
 *.zip
 release/
-
-
