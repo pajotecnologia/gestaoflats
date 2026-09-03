@@ -208,15 +208,27 @@ export async function getEmpresaInterConfig(empresaId: string): Promise<BancoInt
   };
 }
 
+export function clearInterTokenCache(empresaId?: string) {
+  if (empresaId) {
+    for (const key of Array.from(tokenCache.keys())) {
+      if (key.startsWith(`${empresaId}-`)) {
+        tokenCache.delete(key);
+      }
+    }
+  } else {
+    tokenCache.clear();
+  }
+}
+
 /**
  * Obtém ou renova o Token de Acesso OAuth 2.0 do Banco Inter via mTLS
  */
-export async function getInterOAuthToken(config: BancoInterConfig, empresaId: string = "default"): Promise<string> {
+export async function getInterOAuthToken(config: BancoInterConfig, empresaId: string = "default", forceRenew: boolean = false): Promise<string> {
   const cacheKey = `${empresaId}-${config.ambiente}-${config.clientId}`;
   const cached = tokenCache.get(cacheKey);
 
   // Reutiliza o token se ainda tiver pelo menos 60 segundos de validade
-  if (cached && cached.expiresAt > Date.now() + 60000) {
+  if (!forceRenew && cached && cached.expiresAt > Date.now() + 60000) {
     return cached.accessToken;
   }
 
@@ -234,11 +246,12 @@ export async function getInterOAuthToken(config: BancoInterConfig, empresaId: st
   const cleanClientId = config.clientId.trim();
   const cleanClientSecret = config.clientSecret.trim();
 
-  // Tentativa inicial: sem scope fixo para utilizar todos os escopos autorizados na aplicação (padrão Inter PJ)
+  // Tentativa primária: com os escopos oficiais da API Cobrança v3 do Banco Inter
   let formBody: Record<string, string> = {
     client_id: cleanClientId,
     client_secret: cleanClientSecret,
     grant_type: "client_credentials",
+    scope: "boleto-cobranca.read boleto-cobranca.write",
   };
 
   let res = await makeInterRequest<{ access_token?: string; expires_in?: number; error?: string; error_description?: string; message?: string }>({
@@ -251,15 +264,14 @@ export async function getInterOAuthToken(config: BancoInterConfig, empresaId: st
     agent,
   });
 
-  // Se por ventura o servidor exigir scope explícito, tenta com os escopos padrão
+  // Se o servidor rejeitar o escopo explícito, tenta sem escopo (padrão oob do Inter)
   if (res.status !== 200 && res.status !== 429) {
     const errText = typeof res.data === "string" ? res.data : JSON.stringify(res.data || {});
-    if (errText.includes("scope") || errText.includes("invalid_scope")) {
+    if (errText.includes("scope") || errText.includes("invalid_scope") || errText.includes("No registered scope")) {
       formBody = {
         client_id: cleanClientId,
         client_secret: cleanClientSecret,
         grant_type: "client_credentials",
-        scope: "boleto-cobranca.read boleto-cobranca.write",
       };
       res = await makeInterRequest({
         url: tokenUrl,

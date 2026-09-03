@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getEmpresaInterConfig } from "@/lib/bancoInter";
+import { getEmpresaInterConfig, clearInterTokenCache } from "@/lib/bancoInter";
 
 export async function GET() {
   const session = await getAuthSessionOrFallback();
@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
       },
       update: updateData,
     });
+
+    clearInterTokenCache(session.empresaId);
 
     return NextResponse.json({
       success: true,
