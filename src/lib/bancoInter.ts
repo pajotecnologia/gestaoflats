@@ -372,7 +372,9 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
   if (vencimentoIso < hojeStr) {
     vencimentoIso = hojeStr;
   }
-  const valorNominal = Number(conta.valor.toFixed(2));
+  if (valorNominal < 2.50) {
+    throw new Error("O Banco Inter exige um valor mínimo de R$ 2,50 para emitir boletos bancários com Pix (Bolepix). Para testes, crie uma cobrança de R$ 2,50 ou superior.");
+  }
 
   // Endereço do pagador
   const enderecoLimpo = (loc.endereco || "Rua Principal").substring(0, 100);
@@ -418,7 +420,7 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
       telefone,
     },
     mensagem: {
-      linha1: `Aluguel Ref: ${conta.mesReferencia}`,
+      linha1: `Aluguel Ref: ${conta.mesReferencia || "2026-09"}`,
       linha2: conta.contrato?.flat?.numero ? `Imovel: Flat ${conta.contrato.flat.numero}` : "Locacao de Imovel",
     },
   };
@@ -448,7 +450,13 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
   }
 
   const endpointCobranca = `${baseUrl}/cobranca/v3/cobrancas`;
-  const res = await makeInterRequest({
+  const res = await makeInterRequest<{
+    codigoSolicitacao?: string;
+    title?: string;
+    detail?: string;
+    message?: string;
+    violacoes?: Array<{ razao: string; propriedade: string; valor?: string }>;
+  }>({
     url: endpointCobranca,
     method: "POST",
     headers,
@@ -457,7 +465,10 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
   });
 
   if (res.status !== 200 && res.status !== 201) {
-    const errMsg = res.data?.detail || res.data?.message || res.data?.title || JSON.stringify(res.data);
+    let errMsg = res.data?.detail || res.data?.message || res.data?.title || JSON.stringify(res.data);
+    if (res.data?.violacoes && Array.isArray(res.data.violacoes) && res.data.violacoes.length > 0) {
+      errMsg = res.data.violacoes.map((v) => v.razao).join("; ");
+    }
     
     // Grava mensagem de erro no registro para auditoria
     await prisma.contaReceber.update({
