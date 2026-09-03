@@ -43,7 +43,7 @@ O Banco Inter exige autenticação mTLS (Mutual TLS). O módulo deve carregar os
 
 ### URLs Base do Banco Inter
 - **Produção**: `https://cdpj.partners.bancointer.com.br`
-- **Sandbox (Testes)**: `https://cdpj-sandbox.partners.bancointer.com.br`
+- **Sandbox (Testes)**: `https://cdpj-sandbox.partners.uatinter.co`
 
 ### Criação do Agente HTTPS (mTLS)
 ```typescript

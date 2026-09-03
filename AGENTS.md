@@ -240,7 +240,7 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 - **Autenticação OAuth 2.0 e mTLS Nativo (`src/lib/bancoInter.ts`)**:
   - Toda comunicação com o Banco Inter é autenticada utilizando **Mutual TLS (mTLS)** via `https.Agent` com o certificado `.crt` e a chave privada `.key` da empresa.
   - O Token de Acesso Bearer é obtido via `POST /oauth/v2/token` (`grant_type=client_credentials` e `scope=boleto-cobranca.read boleto-cobranca.write`) e mantido em cache temporário de memória baseado no `expires_in` para otimização de performance.
-  - Ambientes suportados: **PRODUÇÃO** (`https://cdpj.partners.bancointer.com.br`) e **SANDBOX** (`https://cdpj-sandbox.partners.bancointer.com.br`).
+  - Ambientes suportados: **PRODUÇÃO** (`https://cdpj.partners.bancointer.com.br`) e **SANDBOX** (`https://cdpj-sandbox.partners.uatinter.co`).
 
 - **Emissão de Cobrança e Bolepix (`/api/banco-inter/emitir`)**:
   - Dispara `POST /cobranca/v3/cobrancas` informando dados do pagador/locatário (CPF/CNPJ, nome, endereço), valor nominal, data de vencimento, juros e multa do contrato.

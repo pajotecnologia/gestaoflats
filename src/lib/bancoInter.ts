@@ -26,7 +26,7 @@ const tokenCache = new Map<string, TokenCacheItem>();
  */
 export function getInterBaseUrl(ambiente: "PRODUCAO" | "SANDBOX" = "PRODUCAO"): string {
   if (ambiente === "SANDBOX") {
-    return "https://cdpj-sandbox.partners.bancointer.com.br";
+    return "https://cdpj-sandbox.partners.uatinter.co";
   }
   return "https://cdpj.partners.bancointer.com.br";
 }
