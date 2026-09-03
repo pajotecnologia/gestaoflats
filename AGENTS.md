@@ -235,7 +235,30 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 
 ---
 
-## 13. Sincronização Automática com o GitHub
+## 14. Integração com Banco Inter (API Cobrança v3 - Boleto com Pix / Bolepix)
+
+- **Autenticação OAuth 2.0 e mTLS Nativo (`src/lib/bancoInter.ts`)**:
+  - Toda comunicação com o Banco Inter é autenticada utilizando **Mutual TLS (mTLS)** via `https.Agent` com o certificado `.crt` e a chave privada `.key` da empresa.
+  - O Token de Acesso Bearer é obtido via `POST /oauth/v2/token` (`grant_type=client_credentials` e `scope=boleto-cobranca.read boleto-cobranca.write`) e mantido em cache temporário de memória baseado no `expires_in` para otimização de performance.
+  - Ambientes suportados: **PRODUÇÃO** (`https://cdpj.partners.bancointer.com.br`) e **SANDBOX** (`https://cdpj-sandbox.partners.bancointer.com.br`).
+
+- **Emissão de Cobrança e Bolepix (`/api/banco-inter/emitir`)**:
+  - Dispara `POST /cobranca/v3/cobrancas` informando dados do pagador/locatário (CPF/CNPJ, nome, endereço), valor nominal, data de vencimento, juros e multa do contrato.
+  - Vincula o `codigoSolicitacao`, `nossoNumero`, `linhaDigitavel`, `codigoBarras` e `pixCopiaECola` na tabela `ContaReceber`.
+
+- **Download de PDF Oficial do Boleto (`/api/banco-inter/pdf`)**:
+  - Obtém o PDF gerado pelo Banco Inter via `GET /cobranca/v3/cobrancas/{id}/pdf` e disponibiliza para visualização em nova aba, download direto ou disparo por WhatsApp.
+
+- **Envio Direto de Boleto + Pix via WhatsApp (Evolution API)**:
+  - Dispara o PDF oficial do boleto gerado pelo Inter diretamente como mídia anexada no WhatsApp do locatário, acompanhado da Linha Digitável e do Pix Copia e Cola formatados.
+
+- **Conciliação e Baixa Automática (Webhook + Sincronização)**:
+  - Rota de Webhook: `POST /api/webhooks/banco-inter`. Ao receber status `RECEBIDO` ou `PAGO`, aplica a liquidação imediata da `ContaReceber` (`status: "PAGO"`, `formaPagamento: "BOLETO"`, `valorPago`, `dataPagamento`).
+  - Sincronização em Lote (`POST /api/banco-inter/consultar`): Botão **Sincronizar com Inter** na tela de Contas a Receber para consultar e conciliar todas as cobranças pendentes com 1 clique.
+
+---
+
+## 15. Sincronização Automática com o GitHub
 
 - **Envio Automático Obrigatório**: Toda e qualquer alteração realizada no código, configurações ou documentação DEVE ser imediatamente adicionada (`git add .`), comitada e enviada (`git push origin master`) para o GitHub ao final de cada alteração, garantindo que o repositório remoto e os webhooks do Coolify/CI estejam sempre 100% atualizados.
 

@@ -43,7 +43,7 @@ import {
 function ParametrosContent() {
   const searchParams = useSearchParams();
   const abaParam = searchParams.get("aba");
-  const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas" | "saas">("empresa");
+  const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas" | "saas" | "inter">("empresa");
   const [empresa, setEmpresa] = useState<any>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
@@ -55,7 +55,7 @@ function ParametrosContent() {
         if (data.user) {
           const superAdmin = Boolean(data.user.isSuperAdmin);
           setIsSuperAdmin(superAdmin);
-          if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "saas"].includes(abaParam)) {
+          if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "saas", "inter"].includes(abaParam)) {
             if (abaParam === "saas" && !superAdmin) {
               setActiveTab("empresa");
             } else {
@@ -65,7 +65,7 @@ function ParametrosContent() {
         }
       })
       .catch(() => {
-        if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas"].includes(abaParam)) {
+        if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "inter"].includes(abaParam)) {
           setActiveTab(abaParam as any);
         }
       });
@@ -116,6 +116,23 @@ function ParametrosContent() {
   const [smtpSecure, setSmtpSecure] = useState(true);
   const [smtpFromEmail, setSmtpFromEmail] = useState("");
   const [savingSmtp, setSavingSmtp] = useState(false);
+
+  // Form Banco Inter (Boleto com Pix / Bolepix API v3)
+  const [bancoInterClientId, setBancoInterClientId] = useState("");
+  const [bancoInterClientSecret, setBancoInterClientSecret] = useState("");
+  const [bancoInterCertCrt, setBancoInterCertCrt] = useState("");
+  const [bancoInterCertKey, setBancoInterCertKey] = useState("");
+  const [bancoInterHasCertCrt, setBancoInterHasCertCrt] = useState(false);
+  const [bancoInterHasCertKey, setBancoInterHasCertKey] = useState(false);
+  const [bancoInterContaCorrente, setBancoInterContaCorrente] = useState("");
+  const [bancoInterAmbiente, setBancoInterAmbiente] = useState<"PRODUCAO" | "SANDBOX">("PRODUCAO");
+  const [bancoInterChavePix, setBancoInterChavePix] = useState("");
+  const [bancoInterAtivo, setBancoInterAtivo] = useState(false);
+  const [bancoInterWebhookUrl, setBancoInterWebhookUrl] = useState("");
+  const [savingInter, setSavingInter] = useState(false);
+  const [testingInter, setTestingInter] = useState(false);
+  const [registeringWebhookInter, setRegisteringWebhookInter] = useState(false);
+  const [testInterResult, setTestInterResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Gestão de Funcionários
   const [funcionarios, setFuncionarios] = useState<any[]>([]);
@@ -377,18 +394,40 @@ function ParametrosContent() {
     }
   };
 
+  const loadInterConfig = async () => {
+    try {
+      const res = await fetch("/api/banco-inter/config");
+      const data = await res.json();
+      if (data.config) {
+        setBancoInterClientId(data.config.clientId || "");
+        setBancoInterClientSecret(data.config.clientSecret || "");
+        setBancoInterHasCertCrt(Boolean(data.config.hasCertCrt));
+        setBancoInterHasCertKey(Boolean(data.config.hasCertKey));
+        setBancoInterContaCorrente(data.config.contaCorrente || "");
+        setBancoInterAmbiente(data.config.ambiente || "PRODUCAO");
+        setBancoInterChavePix(data.config.chavePix || "");
+        setBancoInterAtivo(Boolean(data.config.ativo));
+        setBancoInterWebhookUrl(data.config.webhookUrl || "");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     loadData();
     loadFuncionarios();
     loadFormas();
     loadSaasConfig();
     loadEmpresasSaaS();
+    loadInterConfig();
     if (typeof window !== "undefined" && window.location.hash) {
       if (window.location.hash.includes("evolution")) setActiveTab("evolution");
       if (window.location.hash.includes("smtp") || window.location.hash.includes("email")) setActiveTab("email");
       if (window.location.hash.includes("funcionarios")) setActiveTab("funcionarios");
       if (window.location.hash.includes("formas")) setActiveTab("formas");
       if (window.location.hash.includes("saas")) setActiveTab("saas");
+      if (window.location.hash.includes("inter")) setActiveTab("inter");
     }
   }, []);
 
@@ -736,12 +775,136 @@ function ParametrosContent() {
     }
   };
 
+  // 💾 Salvar Apenas Banco Inter
+  const handleSaveInter = async () => {
+    setSavingInter(true);
+    setFeedback({ type: "", message: "" });
+
+    try {
+      const res = await fetch("/api/banco-inter/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: bancoInterClientId,
+          clientSecret: bancoInterClientSecret,
+          certCrt: bancoInterCertCrt,
+          certKey: bancoInterCertKey,
+          contaCorrente: bancoInterContaCorrente,
+          ambiente: bancoInterAmbiente,
+          chavePix: bancoInterChavePix,
+          ativo: bancoInterAtivo,
+          webhookUrl: bancoInterWebhookUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFeedback({ type: "success", message: "✅ Configurações do Banco Inter salvas com sucesso!" });
+        loadInterConfig();
+      } else {
+        setFeedback({ type: "error", message: `❌ Erro ao salvar Banco Inter: ${data.error || "Erro interno."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro de conexão ao salvar Banco Inter: ${err.message}` });
+    } finally {
+      setSavingInter(false);
+    }
+  };
+
+  const handleTestInter = async () => {
+    setTestingInter(true);
+    setTestInterResult(null);
+    setFeedback({ type: "", message: "" });
+
+    try {
+      const res = await fetch("/api/banco-inter/testar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: bancoInterClientId,
+          clientSecret: bancoInterClientSecret,
+          certCrt: bancoInterCertCrt,
+          certKey: bancoInterCertKey,
+          ambiente: bancoInterAmbiente,
+          contaCorrente: bancoInterContaCorrente,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestInterResult({ success: true, message: data.message });
+        setFeedback({ type: "success", message: `✅ ${data.message}` });
+      } else {
+        setTestInterResult({ success: false, message: data.message || "Falha na conexão mTLS com o Banco Inter." });
+        setFeedback({ type: "error", message: `❌ ${data.message || "Falha na conexão mTLS com o Banco Inter."}` });
+      }
+    } catch (err: any) {
+      setTestInterResult({ success: false, message: err.message || "Erro de rede ao testar Banco Inter." });
+      setFeedback({ type: "error", message: `❌ Erro ao testar Banco Inter: ${err.message}` });
+    } finally {
+      setTestingInter(false);
+    }
+  };
+
+  const handleRegisterWebhookInter = async () => {
+    setRegisteringWebhookInter(true);
+    setFeedback({ type: "", message: "" });
+
+    try {
+      const res = await fetch("/api/banco-inter/webhook-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: bancoInterWebhookUrl || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBancoInterWebhookUrl(data.webhookUrl || "");
+        setFeedback({ type: "success", message: `✅ Webhook registrado com sucesso no Banco Inter!` });
+      } else {
+        setFeedback({ type: "error", message: `❌ Falha ao registrar webhook: ${data.error || "Verifique os certificados mTLS."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro ao registrar webhook: ${err.message}` });
+    } finally {
+      setRegisteringWebhookInter(false);
+    }
+  };
+
+  const handleFileUploadCrt = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setBancoInterCertCrt(content);
+      setBancoInterHasCertCrt(true);
+      setFeedback({ type: "success", message: `📄 Certificado (${file.name}) carregado na memória. Clique em Salvar para persistir.` });
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFileUploadKey = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setBancoInterCertKey(content);
+      setBancoInterHasCertKey(true);
+      setFeedback({ type: "success", message: `🔑 Chave Privada (${file.name}) carregada na memória. Clique em Salvar para persistir.` });
+    };
+    reader.readAsText(file);
+  };
+
   const handleSaveAll = async () => {
     setSavingAll(true);
     setFeedback({ type: "", message: "" });
 
     try {
-      const [resEmp, resParam] = await Promise.all([
+      const [resEmp, resParam, resInter] = await Promise.all([
         fetch("/api/empresa", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -779,13 +942,29 @@ function ParametrosContent() {
             smtpFromEmail: smtpFromEmail || smtpUser,
           }),
         }),
+        fetch("/api/banco-inter/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId: bancoInterClientId,
+            clientSecret: bancoInterClientSecret,
+            certCrt: bancoInterCertCrt,
+            certKey: bancoInterCertKey,
+            contaCorrente: bancoInterContaCorrente,
+            ambiente: bancoInterAmbiente,
+            chavePix: bancoInterChavePix,
+            ativo: bancoInterAtivo,
+            webhookUrl: bancoInterWebhookUrl,
+          }),
+        }),
       ]);
 
-      if (resEmp.ok && resParam.ok) {
+      if (resEmp.ok && resParam.ok && resInter.ok) {
         setFeedback({ type: "success", message: "✅ Todas as configurações de todas as abas foram salvas com sucesso!" });
         loadData();
+        loadInterConfig();
       } else {
-        setFeedback({ type: "error", message: "Erro ao atualizar dados no servidor." });
+        setFeedback({ type: "error", message: "Erro ao atualizar alguns dados no servidor." });
       }
     } catch (err) {
       setFeedback({ type: "error", message: "Erro de conexão ao salvar parâmetros." });
@@ -901,6 +1080,19 @@ function ParametrosContent() {
           >
             <CreditCard className="w-4 h-4" />
             <span>💳 Formas de Pagamento</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("inter")}
+            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+              activeTab === "inter"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50/50 dark:bg-slate-900"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+            }`}
+          >
+            <Zap className="w-4 h-4 text-orange-500" />
+            <span>🏦 Banco Inter (Bolepix)</span>
           </button>
 
           {isSuperAdmin && (
@@ -2413,6 +2605,288 @@ function ParametrosContent() {
                 </div>
               </form>
             )}
+          </div>
+        )}
+
+        {/* CONTEÚDO DA ABA: BANCO INTER (BOLETO COM PIX / BOLEPIX) */}
+        {activeTab === "inter" && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50">
+                  <Zap className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center space-x-2">
+                    <span>Integração Banco Inter (API Cobrança Bolepix v3)</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      bancoInterAtivo 
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800" 
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700"
+                    }`}>
+                      {bancoInterAtivo ? "● ATIVO" : "○ INATIVO"}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Emita boletos bancários com QR Code Pix acoplado, autenticação mTLS e conciliação automática via Webhook.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleTestInter}
+                  disabled={testingInter}
+                  className="py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center space-x-1.5 transition border border-slate-300 dark:border-slate-700 disabled:opacity-50"
+                  title="Testar Conexão mTLS e Token OAuth 2.0"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-orange-500 ${testingInter ? "animate-spin" : ""}`} />
+                  <span>{testingInter ? "Testando..." : "Testar Conexão"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveInter}
+                  disabled={savingInter}
+                  className="py-2 px-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{savingInter ? "Salvando..." : "Salvar Configurações"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* STATUS DO TESTE AO VIVO */}
+            {testInterResult && (
+              <div
+                className={`p-4 rounded-xl text-xs font-semibold flex items-center space-x-3 border shadow-sm ${
+                  testInterResult.success
+                    ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200"
+                    : "bg-red-50 dark:bg-red-950/60 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
+                }`}
+              >
+                {testInterResult.success ? <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+                <div className="flex-1">
+                  <span className="font-bold block">{testInterResult.success ? "Conexão Estabelecida com Sucesso!" : "Falha na Autenticação:"}</span>
+                  <span className="font-normal text-[11px]">{testInterResult.message}</span>
+                </div>
+              </div>
+            )}
+
+            {/* SELEÇÃO DE STATUS E AMBIENTE */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Status da Integração
+                </label>
+                <div className="flex items-center space-x-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setBancoInterAtivo(!bancoInterAtivo)}
+                    className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer"
+                  >
+                    {bancoInterAtivo ? (
+                      <ToggleRight className="w-8 h-8 text-emerald-500" />
+                    ) : (
+                      <ToggleLeft className="w-8 h-8 text-slate-400" />
+                    )}
+                    <span>{bancoInterAtivo ? "Integração Ativa" : "Integração Desativada"}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Ambiente de Execução
+                </label>
+                <select
+                  value={bancoInterAmbiente}
+                  onChange={(e) => setBancoInterAmbiente(e.target.value as any)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                >
+                  <option value="PRODUCAO">🟢 Produção (Dinheiro Real)</option>
+                  <option value="SANDBOX">🟡 Sandbox (Ambiente de Testes)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Conta Corrente Banco Inter (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: 12345678-9"
+                  value={bancoInterContaCorrente}
+                  onChange={(e) => setBancoInterContaCorrente(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            {/* CREDENCIAIS OAUTH 2.0 */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-orange-500" />
+                <span>1. Credenciais da Aplicação (Internet Banking Inter)</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Client ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: 12345678-abcd-1234-abcd-1234567890ab"
+                    value={bancoInterClientId}
+                    onChange={(e) => setBancoInterClientId(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Disponível no Internet Banking em Conta Digital &gt; Integrações &gt; Nova Integração.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Client Secret *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••••••••••••••••••••••••••"
+                    value={bancoInterClientSecret}
+                    onChange={(e) => setBancoInterClientSecret(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Gerado no Internet Banking juntamente com o Client ID.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* CERTIFICADOS DIGITAIS MTLS (.CRT E .KEY) */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                <PenTool className="w-4 h-4 text-orange-500" />
+                <span>2. Certificado Digital Mútuo (mTLS)</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* UPLOAD DO CERTIFICADO .CRT */}
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                      <span>📄 Certificado (.crt)</span>
+                      {bancoInterHasCertCrt && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
+                          ✓ Carregado
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Selecione o arquivo <code className="font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">.crt</code> extraído do arquivo .zip fornecido pelo Banco Inter.
+                  </p>
+                  <label className="cursor-pointer inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-xs">
+                    <Upload className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Selecionar Arquivo .crt</span>
+                    <input
+                      type="file"
+                      accept=".crt,.pem,.cer"
+                      onChange={handleFileUploadCrt}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {/* UPLOAD DA CHAVE PRIVADA .KEY */}
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                      <span>🔑 Chave Privada (.key)</span>
+                      {bancoInterHasCertKey && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
+                          ✓ Carregada
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Selecione o arquivo <code className="font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">.key</code> extraído do arquivo .zip fornecido pelo Banco Inter.
+                  </p>
+                  <label className="cursor-pointer inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 transition shadow-xs">
+                    <Upload className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Selecionar Arquivo .key</span>
+                    <input
+                      type="file"
+                      accept=".key,.pem"
+                      onChange={handleFileUploadKey}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* CONFIGURAÇÃO DO WEBHOOK AUTOMÁTICO */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <span>3. Webhook de Conciliação e Baixa Automática</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Quando o locatário pagar via Pix ou Boleto, o Banco Inter notifica este endpoint e o sistema dá baixa imediata no Contas a Receber.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRegisterWebhookInter}
+                  disabled={registeringWebhookInter}
+                  className="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold flex items-center space-x-1.5 transition shadow-xs disabled:opacity-50 self-start"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${registeringWebhookInter ? "animate-spin" : ""}`} />
+                  <span>{registeringWebhookInter ? "Registrando..." : "Registrar Webhook no Inter"}</span>
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  URL de Callback do Webhook (Endpoint Público)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://seudominio.com.br/api/webhooks/banco-inter"
+                  value={bancoInterWebhookUrl}
+                  onChange={(e) => setBancoInterWebhookUrl(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-slate-100"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Deixe em branco para usar automaticamente a URL pública da sua VPS / domínio. Requer conexão HTTPS válida.
+                </span>
+              </div>
+            </div>
+
+            {/* GUIA RÁPIDO DE SUPORTE */}
+            <div className="p-4 rounded-2xl bg-orange-50/60 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40 text-xs space-y-2">
+              <span className="font-bold text-orange-900 dark:text-orange-200 flex items-center space-x-1.5">
+                <span>💡 Como obter as credenciais no Banco Inter:</span>
+              </span>
+              <ol className="list-decimal list-inside text-orange-800 dark:text-orange-300 space-y-1 text-[11px] leading-relaxed">
+                <li>Acesse o <strong>Internet Banking PJ do Banco Inter</strong> no computador.</li>
+                <li>Vá no menu <strong>Conta Digital &gt; Integrações &gt; Nova Integração</strong>.</li>
+                <li>Selecione o escopo obrigatório: <strong>API Cobrança (Boleto com Pix)</strong> para leitura e emissão.</li>
+                <li>Baixe o arquivo <code className="font-mono bg-orange-200/60 dark:bg-orange-900/60 px-1 py-0.5 rounded">.zip</code> contendo os certificados <code className="font-mono">.crt</code> e <code className="font-mono">.key</code>.</li>
+                <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> gerados e cole nos campos acima.</li>
+                <li>Carregue os arquivos <code className="font-mono">.crt</code> e <code className="font-mono">.key</code> e clique em <strong>Testar Conexão</strong>!</li>
+              </ol>
+            </div>
           </div>
         )}
 

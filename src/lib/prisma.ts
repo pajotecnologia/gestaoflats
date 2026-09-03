@@ -68,6 +68,28 @@ export async function ensureDatabaseSchema() {
         CONSTRAINT "ConfiguracaoSaaS_pkey" PRIMARY KEY ("id")
       );
     `).catch(() => {});
+    // 3. Colunas do Banco Inter em ConfiguracaoParametros
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterClientId" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterClientSecret" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterCertCrt" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterCertKey" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterContaCorrente" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterAmbiente" TEXT DEFAULT 'PRODUCAO';`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterChavePix" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterAtivo" BOOLEAN DEFAULT FALSE;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ConfiguracaoParametros" ADD COLUMN IF NOT EXISTS "bancoInterWebhookUrl" TEXT;`).catch(() => {});
+
+    // 4. Colunas do Banco Inter em ContaReceber
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterCodigoSolicitacao" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterNossoNumero" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterLinhaDigitavel" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterCodigoBarras" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterPixCopiaECola" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterPixQrCode" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterPdfUrl" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterStatus" TEXT;`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterDataEmissao" TIMESTAMP(3);`).catch(() => {});
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ContaReceber" ADD COLUMN IF NOT EXISTS "bancoInterMensagemErro" TEXT;`).catch(() => {});
   } catch (err) {
     // Silencia erros se já existirem ou se for outro dialeto
   }

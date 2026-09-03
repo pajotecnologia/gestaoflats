@@ -20,6 +20,12 @@ import {
   ChevronRight,
   RotateCcw,
   MessageSquare,
+  Zap,
+  RefreshCw,
+  Copy,
+  Check,
+  QrCode,
+  Download,
 } from "lucide-react";
 
 export default function ContasReceberPage() {
@@ -31,6 +37,11 @@ export default function ContasReceberPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [editingConta, setEditingConta] = useState<any>(null);
+
+  // Estados Banco Inter
+  const [emittingInterId, setEmittingInterId] = useState<string | null>(null);
+  const [syncingInter, setSyncingInter] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Modal de Dar Baixa
   const [showBaixaModal, setShowBaixaModal] = useState(false);
@@ -216,6 +227,128 @@ export default function ContasReceberPage() {
     }
   };
 
+  // ⚡ Emitir Boleto com Pix (Banco Inter)
+  const handleEmitirInter = async (c: any) => {
+    if (emittingInterId) return;
+    setEmittingInterId(c.id);
+
+    try {
+      const res = await fetch("/api/banco-inter/emitir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contaId: c.id }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("✅ Boleto com Pix (Bolepix) emitido com sucesso no Banco Inter!");
+        await loadData();
+      } else {
+        alert(`❌ Falha ao emitir no Banco Inter:\n${data.error || "Verifique as credenciais e certificados em Parâmetros."}`);
+      }
+    } catch (err: any) {
+      alert(`❌ Erro de conexão ao emitir: ${err.message || err}`);
+    } finally {
+      setEmittingInterId(null);
+    }
+  };
+
+  // 🔄 Sincronizar Cobranças com Banco Inter
+  const handleSincronizarInter = async () => {
+    setSyncingInter(true);
+    try {
+      const res = await fetch("/api/banco-inter/consultar", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`✅ ${data.message}`);
+        await loadData();
+      } else {
+        alert(`❌ Falha ao sincronizar: ${data.error || "Erro no servidor."}`);
+      }
+    } catch (err: any) {
+      alert(`❌ Erro ao conectar ao Banco Inter: ${err.message || err}`);
+    } finally {
+      setSyncingInter(false);
+    }
+  };
+
+  // 📄 Baixar Boleto PDF do Banco Inter
+  const handleDownloadBoletoInter = (c: any) => {
+    const url = `/api/banco-inter/pdf?contaId=${c.id}`;
+    window.open(url, "_blank");
+  };
+
+  // 📋 Copiar Texto para Clipboard
+  const handleCopiarTexto = (texto: string, id: string) => {
+    navigator.clipboard.writeText(texto);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 3000);
+  };
+
+  // 📱 Enviar Boleto PDF + Pix do Banco Inter pelo WhatsApp
+  const handleEnviarWhatsAppBoletoInter = async (c: any) => {
+    if (!c.locatario?.telefone) {
+      alert("Locatário não possui telefone/WhatsApp cadastrado.");
+      return;
+    }
+
+    const flatNumero = c.contrato?.flat?.numero
+      ? `Flat ${c.contrato.flat.numero}`
+      : c.observacao || "Locação";
+    const condominioNome = c.contrato?.flat?.local?.nome ? ` - ${c.contrato.flat.local.nome}` : "";
+    const vencimentoFormatado = c.dataVencimento
+      ? new Date(c.dataVencimento).toLocaleDateString("pt-BR")
+      : "A definir";
+    const valorFormatado = Number(c.valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    let text = `*BOLETO E PIX DE ALUGUEL* 🏢\n\nOlá, *${c.locatario?.nome}*!\n\nInformamos os dados para pagamento do seu aluguel:\n🏠 *Imóvel*: ${flatNumero}${condominioNome}\n📅 *Vencimento*: ${vencimentoFormatado}\n💰 *Valor*: ${valorFormatado}\n\nSegue em anexo o *Boleto Oficial com QR Code Pix* gerado pelo Banco Inter.\n`;
+
+    if (c.bancoInterLinhaDigitavel) {
+      text += `\n📄 *Linha Digitável do Boleto*:\n\`${c.bancoInterLinhaDigitavel}\`\n`;
+    }
+
+    if (c.bancoInterPixCopiaECola) {
+      text += `\n🔑 *Pix Copia e Cola*:\n\`${c.bancoInterPixCopiaECola}\`\n`;
+    }
+
+    text += `\n_Após efetuar o pagamento, a baixa é confirmada automaticamente no sistema. Muito obrigado!_`;
+
+    try {
+      const pdfRes = await fetch(`/api/banco-inter/pdf?contaId=${c.id}`);
+      if (!pdfRes.ok) {
+        throw new Error("Não foi possível obter o PDF do boleto. Verifique se a cobrança foi emitida.");
+      }
+      const pdfBlob = await pdfRes.blob();
+      const reader = new FileReader();
+
+      reader.onloadend = async () => {
+        const base64data = (reader.result as string).split(",")[1];
+        const res = await fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: c.locatario.telefone,
+            message: text,
+            pdfBase64: base64data,
+            fileName: `Boleto_Inter_${c.bancoInterNossoNumero || c.id.substring(0, 8)}.pdf`,
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert(`✅ Boleto e dados do Pix enviados com sucesso para ${c.locatario.nome} no WhatsApp!`);
+        } else {
+          alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique a Evolution API em Parâmetros."}`);
+        }
+      };
+      reader.readAsDataURL(pdfBlob);
+    } catch (err: any) {
+      alert(`❌ Erro ao enviar boleto via WhatsApp: ${err.message || err}`);
+    }
+  };
+
   const handleOpenNewModal = () => {
     setEditingConta(null);
     setLocatarioId(locatarios[0]?.id || "");
@@ -377,13 +510,25 @@ export default function ContasReceberPage() {
             </div>
           </div>
 
-          <button
-            onClick={handleOpenNewModal}
-            className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-white text-xs shadow-md flex items-center space-x-2 transition self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nova Receita Avulsa</span>
-          </button>
+          <div className="flex items-center space-x-2 self-start sm:self-auto">
+            <button
+              onClick={handleSincronizarInter}
+              disabled={syncingInter}
+              className="py-2.5 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 font-bold text-orange-700 dark:text-orange-300 text-xs border border-orange-200 dark:border-orange-800/50 flex items-center space-x-2 transition shadow-xs disabled:opacity-50"
+              title="Sincronizar e conciliar status com o Banco Inter"
+            >
+              <RefreshCw className={`w-4 h-4 text-orange-600 dark:text-orange-400 ${syncingInter ? "animate-spin" : ""}`} />
+              <span>{syncingInter ? "Sincronizando..." : "Sincronizar com Inter"}</span>
+            </button>
+
+            <button
+              onClick={handleOpenNewModal}
+              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-white text-xs shadow-md flex items-center space-x-2 transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nova Receita Avulsa</span>
+            </button>
+          </div>
         </div>
 
         {/* BARRA DE FILTROS E BUSCA DINÂMICA */}
@@ -416,18 +561,18 @@ export default function ContasReceberPage() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none"
               >
                 <option value="TODOS">Todos os Status</option>
-                <option value="PENDENTE">Pendentes</option>
-                <option value="PAGO">Pagos</option>
-                <option value="ATRASADO">Atrasados</option>
+                <option value="PENDENTE">Apenas Pendentes</option>
+                <option value="ATRASADO">Apenas Atrasados</option>
+                <option value="PAGO">Apenas Pagos</option>
               </select>
             </div>
 
-            {/* Período de Vencimento (Início) */}
+            {/* Vencimento De */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento De</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Inicial</label>
               <input
                 type="date"
                 value={filterDateInicio}
@@ -435,47 +580,50 @@ export default function ContasReceberPage() {
                   setFilterDateInicio(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
               />
             </div>
 
-            {/* Período de Vencimento (Fim) */}
+            {/* Vencimento Até */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Até</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="date"
-                  value={filterDateFim}
-                  onChange={(e) => {
-                    setFilterDateFim(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
-                />
-                <button
-                  onClick={resetFilters}
-                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
-                  title="Limpar Filtros"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Final</label>
+              <input
+                type="date"
+                value={filterDateFim}
+                onChange={(e) => {
+                  setFilterDateFim(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+              />
             </div>
           </div>
+
+          {(searchTerm || filterStatus !== "TODOS" || filterDateInicio || filterDateFim) && (
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800/60">
+              <button
+                onClick={resetFilters}
+                className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-1 font-semibold"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Limpar Filtros</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* TABELA DE CONTAS A RECEBER */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        {/* TABELA DE LANÇAMENTOS */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Locatário / Referência</th>
-                  <th className="py-3.5 px-4">Flat Vinculado</th>
-                  <th className="py-3.5 px-4">Vencimento</th>
-                  <th className="py-3.5 px-4">Valor (R$)</th>
-                  <th className="py-3.5 px-4">Status & Data da Baixa</th>
-                  <th className="py-3.5 px-4 text-right">Ações</th>
+                <tr className="bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  <th className="py-3 px-4">Locatário / Cobrança</th>
+                  <th className="py-3 px-4">Imóvel / Flat</th>
+                  <th className="py-3 px-4">Vencimento</th>
+                  <th className="py-3 px-4">Valor</th>
+                  <th className="py-3 px-4">Status & Meio</th>
+                  <th className="py-3 px-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-xs">
@@ -495,14 +643,52 @@ export default function ContasReceberPage() {
                   paginatedContas.map((c) => {
                     const isPago = c.status === "PAGO";
                     const isAtrasado = c.status === "ATRASADO";
+                    const temInter = Boolean(c.bancoInterCodigoSolicitacao);
+                    const isEmittingThis = emittingInterId === c.id;
 
                     return (
                       <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                         <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-200">
-                          {c.locatario?.nome || "Locatário"}
-                          <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                          <div className="flex items-center space-x-2">
+                            <span>{c.locatario?.nome || "Locatário"}</span>
+                            {temInter && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60 flex items-center space-x-1" title={`Inter ID: ${c.bancoInterCodigoSolicitacao}`}>
+                                <Zap className="w-2.5 h-2.5 text-orange-500" />
+                                <span>Inter: {c.bancoInterStatus || "EMABERTO"}</span>
+                              </span>
+                            )}
+                          </div>
+                          <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
                             {c.observacao || `Mês Ref: ${formatMesReferencia(c.mesReferencia)}`}
                           </span>
+
+                          {/* AÇÕES DE CÓPIA RÁPIDA (PIX E LINHA DIGITÁVEL INTER) */}
+                          {temInter && (
+                            <div className="flex items-center space-x-2 mt-1">
+                              {c.bancoInterLinhaDigitavel && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopiarTexto(c.bancoInterLinhaDigitavel, `linha-${c.id}`)}
+                                  className="text-[10px] font-medium text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 transition"
+                                  title="Copiar Linha Digitável do Boleto"
+                                >
+                                  {copiedId === `linha-${c.id}` ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
+                                  <span>{copiedId === `linha-${c.id}` ? "Copiado!" : "Copiar Linha"}</span>
+                                </button>
+                              )}
+                              {c.bancoInterPixCopiaECola && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopiarTexto(c.bancoInterPixCopiaECola, `pix-${c.id}`)}
+                                  className="text-[10px] font-medium text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 transition"
+                                  title="Copiar Código Pix Copia e Cola"
+                                >
+                                  {copiedId === `pix-${c.id}` ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <QrCode className="w-2.5 h-2.5" />}
+                                  <span>{copiedId === `pix-${c.id}` ? "Copiado!" : "Copiar Pix"}</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
                           {c.contrato?.flat?.numero || "Receita Avulsa"}
@@ -537,17 +723,52 @@ export default function ContasReceberPage() {
                           <div className="flex items-center justify-end space-x-1.5">
                             {!isPago && (
                               <>
-                                <button
-                                  onClick={() => handleEnviarWhatsAppCobranca(c)}
-                                  className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition"
-                                  title="Enviar Cobrança com Dados do PIX via WhatsApp"
-                                >
-                                  <MessageSquare className="w-4 h-4" />
-                                </button>
+                                {/* BOTÃO EMITIR NO BANCO INTER SE AINDA NÃO EMITIDO */}
+                                {!temInter && (
+                                  <button
+                                    onClick={() => handleEmitirInter(c)}
+                                    disabled={isEmittingThis}
+                                    className="p-1.5 rounded-lg text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/60 transition disabled:opacity-50"
+                                    title="Emitir Boleto com Pix no Banco Inter"
+                                  >
+                                    <Zap className={`w-4 h-4 ${isEmittingThis ? "animate-spin" : ""}`} />
+                                  </button>
+                                )}
+
+                                {/* BOTÃO BAIXAR BOLETO PDF DO BANCO INTER */}
+                                {temInter && (
+                                  <button
+                                    onClick={() => handleDownloadBoletoInter(c)}
+                                    className="p-1.5 rounded-lg text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/60 transition"
+                                    title="Baixar Boleto PDF Oficial do Banco Inter"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                )}
+
+                                {/* BOTÃO ENVIAR NO WHATSAPP (BOLETO INTER OU PIX NORMAL) */}
+                                {temInter ? (
+                                  <button
+                                    onClick={() => handleEnviarWhatsAppBoletoInter(c)}
+                                    className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition"
+                                    title="Enviar Boleto PDF + Pix do Banco Inter via WhatsApp"
+                                  >
+                                    <MessageSquare className="w-4 h-4 text-emerald-600" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleEnviarWhatsAppCobranca(c)}
+                                    className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition"
+                                    title="Enviar Cobrança com Dados do PIX via WhatsApp"
+                                  >
+                                    <MessageSquare className="w-4 h-4" />
+                                  </button>
+                                )}
+
                                 <button
                                   onClick={() => handleOpenBaixaModal(c)}
                                   className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center space-x-1 shadow-sm transition"
-                                  title="Registrar Baixa de Pagamento"
+                                  title="Registrar Baixa Manual de Pagamento"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   <span>Dar Baixa</span>
@@ -557,6 +778,15 @@ export default function ContasReceberPage() {
 
                             {isPago && (
                               <>
+                                {temInter && (
+                                  <button
+                                    onClick={() => handleDownloadBoletoInter(c)}
+                                    className="p-1.5 rounded-lg text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/60 transition"
+                                    title="Visualizar Boleto Oficial do Banco Inter"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleDownloadRecibo(c)}
                                   className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition"

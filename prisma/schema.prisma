@@ -94,6 +94,17 @@ model ConfiguracaoParametros {
   smtpSecure        Boolean  @default(true)
   smtpFromEmail     String?
 
+  // Banco Inter (Boleto com Pix / Bolepix API v3)
+  bancoInterClientId      String?
+  bancoInterClientSecret  String?
+  bancoInterCertCrt       String?   // Certificado .crt ou PEM Base64
+  bancoInterCertKey       String?   // Chave privada .key ou PEM Base64
+  bancoInterContaCorrente String?
+  bancoInterAmbiente      String?   @default("PRODUCAO") // PRODUCAO ou SANDBOX
+  bancoInterChavePix      String?
+  bancoInterAtivo         Boolean   @default(false)
+  bancoInterWebhookUrl    String?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -299,6 +310,19 @@ model ContaReceber {
   valorPago      Float?
   status         String    @default("PENDENTE") // PENDENTE, PAGO, ATRASADO
   observacao     String?
+
+  // Integração Banco Inter (Bolepix)
+  bancoInterCodigoSolicitacao String?
+  bancoInterNossoNumero       String?
+  bancoInterLinhaDigitavel    String?
+  bancoInterCodigoBarras      String?
+  bancoInterPixCopiaECola     String?
+  bancoInterPixQrCode         String?
+  bancoInterPdfUrl            String?
+  bancoInterStatus            String?   // EMABERTO, RECEBIDO, CANCELADO, EXPIRADO
+  bancoInterDataEmissao       DateTime?
+  bancoInterMensagemErro      String?
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
