@@ -222,3 +222,32 @@ src/
    - Na tabela de configurações: `clientId`, `clientSecret`, `certCrt`, `certKey`, `ambiente`, `ativo`, `webhookUrl`.
    - Na tabela de faturas/cobranças: `bancoInterCodigoSolicitacao`, `bancoInterLinhaDigitavel`, `bancoInterPixCopiaECola`, `bancoInterStatus`.
 5. **Cadastre as credenciais e ative o Webhook**: Tudo pronto para emitir e conciliar boletos com Pix de forma 100% automatizada!
+
+---
+
+## 🚨 9. Resolução de Erros Comuns e Diagnóstico (Troubleshooting)
+
+### 1. Erro mTLS `SSL routines:ssl3_read_bytes:tlsv1 alert unknown ca` (Alert 48)
+- **Causa**: O certificado `.crt` e a chave privada `.key` enviados para o `https.Agent` não pertencem ao mesmo par de chaves gerado pelo Banco Inter, estão truncados, ou com inversão entre os arquivos CRT e KEY.
+- **Solução Implementada**:
+  - A função `normalizarCertificadoPEM` no `src/lib/bancoInter.ts` normaliza quebras de linha (`\r\n` -> `\n`) e detecta se o usuário acidentalmente inverteu os arquivos `.crt` e `.key` nos campos do formulário, auto-corrigindo os headers `-----BEGIN CERTIFICATE-----` e `-----BEGIN RSA PRIVATE KEY-----`.
+  - O agente HTTPS utiliza `minVersion: 'TLSv1.2'`, `maxVersion: 'TLSv1.3'` e ciphers `DEFAULT:@SECLEVEL=1`.
+
+### 2. Erro OAuth 2.0 `401: The given client credentials were not valid`
+- **Causa**: O `Client ID` ou `Client Secret` inserido no formulário não corresponde à aplicação ativa para o certificado no Portal PJ do Banco Inter.
+- **Solução**:
+  - Acesse o Internet Banking PJ do Banco Inter (`https://cdpj.bancointer.com.br`) -> **Conta Digital &gt; Integrações &gt; Minhas Aplicações**.
+  - Localize a aplicação correspondente ao certificado ativo.
+  - Copie exatamente o **Client ID** (formato UUID de 36 caracteres: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) e o **Client Secret**.
+  - Cole no formulário em **Configurações &gt; Banco Inter (Bolepix)** e clique em **Salvar Configurações**, depois em **Testar Conexão**.
+
+### 3. Erro `429: Too Many Requests / Rate Limit`
+- **Causa**: Disparos sucessivos em rajada ao endpoint `/oauth/v2/token` do Banco Inter.
+- **Solução**:
+  - O sistema armazena o token OAuth em cache de memória temporário durante seu período de validade (`expires_in - 60s`), evitando requisições repetidas a cada emissão de cobrança.
+
+### 4. Deploy em VPS com Docker / Coolify e PostgreSQL
+- O `prisma/schema.prisma` utiliza `provider = "postgresql"`.
+- O `DATABASE_URL` no container aponta para a instância do PostgreSQL de produção (`169.58.246.70:5432/gestaoflats`).
+- Ao atualizar a aplicação, a migration/sincronização do Prisma (`npx prisma db push`) roda automaticamente no `docker-entrypoint.sh`, mantendo a integridade de todos os dados cadastrados.
+
