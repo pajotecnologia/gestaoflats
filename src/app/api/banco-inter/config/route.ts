@@ -14,8 +14,8 @@ export async function GET() {
     return NextResponse.json({
       config: {
         clientId: config.clientId,
-        // Oculta parte do secret por segurança
-        clientSecret: config.clientSecret ? `${config.clientSecret.substring(0, 4)}...${config.clientSecret.substring(config.clientSecret.length - 4)}` : "",
+        clientSecret: config.clientSecret || "",
+        hasClientSecret: Boolean(config.clientSecret),
         hasCertCrt: Boolean(config.certCrt),
         hasCertKey: Boolean(config.certKey),
         contaCorrente: config.contaCorrente || "",

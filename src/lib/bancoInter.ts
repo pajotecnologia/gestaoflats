@@ -231,35 +231,62 @@ export async function getInterOAuthToken(config: BancoInterConfig, empresaId: st
   const tokenUrl = `${baseUrl}/oauth/v2/token`;
   const agent = createInterHttpsAgent(config.certCrt, config.certKey);
 
-  const formBody = {
-    client_id: config.clientId.trim(),
-    client_secret: config.clientSecret.trim(),
-    grant_type: "client_credentials",
-    scope: "boleto-cobranca.read boleto-cobranca.write",
-  };
+  const cleanClientId = config.clientId.trim();
+  const cleanClientSecret = config.clientSecret.trim();
 
-  const res = await makeInterRequest({
-    url: tokenUrl,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formBody,
-    agent,
-  });
+  // Lista de escopos compatíveis com as diferentes versões da API do Banco Inter
+  const scopesToTry = [
+    "boleto-cobranca.read boleto-cobranca.write",
+    "cobranca.read cobranca.write",
+    "boleto-cobranca.read boleto-cobranca.write extrato.read",
+    undefined, // Sem parâmetro scope (usa o escopo padrão da aplicação)
+  ];
 
-  if (res.status !== 200 || !res.data?.access_token) {
-    const errorDetails = res.data?.error_description || res.data?.message || res.data?.error || JSON.stringify(res.data);
-    throw new Error(`Erro de autenticação OAuth 2.0 no Banco Inter (${res.status}): ${errorDetails}`);
+  let lastError = "";
+  let lastStatus = 401;
+
+  for (const scope of scopesToTry) {
+    const formBody: any = {
+      client_id: cleanClientId,
+      client_secret: cleanClientSecret,
+      grant_type: "client_credentials",
+    };
+    if (scope) {
+      formBody.scope = scope;
+    }
+
+    try {
+      const res = await makeInterRequest({
+        url: tokenUrl,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formBody,
+        agent,
+      });
+
+      if (res.status === 200 && res.data?.access_token) {
+        const expiresIn = Number(res.data.expires_in || 3600);
+        tokenCache.set(cacheKey, {
+          accessToken: res.data.access_token,
+          expiresAt: Date.now() + expiresIn * 1000,
+        });
+        return res.data.access_token;
+      }
+
+      lastStatus = res.status;
+      lastError = res.data?.error_description || res.data?.message || res.data?.error || JSON.stringify(res.data);
+    } catch (err: any) {
+      lastError = err.message || "Erro desconhecido";
+    }
   }
 
-  const expiresIn = Number(res.data.expires_in || 3600);
-  tokenCache.set(cacheKey, {
-    accessToken: res.data.access_token,
-    expiresAt: Date.now() + expiresIn * 1000,
-  });
+  if (lastError.includes("client credentials were not valid") || lastStatus === 401) {
+    throw new Error(`As credenciais de Client ID ou Client Secret foram rejeitadas pelo Banco Inter (401). Verifique se você copiou o Client ID e Client Secret exatos da sua aplicação no Internet Banking PJ do Banco Inter e salve novamente.`);
+  }
 
-  return res.data.access_token;
+  throw new Error(`Erro de autenticação OAuth 2.0 no Banco Inter (${lastStatus}): ${lastError}`);
 }
 
 /**
