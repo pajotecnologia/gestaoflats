@@ -38,6 +38,8 @@ import {
   BarChart3,
   Layers,
   Activity,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 function ParametrosContent() {
@@ -132,6 +134,7 @@ function ParametrosContent() {
   const [savingInter, setSavingInter] = useState(false);
   const [testingInter, setTestingInter] = useState(false);
   const [registeringWebhookInter, setRegisteringWebhookInter] = useState(false);
+  const [showInterSecret, setShowInterSecret] = useState(false);
   const [testInterResult, setTestInterResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Gestão de Funcionários
@@ -2750,17 +2753,29 @@ function ParametrosContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Client Secret *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••••••••••••••••••••••••••"
-                    value={bancoInterClientSecret}
-                    onChange={(e) => setBancoInterClientSecret(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Client Secret *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowInterSecret(!showInterSecret)}
+                      className="text-[11px] text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 flex items-center space-x-1"
+                    >
+                      {showInterSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      <span>{showInterSecret ? "Ocultar" : "Mostrar"}</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showInterSecret ? "text" : "password"}
+                      required
+                      placeholder="Cole aqui o Client Secret gerado no Inter"
+                      value={bancoInterClientSecret}
+                      onChange={(e) => setBancoInterClientSecret(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100 pr-10"
+                    />
+                  </div>
                   <span className="text-[10px] text-slate-500 mt-1 block">
                     Gerado no Internet Banking juntamente com o Client ID.
                   </span>
