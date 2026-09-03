@@ -445,10 +445,6 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
     "Content-Type": "application/json",
   };
 
-  if (config.contaCorrente) {
-    headers["x-conta-corrente"] = config.contaCorrente.trim();
-  }
-
   const endpointCobranca = `${baseUrl}/cobranca/v3/cobrancas`;
   const res = await makeInterRequest<{
     codigoSolicitacao?: string;
@@ -541,9 +537,6 @@ export async function consultarBolepixInter(codigoSolicitacao: string, empresaId
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
   };
-  if (config.contaCorrente) {
-    headers["x-conta-corrente"] = config.contaCorrente.trim();
-  }
 
   const endpoint = `${baseUrl}/cobranca/v3/cobrancas/${codigoSolicitacao}`;
   const res = await makeInterRequest({
@@ -585,9 +578,6 @@ export async function baixarPdfBoletoInter(codigoSolicitacao: string, empresaId:
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
   };
-  if (config.contaCorrente) {
-    headers["x-conta-corrente"] = config.contaCorrente.trim();
-  }
 
   const endpoint = `${baseUrl}/cobranca/v3/cobrancas/${codigoSolicitacao}/pdf`;
   const res = await makeInterRequest({
@@ -632,9 +622,6 @@ export async function cancelarBolepixInter(codigoSolicitacao: string, motivo: st
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
-  if (config.contaCorrente) {
-    headers["x-conta-corrente"] = config.contaCorrente.trim();
-  }
 
   const endpoint = `${baseUrl}/cobranca/v3/cobrancas/${codigoSolicitacao}/cancelar`;
   const res = await makeInterRequest({
