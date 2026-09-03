@@ -234,14 +234,14 @@ export async function getInterOAuthToken(config: BancoInterConfig, empresaId: st
   const cleanClientId = config.clientId.trim();
   const cleanClientSecret = config.clientSecret.trim();
 
-  const formBody = {
+  // Tentativa inicial: sem scope fixo para utilizar todos os escopos autorizados na aplicação (padrão Inter PJ)
+  let formBody: Record<string, string> = {
     client_id: cleanClientId,
     client_secret: cleanClientSecret,
     grant_type: "client_credentials",
-    scope: "boleto-cobranca.read boleto-cobranca.write",
   };
 
-  const res = await makeInterRequest({
+  let res = await makeInterRequest<{ access_token?: string; expires_in?: number; error?: string; error_description?: string; message?: string }>({
     url: tokenUrl,
     method: "POST",
     headers: {
@@ -250,6 +250,28 @@ export async function getInterOAuthToken(config: BancoInterConfig, empresaId: st
     body: formBody,
     agent,
   });
+
+  // Se por ventura o servidor exigir scope explícito, tenta com os escopos padrão
+  if (res.status !== 200 && res.status !== 429) {
+    const errText = typeof res.data === "string" ? res.data : JSON.stringify(res.data || {});
+    if (errText.includes("scope") || errText.includes("invalid_scope")) {
+      formBody = {
+        client_id: cleanClientId,
+        client_secret: cleanClientSecret,
+        grant_type: "client_credentials",
+        scope: "boleto-cobranca.read boleto-cobranca.write",
+      };
+      res = await makeInterRequest({
+        url: tokenUrl,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formBody,
+        agent,
+      });
+    }
+  }
 
   if (res.status === 200 && res.data?.access_token) {
     const expiresIn = Number(res.data.expires_in || 3600);
