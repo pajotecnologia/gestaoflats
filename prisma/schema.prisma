@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -25,7 +25,7 @@ model Empresa {
   
   // Controle de Teste Grátis (Trial) e Assinatura SaaS
   statusAssinatura      String?                @default("TRIAL") // TRIAL, ATIVO, EXPIRADO, BLOQUEADO
-  dataInicioTrial       DateTime?              @default(now())
+  dataInicioTrial       DateTime?
   dataFimTrial          DateTime?
   dataFimAcesso         DateTime?
   planoAtual            String?                @default("TRIAL") // TRIAL, MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL

@@ -849,6 +849,36 @@ function ParametrosContent() {
     }
   };
 
+  const handleFileUploadCrt = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string;
+      if (content) {
+        setBancoInterCertCrt(content);
+        setBancoInterHasCertCrt(true);
+        setFeedback({ type: "success", message: `✅ Certificado ${file.name} carregado com sucesso!` });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFileUploadKey = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string;
+      if (content) {
+        setBancoInterCertKey(content);
+        setBancoInterHasCertKey(true);
+        setFeedback({ type: "success", message: `✅ Chave Privada ${file.name} carregada com sucesso!` });
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleRegisterWebhookInter = async () => {
     setRegisteringWebhookInter(true);
     setFeedback({ type: "", message: "" });

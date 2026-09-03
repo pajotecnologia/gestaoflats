@@ -21,7 +21,10 @@ export async function ensureDatabaseSchema() {
   if (globalForPrisma.dbSchemaEnsured) return;
   globalForPrisma.dbSchemaEnsured = true;
 
-  try {
+  // Em SQLite local, o esquema é gerenciado pelo prisma db push
+  if (process.env.DATABASE_URL?.startsWith("file:") || process.env.DATABASE_URL?.includes(".db")) {
+    return;
+  }
     // 1. Colunas da Empresa
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "statusAssinatura" TEXT DEFAULT 'TRIAL';`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "dataInicioTrial" TIMESTAMP(3);`).catch(() => {});
