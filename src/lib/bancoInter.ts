@@ -234,59 +234,43 @@ export async function getInterOAuthToken(config: BancoInterConfig, empresaId: st
   const cleanClientId = config.clientId.trim();
   const cleanClientSecret = config.clientSecret.trim();
 
-  // Lista de escopos compatíveis com as diferentes versões da API do Banco Inter
-  const scopesToTry = [
-    "boleto-cobranca.read boleto-cobranca.write",
-    "cobranca.read cobranca.write",
-    "boleto-cobranca.read boleto-cobranca.write extrato.read",
-    undefined, // Sem parâmetro scope (usa o escopo padrão da aplicação)
-  ];
+  const formBody = {
+    client_id: cleanClientId,
+    client_secret: cleanClientSecret,
+    grant_type: "client_credentials",
+    scope: "boleto-cobranca.read boleto-cobranca.write",
+  };
 
-  let lastError = "";
-  let lastStatus = 401;
+  const res = await makeInterRequest({
+    url: tokenUrl,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formBody,
+    agent,
+  });
 
-  for (const scope of scopesToTry) {
-    const formBody: any = {
-      client_id: cleanClientId,
-      client_secret: cleanClientSecret,
-      grant_type: "client_credentials",
-    };
-    if (scope) {
-      formBody.scope = scope;
-    }
-
-    try {
-      const res = await makeInterRequest({
-        url: tokenUrl,
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formBody,
-        agent,
-      });
-
-      if (res.status === 200 && res.data?.access_token) {
-        const expiresIn = Number(res.data.expires_in || 3600);
-        tokenCache.set(cacheKey, {
-          accessToken: res.data.access_token,
-          expiresAt: Date.now() + expiresIn * 1000,
-        });
-        return res.data.access_token;
-      }
-
-      lastStatus = res.status;
-      lastError = res.data?.error_description || res.data?.message || res.data?.error || JSON.stringify(res.data);
-    } catch (err: any) {
-      lastError = err.message || "Erro desconhecido";
-    }
+  if (res.status === 200 && res.data?.access_token) {
+    const expiresIn = Number(res.data.expires_in || 3600);
+    tokenCache.set(cacheKey, {
+      accessToken: res.data.access_token,
+      expiresAt: Date.now() + expiresIn * 1000,
+    });
+    return res.data.access_token;
   }
 
-  if (lastError.includes("client credentials were not valid") || lastStatus === 401) {
-    throw new Error(`As credenciais de Client ID ou Client Secret foram rejeitadas pelo Banco Inter (401). Verifique se você copiou o Client ID e Client Secret exatos da sua aplicação no Internet Banking PJ do Banco Inter e salve novamente.`);
+  const errorDetails = res.data?.error_description || res.data?.message || res.data?.error || JSON.stringify(res.data);
+
+  if (res.status === 429) {
+    throw new Error("Limite de requisições por minuto atingido no Banco Inter (HTTP 429 - Too Many Requests). O banco bloqueia temporariamente tentativas muito rápidas. Por favor, aguarde 30 a 60 segundos e clique em Testar Conexão novamente.");
   }
 
-  throw new Error(`Erro de autenticação OAuth 2.0 no Banco Inter (${lastStatus}): ${lastError}`);
+  if (res.status === 401 || errorDetails.includes("client credentials were not valid")) {
+    throw new Error("As credenciais de Client ID ou Client Secret foram rejeitadas pelo Banco Inter (401: Client credentials not valid). Verifique se o Client ID e o Client Secret copiados do Internet Banking PJ estão corretos e salvos no formulário.");
+  }
+
+  throw new Error(`Erro de autenticação OAuth 2.0 no Banco Inter (${res.status}): ${errorDetails}`);
 }
 
 /**
