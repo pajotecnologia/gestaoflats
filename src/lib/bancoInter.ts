@@ -36,14 +36,14 @@ export function getInterBaseUrl(ambiente: "PRODUCAO" | "SANDBOX" = "PRODUCAO"): 
  */
 export function sanitizePem(pemOrBase64: string): string {
   if (!pemOrBase64) return "";
-  let clean = pemOrBase64.trim();
+  let clean = pemOrBase64.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   
   // Se for Base64 puro sem headers PEM, tenta decodificar
   if (!clean.includes("-----BEGIN") && /^[A-Za-z0-9+/=\s]+$/.test(clean)) {
     try {
       const decoded = Buffer.from(clean, "base64").toString("utf-8");
       if (decoded.includes("-----BEGIN")) {
-        return decoded;
+        return decoded.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
       }
     } catch {
       // Ignora erro e usa o original
@@ -56,16 +56,26 @@ export function sanitizePem(pemOrBase64: string): string {
  * Cria o agente HTTPS com suporte a Mutual TLS (mTLS) do Banco Inter
  */
 export function createInterHttpsAgent(certCrt: string, certKey: string): https.Agent {
-  const cert = sanitizePem(certCrt);
-  const key = sanitizePem(certKey);
+  let cert = sanitizePem(certCrt);
+  let key = sanitizePem(certKey);
 
   if (!cert || !key) {
     throw new Error("Certificado (.crt) e Chave Privada (.key) do Banco Inter são obrigatórios.");
   }
 
+  // Auto-correção: caso o usuário tenha invertido os arquivos de certificado e chave
+  if (cert.includes("PRIVATE KEY") && key.includes("CERTIFICATE")) {
+    const temp = cert;
+    cert = key;
+    key = temp;
+  }
+
   return new https.Agent({
     cert,
     key,
+    minVersion: "TLSv1.2",
+    maxVersion: "TLSv1.3",
+    ciphers: "DEFAULT:@SECLEVEL=1",
     rejectUnauthorized: true,
     keepAlive: true,
   });
@@ -156,7 +166,11 @@ export async function makeInterRequest<T = any>({
       });
 
       req.on("error", (err) => {
-        reject(new Error(`Falha na conexão mTLS com o Banco Inter: ${err.message}`));
+        let msg = err.message || "";
+        if (msg.includes("unknown ca") || msg.includes("alert number 48")) {
+          msg = "O servidor do Banco Inter rejeitou o certificado digital (SSL Alert 48: Unknown CA). Isso ocorre quando o certificado enviado pertence a outro ambiente (ex: certificado de PRODUÇÃO sendo testado em SANDBOX, ou vice-versa). Se você baixou o certificado pelo Internet Banking PJ, altere o ambiente para PRODUÇÃO antes de testar.";
+        }
+        reject(new Error(`Falha na conexão mTLS com o Banco Inter: ${msg}`));
       });
 
       if (payloadData) {
