@@ -25,7 +25,8 @@ export async function ensureDatabaseSchema() {
   if (process.env.DATABASE_URL?.startsWith("file:") || process.env.DATABASE_URL?.includes(".db")) {
     return;
   }
-    // 1. Colunas da Empresa
+
+  try {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "statusAssinatura" TEXT DEFAULT 'TRIAL';`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "dataInicioTrial" TIMESTAMP(3);`).catch(() => {});
     await prisma.$executeRawUnsafe(`ALTER TABLE "Empresa" ADD COLUMN IF NOT EXISTS "dataFimTrial" TIMESTAMP(3);`).catch(() => {});

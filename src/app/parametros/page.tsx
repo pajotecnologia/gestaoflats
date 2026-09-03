@@ -906,32 +906,6 @@ function ParametrosContent() {
     }
   };
 
-  const handleFileUploadCrt = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setBancoInterCertCrt(content);
-      setBancoInterHasCertCrt(true);
-      setFeedback({ type: "success", message: `📄 Certificado (${file.name}) carregado na memória. Clique em Salvar para persistir.` });
-    };
-    reader.readAsText(file);
-  };
-
-  const handleFileUploadKey = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setBancoInterCertKey(content);
-      setBancoInterHasCertKey(true);
-      setFeedback({ type: "success", message: `🔑 Chave Privada (${file.name}) carregada na memória. Clique em Salvar para persistir.` });
-    };
-    reader.readAsText(file);
-  };
-
   const handleSaveAll = async () => {
     setSavingAll(true);
     setFeedback({ type: "", message: "" });
