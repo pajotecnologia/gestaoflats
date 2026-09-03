@@ -233,13 +233,13 @@ src/
   - A função `normalizarCertificadoPEM` no `src/lib/bancoInter.ts` normaliza quebras de linha (`\r\n` -> `\n`) e detecta se o usuário acidentalmente inverteu os arquivos `.crt` e `.key` nos campos do formulário, auto-corrigindo os headers `-----BEGIN CERTIFICATE-----` e `-----BEGIN RSA PRIVATE KEY-----`.
   - O agente HTTPS utiliza `minVersion: 'TLSv1.2'`, `maxVersion: 'TLSv1.3'` e ciphers `DEFAULT:@SECLEVEL=1`.
 
-### 2. Erro OAuth 2.0 `401: The given client credentials were not valid`
-- **Causa**: O `Client ID` ou `Client Secret` inserido no formulário não corresponde à aplicação ativa para o certificado no Portal PJ do Banco Inter.
+### 2. Erro OAuth 2.0 / API `requested scope is not registered for this client`
+- **Causa**: A aplicação foi criada no Internet Banking PJ, mas a permissão/escopo **API Cobrança (Boleto com Pix)** não foi marcada durante a criação ou edição da aplicação.
 - **Solução**:
-  - Acesse o Internet Banking PJ do Banco Inter (`https://cdpj.bancointer.com.br`) -> **Conta Digital &gt; Integrações &gt; Minhas Aplicações**.
-  - Localize a aplicação correspondente ao certificado ativo.
-  - Copie exatamente o **Client ID** (formato UUID de 36 caracteres: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) e o **Client Secret**.
-  - Cole no formulário em **Configurações &gt; Banco Inter (Bolepix)** e clique em **Salvar Configurações**, depois em **Testar Conexão**.
+  - No Internet Banking PJ (`https://cdpj.bancointer.com.br`) > **Conta Digital > Integrações > Minhas Aplicações**.
+  - Clique na aplicação e verifique se o módulo **Cobrança / Boleto com Pix** (Leitura e Escrita/Emissão) está marcado com permissão concedida.
+  - Caso edite as permissões, salve e aguarde de 1 a 2 minutos para a replicação no servidor de autorização do Banco Inter.
+
 
 ### 3. Erro `429: Too Many Requests / Rate Limit`
 - **Causa**: Disparos sucessivos em rajada ao endpoint `/oauth/v2/token` do Banco Inter.
