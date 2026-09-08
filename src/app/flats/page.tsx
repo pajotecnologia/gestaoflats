@@ -76,9 +76,12 @@ export default function FlatsPage() {
   // Form Flat State
   const [localIdSelected, setLocalIdSelected] = useState("");
   const [numeroFlat, setNumeroFlat] = useState("");
+  const [tipoImovelFlat, setTipoImovelFlat] = useState<string>("FLAT");
+  const [modalidadeLocacaoFlat, setModalidadeLocacaoFlat] = useState<string>("MENSAL");
   const [statusFlat, setStatusFlat] = useState("DISPONIVEL");
   const [descricaoFlat, setDescricaoFlat] = useState("");
   const [valorPadraoFlat, setValorPadraoFlat] = useState("2500");
+  const [valorDiariaFlat, setValorDiariaFlat] = useState("150");
 
   // Multi-photo State no Modal
   const [uploadingFotos, setUploadingFotos] = useState(false);
@@ -124,9 +127,12 @@ export default function FlatsPage() {
     setEditingFlat(null);
     setLocalIdSelected(localIdDefault || (locais[0]?.id || ""));
     setNumeroFlat("");
+    setTipoImovelFlat("FLAT");
+    setModalidadeLocacaoFlat("MENSAL");
     setStatusFlat("DISPONIVEL");
     setDescricaoFlat("");
     setValorPadraoFlat("2500");
+    setValorDiariaFlat("150");
     setFotosPreview([]);
     setShowFlatModal(true);
   };
@@ -135,9 +141,12 @@ export default function FlatsPage() {
     setEditingFlat(flat);
     setLocalIdSelected(flat.localId);
     setNumeroFlat(flat.numero);
+    setTipoImovelFlat(flat.tipoImovel || "FLAT");
+    setModalidadeLocacaoFlat(flat.modalidadeLocacao || "MENSAL");
     setStatusFlat(flat.status);
     setDescricaoFlat(flat.descricao || "");
     setValorPadraoFlat(flat.valorPadrao ? flat.valorPadrao.toString() : "2500");
+    setValorDiariaFlat(flat.valorDiaria ? flat.valorDiaria.toString() : "150");
     setFotosPreview(flat.fotosUrl ? JSON.parse(flat.fotosUrl) : []);
     setShowFlatModal(true);
   };
@@ -238,9 +247,12 @@ export default function FlatsPage() {
           id: editingFlat?.id,
           localId: localIdSelected,
           numero: numeroFlat,
+          tipoImovel: tipoImovelFlat,
+          modalidadeLocacao: modalidadeLocacaoFlat,
           status: statusFlat,
           descricao: descricaoFlat,
           valorPadrao: valorPadraoFlat,
+          valorDiaria: valorDiariaFlat,
           fotosUrl: fotosPreview,
         }),
       });
@@ -405,18 +417,67 @@ export default function FlatsPage() {
 
                           {/* Corpo do Card */}
                           <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <h4
-                                  onClick={() => handleOpenDetailModal(flat)}
-                                  className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100 hover:text-blue-600 cursor-pointer"
-                                >
-                                  {flat.numero}
-                                </h4>
-                                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
-                                  {formatCurrency(flat.valorPadrao)}
-                                  <span className="text-[10px] text-slate-400 font-normal">/mês</span>
-                                </span>
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <h4
+                                    onClick={() => handleOpenDetailModal(flat)}
+                                    className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100 hover:text-blue-600 cursor-pointer"
+                                  >
+                                    {flat.numero}
+                                  </h4>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                      {flat.tipoImovel === "SALAO"
+                                        ? "🎉 Salão"
+                                        : flat.tipoImovel === "CHACARA"
+                                        ? "🌳 Chácara"
+                                        : flat.tipoImovel === "CASA"
+                                        ? "🏡 Casa"
+                                        : "🏢 Flat/Apto"}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                        flat.modalidadeLocacao === "DIARIA"
+                                          ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                                          : flat.modalidadeLocacao === "AMBOS"
+                                          ? "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                                          : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
+                                      }`}
+                                    >
+                                      {flat.modalidadeLocacao === "DIARIA"
+                                        ? "Diária"
+                                        : flat.modalidadeLocacao === "AMBOS"
+                                        ? "Diária & Mensal"
+                                        : "Mensal"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  {flat.modalidadeLocacao === "DIARIA" ? (
+                                    <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                                      {formatCurrency(flat.valorDiaria || 0)}
+                                      <span className="text-[10px] text-slate-400 font-normal">/dia</span>
+                                    </div>
+                                  ) : flat.modalidadeLocacao === "AMBOS" ? (
+                                    <div className="space-y-0.5">
+                                      <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                                        {formatCurrency(flat.valorDiaria || 0)}
+                                        <span className="text-[10px] text-slate-400 font-normal">/dia</span>
+                                      </div>
+                                      <div className="text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                                        {formatCurrency(flat.valorPadrao || 0)}
+                                        <span className="text-[9px] text-slate-400 font-normal">/mês</span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
+                                      {formatCurrency(flat.valorPadrao || 0)}
+                                      <span className="text-[10px] text-slate-400 font-normal">/mês</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
 
                               <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
@@ -587,20 +648,47 @@ export default function FlatsPage() {
               })()}
 
               {/* Informações Estruturadas do Flat */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Valor do Aluguel</span>
-                  <strong className="text-base text-blue-600 dark:text-blue-400 font-extrabold">
-                    {formatCurrency(selectedDetailFlat.valorPadrao)}
-                  </strong>
-                  <span className="text-slate-400 text-[10px]"> / mês</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Valores de Locação</span>
+                  <div className="space-y-0.5 mt-0.5">
+                    {(selectedDetailFlat.modalidadeLocacao === "DIARIA" || selectedDetailFlat.modalidadeLocacao === "AMBOS") && (
+                      <p className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        {formatCurrency(selectedDetailFlat.valorDiaria || 0)} <span className="text-[10px] text-slate-400 font-normal">/ diária</span>
+                      </p>
+                    )}
+                    {(selectedDetailFlat.modalidadeLocacao === "MENSAL" || selectedDetailFlat.modalidadeLocacao === "AMBOS" || !selectedDetailFlat.modalidadeLocacao) && (
+                      <p className="text-blue-600 dark:text-blue-400 font-bold">
+                        {formatCurrency(selectedDetailFlat.valorPadrao || 0)} <span className="text-[10px] text-slate-400 font-normal">/ mês</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Condomínio</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Modalidade / Tipo</span>
+                  <strong className="text-slate-800 dark:text-slate-200 block">
+                    {selectedDetailFlat.modalidadeLocacao === "DIARIA"
+                      ? "Por Diária / Temporada"
+                      : selectedDetailFlat.modalidadeLocacao === "AMBOS"
+                      ? "Diária & Mensal"
+                      : "Mensal / Tradicional"}
+                  </strong>
+                  <span className="text-[10px] text-slate-500">
+                    {selectedDetailFlat.tipoImovel === "SALAO"
+                      ? "Salão de Festas"
+                      : selectedDetailFlat.tipoImovel === "CHACARA"
+                      ? "Chácara / Sítio"
+                      : selectedDetailFlat.tipoImovel === "CASA"
+                      ? "Casa"
+                      : "Flat / Apartamento"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Condomínio / Local</span>
                   <strong className="text-slate-800 dark:text-slate-200">
                     {locais.find((l) => l.id === selectedDetailFlat.localId)?.nome || "Não informado"}
                   </strong>
-                  <span className="block text-[10px] text-slate-500">
+                  <span className="block text-[10px] text-slate-500 truncate">
                     {locais.find((l) => l.id === selectedDetailFlat.localId)?.endereco || ""}
                   </span>
                 </div>
@@ -759,32 +847,64 @@ export default function FlatsPage() {
               </div>
 
               <form onSubmit={handleSaveFlat} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Condomínio Vinculado</label>
-                  <select
-                    required
-                    value={localIdSelected}
-                    onChange={(e) => setLocalIdSelected(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">-- Selecione o Condomínio --</option>
-                    {locais.map((l) => (
-                      <option key={l.id} value={l.id}>{l.nome}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Condomínio Vinculado *</label>
+                    <select
+                      required
+                      value={localIdSelected}
+                      onChange={(e) => setLocalIdSelected(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="">-- Selecione o Condomínio --</option>
+                      {locais.map((l) => (
+                        <option key={l.id} value={l.id}>{l.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Número / Nome do Imóvel *</label>
+                    <input
+                      type="text"
+                      required
+                      value={numeroFlat}
+                      onChange={(e) => setNumeroFlat(e.target.value)}
+                      placeholder="ex: Flat 101, Chácara Sol, Salão A"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    >
+                    </input>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Número / Nome do Flat</label>
-                  <input
-                    type="text"
-                    required
-                    value={numeroFlat}
-                    onChange={(e) => setNumeroFlat(e.target.value)}
-                    placeholder="ex: Flat 101 - Beira Mar"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo de Imóvel</label>
+                    <select
+                      value={tipoImovelFlat}
+                      onChange={(e) => setTipoImovelFlat(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="FLAT">🏢 Flat / Apartamento</option>
+                      <option value="SALAO">🎉 Salão de Festas</option>
+                      <option value="CHACARA">🌳 Chácara / Sítio</option>
+                      <option value="CASA">🏡 Casa</option>
+                      <option value="OUTRO">🏷️ Outro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Modalidade de Locação</label>
+                    <select
+                      value={modalidadeLocacaoFlat}
+                      onChange={(e) => setModalidadeLocacaoFlat(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-semibold text-blue-600 dark:text-blue-400"
+                    >
+                      <option value="MENSAL">📅 Mensal / Tradicional</option>
+                      <option value="DIARIA">☀️ Por Diária / Temporada</option>
+                      <option value="AMBOS">🔄 Diária e Mensal (Ambos)</option>
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
                     <select
@@ -797,33 +917,61 @@ export default function FlatsPage() {
                       <option value="MANUTENCAO">Manutenção</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Valor Padrão (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={valorPadraoFlat}
-                      onChange={(e) => setValorPadraoFlat(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-bold"
-                    />
-                  </div>
                 </div>
+
+                {/* Campos de Valores Baseados na Modalidade */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-100/70 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
+                  {(modalidadeLocacaoFlat === "DIARIA" || modalidadeLocacaoFlat === "AMBOS") && (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Valor da Diária (R$) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={valorDiariaFlat}
+                        onChange={(e) => setValorDiariaFlat(e.target.value)}
+                        placeholder="150.00"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-bold text-emerald-600 dark:text-emerald-400"
+                      />
+                    </div>
+                  )}
+
+                  {(modalidadeLocacaoFlat === "MENSAL" || modalidadeLocacaoFlat === "AMBOS") && (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Valor Mensal Padrão (R$) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={valorPadraoFlat}
+                        onChange={(e) => setValorPadraoFlat(e.target.value)}
+                        placeholder="2500.00"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-bold text-blue-600 dark:text-blue-400"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição</label>
                   <textarea
                     rows={3}
                     value={descricaoFlat}
                     onChange={(e) => setDescricaoFlat(e.target.value)}
-                    placeholder="Características do imóvel, mobília, comodidades..."
+                    placeholder="Características do imóvel, mobília, comodidades, regras de check-in..."
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md transition"
+                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md transition cursor-pointer"
                 >
-                  {editingFlat ? "Atualizar Flat" : "Salvar Flat"}
+                  {editingFlat ? "Atualizar Imóvel" : "Salvar Imóvel"}
                 </button>
               </form>
             </div>

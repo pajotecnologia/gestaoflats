@@ -107,10 +107,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (flatObj.status !== "DISPONIVEL") {
-      const statusText = flatObj.status === "OCUPADO" ? "OCUPADO" : "EM MANUTENÇÃO";
+    if (flatObj.status === "MANUTENCAO") {
       return NextResponse.json(
-        { error: `O flat selecionado (${flatObj.numero}) está atualmente como ${statusText} e não pode receber novos contratos.` },
+        { error: `O imóvel selecionado (${flatObj.numero}) está atualmente em MANUTENÇÃO e não pode receber contratos/reservas.` },
+        { status: 400 }
+      );
+    }
+
+    // Validação de Conflito de Datas (Anti-Overbooking)
+    const conflitoData = await prisma.contrato.findFirst({
+      where: {
+        empresaId: session.empresaId,
+        flatId: flatId,
+        status: { not: "CANCELADO" },
+        AND: [
+          { dataEmissao: { lt: dtFinal } },
+          { dataFinal: { gt: dtEmissao } },
+        ],
+      },
+      include: { locatario: true },
+    });
+
+    if (conflitoData) {
+      const dIni = conflitoData.dataEmissao.toLocaleDateString("pt-BR");
+      const dFim = conflitoData.dataFinal.toLocaleDateString("pt-BR");
+      return NextResponse.json(
+        {
+          error: `Conflito de Disponibilidade: O imóvel "${flatObj.numero}" já está reservado para o locatário ${conflitoData.locatario.nome} no período de ${dIni} até ${dFim}. Selecione outro imóvel ou altere as datas.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isDias && flatObj.status === "OCUPADO") {
+      return NextResponse.json(
+        { error: `O flat selecionado (${flatObj.numero}) encontra-se atualmente OCUPADO com contrato mensal ativo.` },
         { status: 400 }
       );
     }

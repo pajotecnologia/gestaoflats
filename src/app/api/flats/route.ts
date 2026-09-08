@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ local: newLocal });
     } else if (type === "flat") {
-      const { localId, numero, status, descricao, valorPadrao, fotosUrl } = body;
+      const { localId, numero, status, descricao, valorPadrao, valorDiaria, modalidadeLocacao, tipoImovel, fotosUrl } = body;
       
       const localValido = await prisma.local.findFirst({
         where: { id: localId, empresaId: session.empresaId },
@@ -69,9 +69,12 @@ export async function POST(request: NextRequest) {
           empresaId: session.empresaId,
           localId,
           numero,
+          tipoImovel: tipoImovel || "FLAT",
+          modalidadeLocacao: modalidadeLocacao || "MENSAL",
           status: status || "DISPONIVEL",
           descricao,
-          valorPadrao: valorPadrao ? parseFloat(valorPadrao) : 2500,
+          valorPadrao: valorPadrao !== undefined && valorPadrao !== null ? parseFloat(String(valorPadrao)) : 2500,
+          valorDiaria: valorDiaria !== undefined && valorDiaria !== null ? parseFloat(String(valorDiaria)) : 0,
           fotosUrl: fotosUrl ? (typeof fotosUrl === "string" ? fotosUrl : JSON.stringify(fotosUrl)) : null,
         },
       });
@@ -109,15 +112,18 @@ export async function PUT(request: NextRequest) {
       });
       return NextResponse.json({ local: updatedLocal });
     } else if (type === "flat") {
-      const { localId, numero, status, descricao, valorPadrao, fotosUrl } = body;
+      const { localId, numero, status, descricao, valorPadrao, valorDiaria, modalidadeLocacao, tipoImovel, fotosUrl } = body;
       const updatedFlat = await prisma.flat.update({
         where: { id, empresaId: session.empresaId },
         data: {
           localId,
           numero,
+          tipoImovel: tipoImovel !== undefined ? tipoImovel : undefined,
+          modalidadeLocacao: modalidadeLocacao !== undefined ? modalidadeLocacao : undefined,
           status,
           descricao,
-          valorPadrao: valorPadrao ? parseFloat(valorPadrao) : undefined,
+          valorPadrao: valorPadrao !== undefined && valorPadrao !== null ? parseFloat(String(valorPadrao)) : undefined,
+          valorDiaria: valorDiaria !== undefined && valorDiaria !== null ? parseFloat(String(valorDiaria)) : undefined,
           fotosUrl: fotosUrl !== undefined ? (typeof fotosUrl === "string" ? fotosUrl : JSON.stringify(fotosUrl)) : undefined,
         },
       });

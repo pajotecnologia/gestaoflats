@@ -12,7 +12,9 @@ export async function middleware(request: NextRequest) {
   // Rotas protegidas
   const protectedPrefixes = [
     "/dashboard",
+    "/agenda",
     "/flats",
+    "/checklists",
     "/locatarios",
     "/fornecedores",
     "/contratos",
@@ -57,7 +59,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/agenda/:path*",
     "/flats/:path*",
+    "/checklists/:path*",
     "/locatarios/:path*",
     "/fornecedores/:path*",
     "/contratos/:path*",

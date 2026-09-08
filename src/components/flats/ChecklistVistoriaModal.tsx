@@ -81,6 +81,9 @@ export default function ChecklistVistoriaModal({
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [whatsAppFeedback, setWhatsAppFeedback] = useState<string | null>(null);
 
+  const [modelosChecklist, setModelosChecklist] = useState<any[]>([]);
+  const [selectedModeloId, setSelectedModeloId] = useState<string>("");
+
   const [items, setItems] = useState<ChecklistItem[]>(
     defaultChecklistCategories.map((c) => ({
       categoria: c.categoria,
@@ -106,7 +109,7 @@ export default function ChecklistVistoriaModal({
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Carregar nome do usuário logado para sugerir como vistoriador
+  // Carregar nome do usuário logado para sugerir como vistoriador e carregar modelos de checklist
   useEffect(() => {
     if (!responsavelDefault || responsavelDefault === "Vistoriador Responsável") {
       fetch("/api/auth/me")
@@ -118,6 +121,15 @@ export default function ChecklistVistoriaModal({
         })
         .catch(() => {});
     }
+
+    fetch("/api/modelos-checklist")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.modelos && data.modelos.length > 0) {
+          setModelosChecklist(data.modelos);
+        }
+      })
+      .catch(() => {});
   }, [responsavelDefault]);
 
   // Carregar dados de vistoria existente no banco de dados
@@ -667,11 +679,54 @@ export default function ChecklistVistoriaModal({
           </div>
         </div>
 
-        {/* Tabela do Checklist */}
+        {/* Tabela do Checklist com Seletor de Modelo */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            Checklist de Itens ({tipoVistoria === "ENTRADA" ? "ENTRADA" : "SAÍDA"}):
-          </h4>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Checklist de Itens ({tipoVistoria === "ENTRADA" ? "ENTRADA" : "SAÍDA"}):
+            </h4>
+
+            {modelosChecklist.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-semibold text-slate-500">Trocar Modelo:</span>
+                <select
+                  value={selectedModeloId}
+                  onChange={(e) => {
+                    const modId = e.target.value;
+                    setSelectedModeloId(modId);
+                    const mod = modelosChecklist.find((m) => m.id === modId);
+                    if (mod) {
+                      try {
+                        const parsedTopicos = JSON.parse(mod.topicosJson);
+                        const newItemsList: ChecklistItem[] = [];
+                        (parsedTopicos || []).forEach((t: any) => {
+                          (t.itens || []).forEach((it: string) => {
+                            newItemsList.push({
+                              categoria: t.topico,
+                              item: it,
+                              status: "OK",
+                              observacao: "",
+                            });
+                          });
+                        });
+                        if (newItemsList.length > 0) {
+                          setItems(newItemsList);
+                        }
+                      } catch (err) {}
+                    }
+                  }}
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100 font-medium"
+                >
+                  <option value="">-- Selecione o Modelo Base --</option>
+                  {modelosChecklist.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.titulo} ({m.tipoImovel === "SALAO" ? "Salão" : m.tipoImovel === "CHACARA" ? "Chácara" : "Imóvel"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
             {items.map((item, idx) => (

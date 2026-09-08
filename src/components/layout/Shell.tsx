@@ -34,6 +34,7 @@ import {
   Sparkles,
   Clock,
   ShieldCheck,
+  Calendar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -141,7 +142,9 @@ function ShellContent({ children }: ShellProps) {
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Agenda de Reservas", href: "/agenda", icon: Calendar },
     { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
+    { label: "Modelos de Checklist", href: "/checklists", icon: ClipboardCheck },
     { label: "Locatários", href: "/locatarios", icon: Users },
     { label: "Fornecedores", href: "/fornecedores", icon: Truck },
     { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
