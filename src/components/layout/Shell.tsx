@@ -145,21 +145,37 @@ function ShellContent({ children }: ShellProps) {
     window.location.href = "/login";
   };
 
-  const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Agenda de Reservas", href: "/agenda", icon: Calendar },
-    { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
-    { label: "Modelos de Checklist", href: "/checklists", icon: ClipboardCheck },
-    { label: "Locatários", href: "/locatarios", icon: Users },
-    { label: "Fornecedores", href: "/fornecedores", icon: Truck },
-    { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
-    { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
-    { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
-    { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
-    { label: "Manual do Sistema", href: "/ajuda", icon: BookOpen },
-    ...(user?.isSuperAdmin
-      ? [{ label: "⚡ Gestão SaaS (Super Admin)", href: "/parametros?aba=saas", icon: Zap }]
-      : []),
+  const navSections = [
+    {
+      title: "PRINCIPAL",
+      items: [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Agenda de Reservas", href: "/agenda", icon: Calendar, badge: "Diárias" },
+      ],
+    },
+    {
+      title: "IMÓVEIS & CADASTROS",
+      items: [
+        { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
+        { label: "Modelos de Checklist", href: "/checklists", icon: ClipboardCheck },
+        { label: "Locatários", href: "/locatarios", icon: Users },
+        { label: "Fornecedores", href: "/fornecedores", icon: Truck },
+      ],
+    },
+    {
+      title: "CONTRATOS",
+      items: [
+        { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
+        { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
+      ],
+    },
+    {
+      title: "FINANCEIRO",
+      items: [
+        { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
+        { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
+      ],
+    },
   ];
 
   const relatoriosSubItems = [
@@ -184,158 +200,224 @@ function ShellContent({ children }: ShellProps) {
   const isRelatoriosActive = pathname.startsWith("/relatorios");
   const isParametrosActive = pathname.startsWith("/parametros");
 
+  // Rótulo da Página Atual para o Breadcrumb Topbar
+  const getPageTitle = () => {
+    if (pathname === "/dashboard") return { section: "Visão Geral", page: "Dashboard de Indicadores" };
+    if (pathname === "/agenda") return { section: "Locações", page: "Agenda de Reservas por Diária" };
+    if (pathname === "/flats") return { section: "Imóveis", page: "Flats & Condomínios" };
+    if (pathname === "/checklists") return { section: "Vistorias", page: "Modelos de Checklist" };
+    if (pathname === "/locatarios") return { section: "Cadastros", page: "Gestão de Locatários" };
+    if (pathname === "/fornecedores") return { section: "Cadastros", page: "Gestão de Fornecedores" };
+    if (pathname === "/contratos/modelos") return { section: "Contratos", page: "Modelos de Contrato" };
+    if (pathname === "/contratos") return { section: "Contratos", page: "Gestão de Contratos e Aluguéis" };
+    if (pathname === "/financeiro/receber") return { section: "Financeiro", page: "Contas a Receber" };
+    if (pathname === "/financeiro/pagar") return { section: "Financeiro", page: "Contas a Pagar" };
+    if (pathname.startsWith("/relatorios")) return { section: "Auditoria", page: "Relatórios do Sistema" };
+    if (pathname.startsWith("/parametros")) return { section: "Sistema", page: "Parâmetros e Integrações" };
+    if (pathname === "/ajuda") return { section: "Suporte", page: "Manual do Usuário" };
+    return { section: "Gestão", page: "Painel Principal" };
+  };
+
+  const breadcrumb = getPageTitle();
+
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
-      {/* Sidebar Desktop */}
-      <aside className="hidden md:flex flex-col w-64 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur p-4 space-y-4 flex-shrink-0 select-none">
-        <div className="flex items-center space-x-3 px-2">
+      {/* Sidebar Desktop (Inspirado no estilo Profound / SaaSFrame) */}
+      <aside className="hidden md:flex flex-col w-64 h-full border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/95 backdrop-blur p-3.5 space-y-3 flex-shrink-0 select-none">
+        
+        {/* Workspace Card Header */}
+        <div className="flex items-center space-x-3 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/50 shadow-xs">
           {user?.logomarcaUrl ? (
             <img
               src={getMediaUrl(user.logomarcaUrl)}
               alt="Logo"
-              className="w-9 h-9 rounded-xl object-cover border border-slate-300 dark:border-slate-700 shadow-sm"
+              className="w-9 h-9 rounded-xl object-cover border border-slate-300 dark:border-slate-600 shadow-xs shrink-0"
             />
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-semibold text-white shadow-md shadow-blue-500/20 text-sm">
-              F
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white shadow-md shadow-blue-500/20 text-sm shrink-0">
+              {user?.empresaNome ? user.empresaNome.charAt(0).toUpperCase() : "P"}
             </div>
           )}
-          <div className="overflow-hidden">
-            <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-sm leading-tight truncate">
+          <div className="overflow-hidden min-w-0">
+            <h1 className="font-bold text-slate-900 dark:text-slate-100 text-xs leading-tight truncate">
               {user?.empresaNome || "Prime Flats"}
             </h1>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium tracking-wide uppercase">
-              SaaS Imobiliário
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase block truncate">
+              Locações & Temporadas
             </span>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              item.href === "/contratos"
-                ? pathname === "/contratos"
-                : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+        <nav className="flex-1 space-y-4 overflow-y-auto pr-1 text-xs">
+          {navSections.map((section, idx) => (
+            <div key={idx} className="space-y-1">
+              <span className="text-[9px] font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2.5">
+                {section.title}
+              </span>
+              <div className="space-y-0.5 pt-0.5">
+                {section.items.map((item: any) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    item.href === "/contratos"
+                      ? pathname === "/contratos"
+                      : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-sm font-bold"
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? "bg-blue-600/10 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold border-l-[3px] border-blue-600 shadow-xs"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2.5">
+                        <Icon className={`w-4 h-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-400"}`} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* SEÇÃO CONFIGURAÇÕES & RELATÓRIOS (Colapsáveis por padrão) */}
+          <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+            <span className="text-[9px] font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2.5">
+              RELATÓRIOS & CONFIGURAÇÃO
+            </span>
+
+            {/* RELATÓRIOS */}
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => setRelatoriosExpanded(!relatoriosExpanded)}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                  isRelatoriosActive
+                    ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border-l-[3px] border-blue-600"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400 dark:text-slate-400"}`} />
-                <span>{item.label}</span>
+                <div className="flex items-center space-x-2.5">
+                  <BarChart3 className={`w-4 h-4 ${isRelatoriosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                  <span>Relatórios</span>
+                </div>
+                {relatoriosExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                )}
+              </button>
+
+              {relatoriosExpanded && (
+                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-slate-800 mt-1 space-y-0.5">
+                  {relatoriosSubItems.map((sub) => {
+                    const SubIcon = sub.icon;
+                    const isSubActive = isRelatoriosActive && currentAba === sub.aba;
+                    return (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        onClick={() => setCurrentAba(sub.aba)}
+                        className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                          isSubActive
+                            ? "bg-blue-600 text-white font-bold shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <SubIcon className={`w-3 h-3 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                        <span className="truncate">{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* PARÂMETROS DO SISTEMA */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setParametrosExpanded(!parametrosExpanded)}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                  isParametrosActive
+                    ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border-l-[3px] border-blue-600"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                }`}
+              >
+                <div className="flex items-center space-x-2.5">
+                  <SlidersHorizontal className={`w-4 h-4 ${isParametrosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                  <span>Parâmetros</span>
+                </div>
+                {parametrosExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                )}
+              </button>
+
+              {parametrosExpanded && (
+                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-slate-800 mt-1 space-y-0.5">
+                  {parametrosSubItems.map((sub) => {
+                    const SubIcon = sub.icon;
+                    const isSubActive = isParametrosActive && currentParametrosAba === sub.aba;
+                    return (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        onClick={() => setCurrentParametrosAba(sub.aba)}
+                        className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                          isSubActive
+                            ? "bg-blue-600 text-white font-bold shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <SubIcon className={`w-3 h-3 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                        <span className="truncate">{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* MANUAL */}
+            <Link
+              href="/ajuda"
+              className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                pathname === "/ajuda"
+                  ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border-l-[3px] border-blue-600"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-slate-400" />
+              <span>Manual do Sistema</span>
+            </Link>
+
+            {user?.isSuperAdmin && (
+              <Link
+                href="/parametros?aba=saas"
+                className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all"
+              >
+                <Zap className="w-4 h-4 text-amber-500" />
+                <span>⚡ Gestão SaaS</span>
               </Link>
-            );
-          })}
-
-          {/* MENU PAI DE RELATÓRIOS COM SUB-MENUS */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setRelatoriosExpanded(!relatoriosExpanded)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                isRelatoriosActive
-                  ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <BarChart3 className={`w-4 h-4 ${isRelatoriosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
-                <span>Relatórios</span>
-              </div>
-              {relatoriosExpanded ? (
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              )}
-            </button>
-
-            {/* SUB-MENUS DE RELATÓRIOS */}
-            {relatoriosExpanded && (
-              <div className="ml-4 pl-3 border-l-2 border-slate-200 dark:border-slate-800 mt-1 space-y-1">
-                {relatoriosSubItems.map((sub) => {
-                  const SubIcon = sub.icon;
-                  const isSubActive = isRelatoriosActive && currentAba === sub.aba;
-                  return (
-                    <Link
-                      key={sub.href}
-                      href={sub.href}
-                      onClick={() => setCurrentAba(sub.aba)}
-                      className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
-                        isSubActive
-                          ? "bg-blue-600 text-white font-bold shadow-sm"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-                      }`}
-                    >
-                      <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
-                      <span>{sub.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* MENU PAI DE PARÂMETROS DO SISTEMA COM SUB-MENUS */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setParametrosExpanded(!parametrosExpanded)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                isParametrosActive
-                  ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <SlidersHorizontal className={`w-4 h-4 ${isParametrosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
-                <span>Parâmetros do Sistema</span>
-              </div>
-              {parametrosExpanded ? (
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              )}
-            </button>
-
-            {/* SUB-MENUS DE PARÂMETROS */}
-            {parametrosExpanded && (
-              <div className="ml-4 pl-3 border-l-2 border-slate-200 dark:border-slate-800 mt-1 space-y-1">
-                {parametrosSubItems.map((sub) => {
-                  const SubIcon = sub.icon;
-                  const isSubActive = isParametrosActive && currentParametrosAba === sub.aba;
-                  return (
-                    <Link
-                      key={sub.href}
-                      href={sub.href}
-                      onClick={() => setCurrentParametrosAba(sub.aba)}
-                      className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all ${
-                        isSubActive
-                          ? "bg-blue-600 text-white font-bold shadow-sm"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-                      }`}
-                    >
-                      <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
-                      <span>{sub.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
             )}
           </div>
         </nav>
       </aside>
 
-      {/* Area Conteúdo Mobile Header + Drawer */}
+      {/* Area Conteúdo Mobile Header + Topbar + Main */}
       <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-hidden">
-        {/* Header Mobile / Topo Desktop */}
-        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        {/* Topbar Estilo Profound (Breadcrumbs + Action Hub) */}
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200/80 dark:border-slate-800/80">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -343,9 +425,11 @@ function ShellContent({ children }: ShellProps) {
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:inline">
-              Painel de Gestão Imobiliária
-            </span>
+            <div className="flex items-center space-x-1.5 text-xs">
+              <span className="text-slate-400 font-medium hidden sm:inline">{breadcrumb.section}</span>
+              <span className="text-slate-400 hidden sm:inline">/</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">{breadcrumb.page}</span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
