@@ -55,6 +55,53 @@ export function formatCNPJ(value: string): string {
 }
 
 /**
+ * Validação Matemática Estrita de CNPJ (Dígitos Verificadores)
+ */
+export function validateCNPJ(cnpjRaw: string): boolean {
+  if (!cnpjRaw) return false;
+  const cnpj = cnpjRaw.replace(/\D/g, "");
+  if (cnpj.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
+  let tamanho = cnpj.length - 2;
+  let numeros = cnpj.substring(0, tamanho);
+  const digitos = cnpj.substring(tamanho);
+  let soma = 0;
+  let pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+  if (resultado !== parseInt(digitos.charAt(0))) return false;
+
+  tamanho = tamanho + 1;
+  numeros = cnpj.substring(0, tamanho);
+  soma = 0;
+  pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+  if (resultado !== parseInt(digitos.charAt(1))) return false;
+
+  return true;
+}
+
+/**
+ * Formata CPF ou CNPJ dinamicamente baseado na quantidade de dígitos
+ */
+export function formatCPFOrCNPJ(value: string): string {
+  if (!value) return "";
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 11) {
+    return formatCPF(digits);
+  }
+  return formatCNPJ(digits);
+}
+
+/**
  * Formata telefone / WhatsApp no padrão (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
  */
 export function formatPhone(value: string): string {
@@ -70,6 +117,15 @@ export function formatPhone(value: string): string {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+}
+
+/**
+ * Formata CEP no padrão 00000-000
+ */
+export function formatCEP(value: string): string {
+  if (!value) return "";
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.replace(/^(\d{5})(\d)/, "$1-$2");
 }
 
 /**
