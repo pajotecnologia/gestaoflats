@@ -157,15 +157,15 @@ function ShellContent({ children }: ShellProps) {
       title: "IMÓVEIS & CADASTROS",
       items: [
         { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
-        { label: "Modelos de Checklist", href: "/checklists", icon: ClipboardCheck },
         { label: "Locatários", href: "/locatarios", icon: Users },
         { label: "Fornecedores", href: "/fornecedores", icon: Truck },
       ],
     },
     {
-      title: "CONTRATOS",
+      title: "CONTRATOS & VISTORIAS",
       items: [
         { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
+        { label: "Modelos de Checklist", href: "/checklists", icon: ClipboardCheck },
         { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
       ],
     },
@@ -205,7 +205,7 @@ function ShellContent({ children }: ShellProps) {
     if (pathname === "/dashboard") return { section: "Visão Geral", page: "Dashboard de Indicadores" };
     if (pathname === "/agenda") return { section: "Locações", page: "Agenda de Reservas por Diária" };
     if (pathname === "/flats") return { section: "Imóveis", page: "Flats & Condomínios" };
-    if (pathname === "/checklists") return { section: "Vistorias", page: "Modelos de Checklist" };
+    if (pathname === "/checklists") return { section: "Contratos & Vistorias", page: "Modelos de Checklist" };
     if (pathname === "/locatarios") return { section: "Cadastros", page: "Gestão de Locatários" };
     if (pathname === "/fornecedores") return { section: "Cadastros", page: "Gestão de Fornecedores" };
     if (pathname === "/contratos/modelos") return { section: "Contratos", page: "Modelos de Contrato" };
@@ -530,30 +530,52 @@ function ShellContent({ children }: ShellProps) {
 
         {/* Drawer Mobile */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 space-y-1.5 z-40">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                item.href === "/contratos"
-                  ? pathname === "/contratos"
-                  : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 space-y-3 z-40 max-h-[80vh] overflow-y-auto">
+            {navSections.map((section, idx) => (
+              <div key={idx} className="space-y-1">
+                <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase px-3">
+                  {section.title}
+                </span>
+                <div className="space-y-1">
+                  {section.items.map((item: any) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      item.href === "/contratos"
+                        ? pathname === "/contratos"
+                        : pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-medium ${
-                    isActive
-                      ? "bg-blue-600 text-white font-bold"
-                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium ${
+                          isActive
+                            ? "bg-blue-600 text-white font-bold"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </div>
+                        {item.badge && (
+                          <span
+                            className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md ${
+                              isActive
+                                ? "bg-blue-700 text-white"
+                                : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase px-3">Relatórios:</span>
