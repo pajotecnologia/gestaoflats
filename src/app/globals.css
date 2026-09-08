@@ -65,34 +65,51 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
-/* Barra de rolagem ultra-fina, fluida e elegante para o sistema (estilo Linear / SaaS 2025) */
+/* Barra de rolagem em espessura normal, confortável e elegante */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
+  background: rgba(100, 116, 139, 0.8);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.4);
+  background: rgba(71, 85, 105, 0.65);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.7);
+  background: rgba(100, 116, 139, 0.9);
 }
 
-/* Ocultar barra de rolagem mantendo a rolagem ativa quando necessário */
+/* Suporte nativo para Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(71, 85, 105, 0.65) transparent;
+}
+
+/* Ocultar barra de rolagem apenas quando estritamente necessário */
 .scrollbar-none, .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none;    /* Firefox */
@@ -100,9 +117,4 @@ h1, h2, h3, h4, h5, h6 {
 
 .scrollbar-none::-webkit-scrollbar, .scrollbar-hide::-webkit-scrollbar {
   display: none;            /* Chrome, Safari, Opera */
-}
-
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 }

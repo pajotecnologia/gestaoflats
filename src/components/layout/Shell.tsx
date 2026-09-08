@@ -210,7 +210,7 @@ function ShellContent({ children }: ShellProps) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto scrollbar-none pr-0.5">
+        <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -526,7 +526,7 @@ function ShellContent({ children }: ShellProps) {
         )}
 
         {/* Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto scrollbar-thin p-3 sm:p-5 lg:p-6 bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
           <div className="max-w-7xl w-full mx-auto">{children}</div>
 
           {/* RODAPÉ DAS TELAS APÓS LOGIN */}

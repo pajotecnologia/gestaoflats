@@ -1,3 +1,3 @@
-export const SYSTEM_VERSION = "v1.43";
+export const SYSTEM_VERSION = "v1.44";
 export const SYSTEM_BUILD_DATE = "2026-09-08";
-export const SYSTEM_CHANGELOG = "Versão 1.43: Layout ultra-fluido e leve (estilo SaaS 2025/Linear) com eliminação de barras duplas de rolagem, barras ultra-finas e inicialização com menus de Relatórios e Parâmetros fechados por padrão.";
+export const SYSTEM_CHANGELOG = "Versão 1.44: Ajuste da barra de rolagem para espessura normal (8px) e confortável, com excelente contraste, usabilidade e navegação suave no menu lateral e telas do sistema.";
