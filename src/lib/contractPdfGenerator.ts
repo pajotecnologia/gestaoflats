@@ -4,6 +4,7 @@ import { formatCurrency } from "./validation";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
 import { convertUrlToBase64, getAppBaseUrl } from "./baseUrl";
 import { calculateSha256 } from "./cryptoUtils";
+import { DEFAULT_CONTRATO_HTML } from "./defaultContractTemplate";
 
 export interface ContratoPDFData {
   empresaNome: string;
@@ -160,10 +161,19 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
   let rawContent = data.conteudoHtml || "";
 
   if (!rawContent.trim()) {
-    rawContent = `<h3>CLÁUSULA PRIMEIRA - DO OBJETO</h3><p>Pelo presente instrumento de locação residencial, a LOCADORA disponibiliza ao LOCATÁRIO a unidade habitacional Flat nº ${data.flatNumero}, totalmente mobiliada e equipada.</p>` +
-      `<h3>CLÁUSULA SEGUNDA - DO VALOR</h3><p>O aluguel mensal é de ${formatCurrency(data.valorMensal)}, com vencimento na data pactuada.</p>` +
-      `<h3>CLÁUSULA TERCEIRA - DA VIGÊNCIA</h3><p>Este contrato vigora por ${data.validadeMeses} meses, iniciando em ${data.dataEmissao} e terminando em ${data.dataFinal}.</p>` +
-      `<h3>CLÁUSULA QUARTA - DA CONSERVAÇÃO</h3><p>O locatário compromete-se a manter o imóvel nas mesmas condições descritas no laudo de vistoria.</p>`;
+    rawContent = DEFAULT_CONTRATO_HTML
+      .replace(/{{\s*empresa\.nomeFantasia\s*}}/gi, data.empresaNome)
+      .replace(/{{\s*empresa_nome\s*}}/gi, data.empresaNome)
+      .replace(/{{\s*empresa\.cnpj\s*}}/gi, data.empresaCnpj)
+      .replace(/{{\s*locatario\.nome\s*}}/gi, data.locatarioNome)
+      .replace(/{{\s*locatario_nome\s*}}/gi, data.locatarioNome)
+      .replace(/{{\s*locatario\.cpf\s*}}/gi, data.locatarioCpf)
+      .replace(/{{\s*flat\.numero\s*}}/gi, data.flatNumero)
+      .replace(/{{\s*contrato\.valorMensal\s*}}/gi, formatCurrency(data.valorMensal))
+      .replace(/{{\s*contrato\.validadeMeses\s*}}/gi, String(data.validadeMeses))
+      .replace(/{{\s*duracao\s*}}/gi, duracaoLabel)
+      .replace(/{{\s*contrato\.dataEmissao\s*}}/gi, data.dataEmissao)
+      .replace(/{{\s*contrato\.dataFinal\s*}}/gi, data.dataFinal);
   }
 
   const blocks = parseContractBlocks(rawContent);

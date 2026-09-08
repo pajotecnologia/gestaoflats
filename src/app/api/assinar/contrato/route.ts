@@ -4,6 +4,8 @@ import { calculateSha256, stampDocumentHash } from "@/lib/opentimestamps";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import { sendWhatsAppDocument, sendWhatsAppMessage } from "@/lib/evolutionApi";
+import { replaceContractVariables } from "@/lib/validation";
+import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
 import QRCode from "qrcode";
 
 export async function GET(request: NextRequest) {
@@ -201,7 +203,7 @@ export async function POST(request: NextRequest) {
           validadeDias: contrato.validadeDias || undefined,
           dataEmissao: contrato.dataEmissao.toLocaleDateString("pt-BR"),
           dataFinal: contrato.dataFinal.toLocaleDateString("pt-BR"),
-          conteudoHtml: contrato.modeloContrato?.conteudoHtml || undefined,
+          conteudoHtml: replaceContractVariables(contrato.modeloContrato?.conteudoHtml || DEFAULT_CONTRATO_HTML, contrato),
           statusAssinatura: "ASSINADO",
           locatarioAssinaturaUrl: assinaturaBase64,
           dataAssinaturaLocatario: dataAssinatura.toLocaleDateString("pt-BR"),

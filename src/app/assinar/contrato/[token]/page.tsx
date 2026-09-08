@@ -5,6 +5,7 @@ import SignaturePad from "@/components/common/SignaturePad";
 import { generateReciboPDF } from "@/lib/pdfGenerator";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
 import { replaceContractVariables } from "@/lib/validation";
+import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import {
   FileCheck,
@@ -86,7 +87,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
       validadeDias: contrato.validadeDias,
       dataEmissao: dtEmissao,
       dataFinal: dtFinal,
-      conteudoHtml: replaceContractVariables(contrato.modeloContrato?.conteudoHtml || "", contrato),
+      conteudoHtml: replaceContractVariables(contrato.modeloContrato?.conteudoHtml || DEFAULT_CONTRATO_HTML, contrato),
       statusAssinatura: contrato.statusAssinatura,
       locatarioAssinaturaUrl: contrato.assinaturaLocatarioUrl || assinaturaBase64,
       dataAssinaturaLocatario: contrato.dataAssinaturaLocatario
@@ -177,15 +178,18 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
       localNome: contrato.flat?.local?.nome,
       valorMensal: Number(contrato.valorMensal || 0),
       validadeMeses: contrato.validadeMeses || 12,
+      validadeDias: contrato.validadeDias,
+      tipoValidade: contrato.tipoValidade,
       dataEmissao: dtEmissao,
       dataFinal: dtFinal,
-      conteudoHtml: replaceContractVariables(contrato.modeloContrato?.conteudoHtml || "", contrato),
+      conteudoHtml: replaceContractVariables(contrato.modeloContrato?.conteudoHtml || DEFAULT_CONTRATO_HTML, contrato),
       statusAssinatura: contrato.statusAssinatura,
       locatarioAssinaturaUrl: contrato.assinaturaLocatarioUrl,
       dataAssinaturaLocatario: contrato.dataAssinaturaLocatario
         ? new Date(contrato.dataAssinaturaLocatario).toLocaleDateString("pt-BR")
         : undefined,
       ipAssinaturaLocatario: contrato.ipAssinaturaLocatario,
+      vistoriaEntrada: vistoriaEntrada || undefined,
     });
 
     const publicUrl = `${getAppBaseUrl()}/assinar/contrato/${params.token}`;
@@ -357,10 +361,10 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
 
             <div className="text-right sm:text-right w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
               <span className="inline-block px-3 py-1 bg-slate-100 print:bg-gray-100 rounded-lg text-xs font-bold text-slate-800 print:text-black uppercase">
-                Contrato de Locação
+                {contrato.modeloContrato?.titulo || "Contrato de Locação"}
               </span>
               <p className="text-[11px] text-slate-500 print:text-gray-600 mt-1 font-semibold">
-                Vigência: {contrato.validadeMeses} meses
+                Vigência: {contrato.tipoValidade === "DIAS" ? `${contrato.validadeDias || contrato.validadeMeses} dias (Temporada)` : `${contrato.validadeMeses || 12} meses`}
               </p>
             </div>
           </div>
@@ -368,7 +372,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
           {/* TÍTULO DO DOCUMENTO */}
           <div className="text-center py-2">
             <h1 className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 print:text-black underline underline-offset-4">
-              CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL
+              {contrato.modeloContrato?.titulo ? contrato.modeloContrato.titulo.toUpperCase() : "CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL"}
             </h1>
           </div>
 
@@ -393,7 +397,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
                 {contrato.flat?.local?.nome} - Flat {contrato.flat?.numero}
               </strong>
               <span className="block text-[10px] text-slate-500 print:text-gray-600">
-                Valor: R$ {Number(contrato.valorMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
+                Valor: R$ {Number(contrato.valorMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} {contrato.tipoValidade === "DIAS" ? "(Total Período)" : "/mês"}
               </span>
             </div>
           </div>
@@ -403,8 +407,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
             className="prose dark:prose-invert print:prose-neutral max-w-none text-xs sm:text-sm leading-relaxed space-y-4 font-serif p-6 bg-slate-50/50 dark:bg-slate-950/40 print:bg-transparent rounded-xl border border-slate-200 dark:border-slate-800 print:border-none min-h-[280px] text-justify text-slate-800 print:text-black"
             dangerouslySetInnerHTML={{
               __html: replaceContractVariables(
-                contrato.modeloContrato?.conteudoHtml ||
-                `<p>Pelo presente instrumento particular de locação residencial, de um lado <strong>{{empresa_nome}}</strong> e de outro lado <strong>{{locatario_nome}}</strong>, portador do CPF nº <strong>{{cpf}}</strong>, têm entre si justo e acordado o aluguel do imóvel <strong>{{flat}}</strong>, pelo prazo de <strong>{{validade_meses}}</strong> e pelo valor mensal de <strong>{{valor_mensal}}</strong>.</p>`,
+                contrato.modeloContrato?.conteudoHtml || DEFAULT_CONTRATO_HTML,
                 contrato
               ),
             }}

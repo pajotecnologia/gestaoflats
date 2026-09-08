@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { formatCurrency, formatMesReferencia } from "@/lib/validation";
+import { formatCurrency, formatMesReferencia, replaceContractVariables } from "@/lib/validation";
 import { generateReciboPDF, getReciboPDFBase64 } from "@/lib/pdfGenerator";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
+import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import {
@@ -61,6 +62,8 @@ export interface GridMesesProps {
     logomarcaUrl?: string | null;
     assinaturaUrl?: string | null;
   };
+  modeloContratoHtml?: string | null;
+  contratoCompleto?: any;
   onBaixaSucesso?: () => void;
 }
 
@@ -81,6 +84,8 @@ export default function GridMeses({
   parcelas,
   vistoriasChecklist = [],
   empresaData,
+  modeloContratoHtml,
+  contratoCompleto,
   onBaixaSucesso,
 }: GridMesesProps) {
   const [selectedParcela, setSelectedParcela] = useState<ParcelaItem | null>(null);
@@ -178,15 +183,32 @@ export default function GridMeses({
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
       locatarioNome,
       locatarioCpf,
       locatarioTelefone,
       flatNumero,
       valorMensal,
-      validadeMeses: parcelas.length || 12,
+      tipoValidade: tipoValidade || "MESES",
+      validadeMeses: validadeMeses || parcelas.length || 12,
+      validadeDias: validadeDias || undefined,
       dataEmissao: firstVenc.toLocaleDateString("pt-BR"),
       dataFinal: lastVenc.toLocaleDateString("pt-BR"),
+      conteudoHtml: replaceContractVariables(
+        modeloContratoHtml || DEFAULT_CONTRATO_HTML,
+        contratoCompleto || {
+          id: contratoId,
+          locatario: { nome: locatarioNome, cpf: locatarioCpf, telefone: locatarioTelefone },
+          flat: { numero: flatNumero },
+          valorMensal,
+          tipoValidade,
+          validadeMeses,
+          validadeDias,
+          empresa: empresaData,
+        }
+      ),
       statusAssinatura: statusAssinatura || "PENDENTE",
+      vistoriaEntrada: vistoriaEntrada || undefined,
     });
 
     const text = isAssinado

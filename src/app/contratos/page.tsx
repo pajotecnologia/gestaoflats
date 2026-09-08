@@ -274,6 +274,8 @@ export default function ContratosPage() {
                 parcelas={contrato.contasReceber || []}
                 vistoriasChecklist={contrato.vistoriasChecklist || []}
                 empresaData={empresaData}
+                modeloContratoHtml={contrato.modeloContrato?.conteudoHtml}
+                contratoCompleto={contrato}
                 onBaixaSucesso={loadData}
               />
             ))}
