@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
     const inicioMes = new Date(ano, mes - 1, 1, 0, 0, 0, 0);
     const fimMes = new Date(ano, mes, 0, 23, 59, 59, 999);
 
-    // Buscar flats da empresa (filtrado por localId / flatId se informado)
-    const flatsWhere: any = { empresaId: session.empresaId };
+    // Buscar apenas flats configurados para locação por diária (DIARIA ou AMBOS)
+    const flatsWhere: any = {
+      empresaId: session.empresaId,
+      modalidadeLocacao: { in: ["DIARIA", "AMBOS"] },
+    };
     if (flatId) flatsWhere.id = flatId;
     if (localId) flatsWhere.localId = localId;
 
@@ -38,6 +41,10 @@ export async function GET(request: NextRequest) {
         where: {
           empresaId: session.empresaId,
           status: { not: "CANCELADO" },
+          tipoValidade: "DIAS", // Apenas reservas e contratos por diárias/temporada
+          flat: {
+            modalidadeLocacao: { in: ["DIARIA", "AMBOS"] },
+          },
           ...(flatId ? { flatId } : {}),
           ...(localId ? { flat: { localId } } : {}),
           // Contrato ativo que intersecta o mês visualizado

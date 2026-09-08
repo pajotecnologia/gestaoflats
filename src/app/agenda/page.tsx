@@ -10,25 +10,19 @@ import {
   ChevronRight,
   Plus,
   X,
-  Search,
   Building2,
   User,
-  Phone,
   DollarSign,
   CheckCircle2,
   AlertCircle,
-  Clock,
   FileText,
-  MessageSquare,
-  Sparkles,
-  ExternalLink,
-  Layers,
-  ArrowRight,
   Sun,
-  ShieldCheck,
   CalendarCheck,
-  CreditCard,
   UserPlus,
+  ArrowRight,
+  Info,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -64,7 +58,6 @@ export default function AgendaPage() {
   // Filtros
   const [filtroLocalId, setFiltroLocalId] = useState("");
   const [filtroFlatId, setFiltroFlatId] = useState("");
-  const [filtroModalidade, setFiltroModalidade] = useState("TODOS");
   const [viewMode, setViewMode] = useState<"CALENDARIO" | "TIMELINE">("CALENDARIO");
 
   // Modal de Nova Reserva
@@ -102,11 +95,16 @@ export default function AgendaPage() {
     setLoading(true);
     try {
       const [resAgenda, resLocatarios, resModelos] = await Promise.all([
-        fetch(`/api/agenda?ano=${ano}&mes=${mes}${filtroLocalId ? `&localId=${filtroLocalId}` : ""}${filtroFlatId ? `&flatId=${filtroFlatId}` : ""}`).then((r) => r.json()),
+        fetch(
+          `/api/agenda?ano=${ano}&mes=${mes}${
+            filtroLocalId ? `&localId=${filtroLocalId}` : ""
+          }${filtroFlatId ? `&flatId=${filtroFlatId}` : ""}`
+        ).then((r) => r.json()),
         fetch("/api/locatarios").then((r) => r.json()),
         fetch("/api/modelos-contrato").then((r) => r.json()),
       ]);
 
+      // A API retorna apenas flats configurados para diária (DIARIA ou AMBOS)
       setFlats(resAgenda.flats || []);
       setLocais(resAgenda.locais || []);
       setReservas(resAgenda.reservas || []);
@@ -148,8 +146,13 @@ export default function AgendaPage() {
   }, [reservaCheckIn, reservaCheckOut, reservaValorDiaria]);
 
   const handleOpenNovaReserva = (flatIdDefault?: string, dateDefault?: string) => {
+    if (flats.length === 0) {
+      alert("Nenhum imóvel configurado para locação por Diária/Temporada. Acesse o menu 'Flats & Condomínios' e defina a modalidade como 'Por Diária' ou 'Diária e Mensal'.");
+      return;
+    }
+
     const targetFlatId = flatIdDefault || (flats[0]?.id || "");
-    const selectedFlat = flats.find((f) => f.id === targetFlatId);
+    const selectedFlat = flats.find((f) => f.id === targetFlatId) || flats[0];
 
     const hojeStr = dateDefault || new Date().toISOString().split("T")[0];
     const amanhaDate = new Date(hojeStr + "T00:00:00");
@@ -158,7 +161,7 @@ export default function AgendaPage() {
 
     const valorDiaria = selectedFlat?.valorDiaria ? selectedFlat.valorDiaria.toString() : "150.00";
 
-    setReservaFlatId(targetFlatId);
+    setReservaFlatId(selectedFlat?.id || targetFlatId);
     setReservaLocatarioId(locatarios[0]?.id || "");
     setReservaCheckIn(hojeStr);
     setReservaCheckOut(amanhaStr);
@@ -204,7 +207,6 @@ export default function AgendaPage() {
         return;
       }
 
-      // Atualiza lista e seleciona o recém criado
       const resLocs = await fetch("/api/locatarios").then((r) => r.json());
       setLocatarios(resLocs.locatarios || []);
       if (data.locatario?.id) {
@@ -243,7 +245,6 @@ export default function AgendaPage() {
       const diffTime = dOut.getTime() - dIn.getTime();
       const totalDias = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
 
-      // 1. Criar o Contrato por Diárias diretamente
       const resContrato = await fetch("/api/contratos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -255,7 +256,7 @@ export default function AgendaPage() {
           tipoValidade: "DIAS",
           validadeValor: totalDias.toString(),
           validadeDias: totalDias,
-          valorMensal: reservaValorTotal, // Valor total do período da reserva
+          valorMensal: reservaValorTotal,
           formaPagamento: reservaFormaPagamento,
           diaVencimento: 1,
         }),
@@ -311,7 +312,7 @@ export default function AgendaPage() {
       });
     }
 
-    // Dias do próximo mês para completar 35 ou 42 células
+    // Dias do próximo mês para completar grade
     const remaining = (7 - (days.length % 7)) % 7;
     for (let i = 1; i <= remaining; i++) {
       days.push({
@@ -326,14 +327,7 @@ export default function AgendaPage() {
     return days;
   }, [dataAtual]);
 
-  // Filtragem dos Flats exibidos
-  const filteredFlats = flats.filter((f) => {
-    if (filtroModalidade === "DIARIA" && f.modalidadeLocacao !== "DIARIA" && f.modalidadeLocacao !== "AMBOS") return false;
-    if (filtroModalidade === "MENSAL" && f.modalidadeLocacao !== "MENSAL" && f.modalidadeLocacao !== "AMBOS") return false;
-    return true;
-  });
-
-  // Estatísticas Rápidas do Mês
+  // Estatísticas Rápidas do Mês (Apenas Diárias)
   const totalReservasMes = reservas.length;
   const totalDiariasMes = reservas.reduce((acc, r) => acc + (r.validadeDias || 1), 0);
   const totalFaturamentoPrevisto = reservas.reduce((acc, r) => acc + (r.valorTotal || 0), 0);
@@ -349,18 +343,18 @@ export default function AgendaPage() {
         {/* Header Superior */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30">
-              <CalendarIcon className="w-6 h-6" />
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-600/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
+              <Sun className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <span>Agenda de Ocupação & Reservas</span>
-                <span className="text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                <span>Agenda de Reservas por Diária & Temporada</span>
+                <span className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
                   ☀️ Diárias & Temporada
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Gestão visual de calendário, disponibilidade, conflitos de data e emissão instantânea de contratos de diária
+                Visualização exclusiva de imóveis e reservas por diária com prevenção de conflito e emissão de contratos
               </p>
             </div>
           </div>
@@ -368,23 +362,41 @@ export default function AgendaPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleOpenNovaReserva()}
-              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center space-x-2 transition cursor-pointer"
+              className="py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white text-xs shadow-md flex items-center space-x-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Nova Reserva por Diária</span>
+              <span>+ Nova Reserva de Diária</span>
             </button>
           </div>
         </div>
 
-        {/* Cards de Métricas do Mês */}
+        {/* Aviso se não houver imóveis por diária */}
+        {!loading && flats.length === 0 && (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2">
+              <Info className="w-5 h-5 text-amber-600 shrink-0" />
+              <span>
+                <strong>Atenção:</strong> Nenhum imóvel está configurado para locação por <strong>Diária / Temporada</strong>. Apenas imóveis com modalidade "Por Diária" ou "Diária e Mensal" aparecem nesta agenda.
+              </span>
+            </div>
+            <Link
+              href="/flats"
+              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs whitespace-nowrap shadow-sm"
+            >
+              Configurar Imóveis
+            </Link>
+          </div>
+        )}
+
+        {/* Cards de Métricas de Diárias do Mês */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Imóveis Disponíveis</p>
-              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">{filteredFlats.length}</h3>
-              <p className="text-[10px] text-slate-500">Cadastrados no sistema</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Imóveis p/ Diária</p>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">{flats.length}</h3>
+              <p className="text-[10px] text-slate-500">Flats, salões e chácaras</p>
             </div>
-            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
               <Building2 className="w-5 h-5" />
             </div>
           </div>
@@ -393,18 +405,18 @@ export default function AgendaPage() {
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Reservas no Mês</p>
               <h3 className="text-xl font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">{totalReservasMes}</h3>
-              <p className="text-[10px] text-slate-500">Contratos de locação ativos</p>
+              <p className="text-[10px] text-slate-500">Contratos de temporada</p>
             </div>
-            <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
               <CalendarCheck className="w-5 h-5" />
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total de Diárias</p>
-              <h3 className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">{totalDiariasMes} dias</h3>
-              <p className="text-[10px] text-slate-500">Ocupação acumulada</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Diárias Reservadas</p>
+              <h3 className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">{totalDiariasMes} diárias</h3>
+              <p className="text-[10px] text-slate-500">Dias ocupados no mês</p>
             </div>
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
               <Sun className="w-5 h-5" />
@@ -419,13 +431,13 @@ export default function AgendaPage() {
               </h3>
               <p className="text-[10px] text-slate-500">Receita total em diárias</p>
             </div>
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+            <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
         </div>
 
-        {/* Barra de Controles: Navegação de Mês/Ano & Filtros */}
+        {/* Barra de Navegação e Filtros */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Navegação de Mês / Ano */}
@@ -438,7 +450,7 @@ export default function AgendaPage() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-extrabold text-sm text-slate-900 dark:text-slate-100 min-w-[170px] text-center">
+              <div className="px-4 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-extrabold text-sm text-slate-900 dark:text-slate-100 min-w-[180px] text-center">
                 {nomesMeses[mes - 1]} de {ano}
               </div>
 
@@ -452,7 +464,7 @@ export default function AgendaPage() {
 
               <button
                 onClick={handleToday}
-                className="py-1.5 px-3 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition cursor-pointer"
+                className="py-1.5 px-3 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition cursor-pointer"
               >
                 Hoje
               </button>
@@ -465,7 +477,7 @@ export default function AgendaPage() {
                   onClick={() => setViewMode("CALENDARIO")}
                   className={`py-1 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     viewMode === "CALENDARIO"
-                      ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                      ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm"
                       : "text-slate-600 dark:text-slate-400"
                   }`}
                 >
@@ -475,7 +487,7 @@ export default function AgendaPage() {
                   onClick={() => setViewMode("TIMELINE")}
                   className={`py-1 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     viewMode === "TIMELINE"
-                      ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                      ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm"
                       : "text-slate-600 dark:text-slate-400"
                   }`}
                 >
@@ -485,10 +497,10 @@ export default function AgendaPage() {
             </div>
           </div>
 
-          {/* Filtros por Condomínio, Imóvel e Modalidade */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+          {/* Filtros por Condomínio e Imóvel de Diária */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Filtrar por Condomínio</label>
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Condomínio / Local</label>
               <select
                 value={filtroLocalId}
                 onChange={(e) => {
@@ -505,48 +517,35 @@ export default function AgendaPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Filtrar por Imóvel / Flat</label>
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Imóvel por Diária</label>
               <select
                 value={filtroFlatId}
                 onChange={(e) => setFiltroFlatId(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
               >
-                <option value="">-- Todos os Imóveis --</option>
+                <option value="">-- Todos os Imóveis de Diária --</option>
                 {flats.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.numero} ({f.local?.nome || "Condomínio"})
+                    {f.numero} ({f.local?.nome || "Condomínio"}) - {formatCurrency(f.valorDiaria || 0)}/dia
                   </option>
                 ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Modalidade de Locação</label>
-              <select
-                value={filtroModalidade}
-                onChange={(e) => setFiltroModalidade(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
-              >
-                <option value="TODOS">Todas as Modalidades</option>
-                <option value="DIARIA">☀️ Apenas Diárias / Temporada</option>
-                <option value="MENSAL">📅 Apenas Mensal / Tradicional</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* MODO 1: GRADE MENSAL DE CALENDÁRIO */}
+        {/* GRADE MENSAL DE DIÁRIAS */}
         {viewMode === "CALENDARIO" && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             {/* Cabeçalho dos dias da semana */}
             <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-center text-xs font-bold text-slate-600 dark:text-slate-400 py-3">
-              <span>Domingo</span>
-              <span>Segunda</span>
-              <span>Terça</span>
-              <span>Quarta</span>
-              <span>Quinta</span>
-              <span>Sexta</span>
-              <span>Sábado</span>
+              <span className="text-red-500">Dom</span>
+              <span>Seg</span>
+              <span>Ter</span>
+              <span>Qua</span>
+              <span>Qui</span>
+              <span>Sex</span>
+              <span className="text-blue-500">Sáb</span>
             </div>
 
             {/* Células dos Dias */}
@@ -555,7 +554,6 @@ export default function AgendaPage() {
                 const isToday =
                   calDay.dateStr === new Date().toISOString().split("T")[0];
 
-                // Reservas que cobrem este dia
                 const reservasDoDia = reservas.filter((r) => {
                   return r.dataInicio <= calDay.dateStr && r.dataFim >= calDay.dateStr;
                 });
@@ -563,25 +561,20 @@ export default function AgendaPage() {
                 return (
                   <div
                     key={idx}
-                    onClick={() => {
-                      if (calDay.isCurrentMonth) {
-                        handleOpenNovaReserva(filtroFlatId, calDay.dateStr);
-                      }
-                    }}
-                    className={`min-h-[110px] p-2 flex flex-col justify-between transition group cursor-pointer ${
+                    className={`min-h-[125px] p-2 flex flex-col justify-between transition group relative ${
                       !calDay.isCurrentMonth
                         ? "bg-slate-50/50 dark:bg-slate-950/20 opacity-40"
                         : isToday
-                        ? "bg-blue-50/30 dark:bg-blue-950/10 hover:bg-blue-50/70 dark:hover:bg-blue-950/30"
+                        ? "bg-amber-50/40 dark:bg-amber-950/20"
                         : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                     }`}
                   >
-                    {/* Topo do dia com número e botão de adicionar */}
+                    {/* Topo da Célula com Dia e Botão de Adicionar Reserva */}
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
+                        className={`text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center ${
                           isToday
-                            ? "bg-blue-600 text-white shadow-sm"
+                            ? "bg-amber-600 text-white shadow-sm"
                             : "text-slate-700 dark:text-slate-300"
                         }`}
                       >
@@ -589,14 +582,19 @@ export default function AgendaPage() {
                       </span>
 
                       {calDay.isCurrentMonth && (
-                        <span className="opacity-0 group-hover:opacity-100 text-[10px] text-blue-600 dark:text-blue-400 font-semibold transition">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenNovaReserva(filtroFlatId, calDay.dateStr)}
+                          className="py-0.5 px-1.5 rounded bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/70 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                          title="Acrescentar Reserva neste dia"
+                        >
                           + Reservar
-                        </span>
+                        </button>
                       )}
                     </div>
 
-                    {/* Reservas neste dia */}
-                    <div className="space-y-1 my-1 overflow-y-auto max-h-[80px]">
+                    {/* Lista de Reservas do Dia */}
+                    <div className="space-y-1 my-1 overflow-y-auto max-h-[85px] pr-0.5">
                       {reservasDoDia.map((res, rIdx) => {
                         const isCheckIn = res.dataInicio === calDay.dateStr;
                         const isCheckOut = res.dataFim === calDay.dateStr;
@@ -604,32 +602,35 @@ export default function AgendaPage() {
                         return (
                           <div
                             key={rIdx}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedReserva(res);
-                            }}
-                            className={`p-1 rounded-md text-[10px] font-medium leading-tight truncate border cursor-pointer transition shadow-xs ${
+                            onClick={() => setSelectedReserva(res)}
+                            className={`p-1 rounded-md text-[10px] leading-tight truncate border cursor-pointer transition shadow-xs ${
                               isCheckIn
-                                ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 font-bold"
                                 : isCheckOut
-                                ? "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
-                                : "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800"
+                                ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold"
+                                : "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800 font-medium"
                             }`}
                             title={`${res.flatNumero}: ${res.locatarioNome} (${res.dataInicio} a ${res.dataFim})`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold truncate">{res.flatNumero}</span>
-                              <span className="text-[9px] opacity-75 truncate">{res.locatarioNome.split(" ")[0]}</span>
+                              <span className="truncate">{res.flatNumero}</span>
+                              <span className="text-[9px] opacity-80 truncate">{res.locatarioNome.split(" ")[0]}</span>
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Status de ocupação */}
+                    {/* Rodapé da Célula: Botão explícito se estiver vazio */}
                     <div className="text-right">
                       {reservasDoDia.length === 0 && calDay.isCurrentMonth && (
-                        <span className="text-[9px] text-slate-300 dark:text-slate-600">Livre</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenNovaReserva(filtroFlatId, calDay.dateStr)}
+                          className="text-[10px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 font-medium transition cursor-pointer"
+                        >
+                          + Diária
+                        </button>
                       )}
                     </div>
                   </div>
@@ -639,15 +640,15 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* MODO 2: LINHA DO TEMPO POR IMÓVEL */}
+        {/* LINHA DO TEMPO POR IMÓVEL DE DIÁRIA */}
         {viewMode === "TIMELINE" && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-[11px] font-bold text-slate-500 uppercase">
-                    <th className="py-3 px-4 sticky left-0 bg-slate-50 dark:bg-slate-950 z-10 w-48 shadow-sm">
-                      Imóvel / Flat
+                    <th className="py-3 px-4 sticky left-0 bg-slate-50 dark:bg-slate-950 z-10 w-52 shadow-sm">
+                      Imóvel de Diária
                     </th>
                     {Array.from({ length: new Date(ano, mes, 0).getDate() }, (_, i) => i + 1).map((d) => (
                       <th key={d} className="py-3 px-1 text-center min-w-[32px]">
@@ -657,16 +658,16 @@ export default function AgendaPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  {filteredFlats.map((flat) => {
+                  {flats.map((flat) => {
                     const totalDiasMes = new Date(ano, mes, 0).getDate();
 
                     return (
                       <tr key={flat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                         <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100 sticky left-0 bg-white dark:bg-slate-900 z-10 shadow-sm border-r border-slate-100 dark:border-slate-800">
                           <div>
-                            <span>{flat.numero}</span>
-                            <span className="block text-[10px] text-slate-400 font-normal truncate">
-                              {flat.local?.nome}
+                            <span className="font-bold">{flat.numero}</span>
+                            <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                              {formatCurrency(flat.valorDiaria || 0)}/dia
                             </span>
                           </div>
                         </td>
@@ -689,19 +690,19 @@ export default function AgendaPage() {
                               }}
                               className={`p-1 text-center border-r border-slate-100 dark:border-slate-800/40 cursor-pointer transition ${
                                 reservaDoDia
-                                  ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-700 dark:text-blue-300"
+                                  ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300"
                                   : "hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
                               }`}
                               title={
                                 reservaDoDia
                                   ? `Reservado: ${reservaDoDia.locatarioNome} (${reservaDoDia.dataInicio} a ${reservaDoDia.dataFim})`
-                                  : `Livre no dia ${d}/${mes} - Clique para reservar`
+                                  : `Livre no dia ${d}/${mes} - Clique para acrescentar reserva`
                               }
                             >
                               {reservaDoDia ? (
-                                <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-xs"></span>
                               ) : (
-                                <span className="text-[10px] text-slate-300 dark:text-slate-700 opacity-0 hover:opacity-100">+</span>
+                                <span className="text-[10px] text-slate-300 dark:text-slate-700 opacity-0 hover:opacity-100 font-bold">+</span>
                               )}
                             </td>
                           );
@@ -721,15 +722,15 @@ export default function AgendaPage() {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                  <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
                     <Sun className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      Nova Reserva de Locação por Diária
+                      Acrescentar Reserva de Diária
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Preencha o locatário e as datas para gerar o contrato e fatura financeira
+                      Gera automaticamente o contrato de locação por temporada e a parcela no financeiro
                     </p>
                   </div>
                 </div>
@@ -749,10 +750,10 @@ export default function AgendaPage() {
               )}
 
               <form onSubmit={handleConfirmarReserva} className="space-y-4">
-                {/* 1. Imóvel / Flat */}
+                {/* Imóvel de Diária */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Imóvel / Flat Selecionado *
+                    Imóvel / Flat para Diária *
                   </label>
                   <select
                     required
@@ -762,22 +763,22 @@ export default function AgendaPage() {
                   >
                     {flats.map((f) => (
                       <option key={f.id} value={f.id}>
-                        {f.numero} ({f.local?.nome || "Condomínio"}) - {formatCurrency(f.valorDiaria || 150)}/diária
+                        {f.numero} ({f.local?.nome || "Condomínio"}) - {formatCurrency(f.valorDiaria || 0)}/diária
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* 2. Locatário / Hóspede com Botão de Novo */}
+                {/* Cliente / Locatário com Botão de Novo */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Cliente / Locatário (Hóspede) *
+                      Cliente / Hóspede *
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowNovoLocatarioModal(true)}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-500 flex items-center space-x-1 cursor-pointer"
+                      className="text-xs font-bold text-amber-600 hover:text-amber-500 flex items-center space-x-1 cursor-pointer"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>+ Cadastrar Novo</span>
@@ -789,7 +790,7 @@ export default function AgendaPage() {
                     onChange={(e) => setReservaLocatarioId(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium"
                   >
-                    <option value="">-- Selecione o Locatário --</option>
+                    <option value="">-- Selecione o Locatário / Hóspede --</option>
                     {locatarios.map((loc) => (
                       <option key={loc.id} value={loc.id}>
                         {loc.nome} - CPF: {loc.cpf} ({loc.telefone})
@@ -798,10 +799,10 @@ export default function AgendaPage() {
                   </select>
                 </div>
 
-                {/* 3. Período: Check-in e Check-out */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+                {/* Período: Check-in e Check-out */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
                   <div>
-                    <label className="block text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
+                    <label className="block text-xs font-bold text-amber-900 dark:text-amber-300 mb-1">
                       Data de Check-in (Entrada) *
                     </label>
                     <input
@@ -814,7 +815,7 @@ export default function AgendaPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-blue-900 dark:text-blue-300 mb-1">
+                    <label className="block text-xs font-bold text-amber-900 dark:text-amber-300 mb-1">
                       Data de Check-out (Saída) *
                     </label>
                     <input
@@ -827,7 +828,7 @@ export default function AgendaPage() {
                   </div>
                 </div>
 
-                {/* 4. Valores e Forma de Pagamento */}
+                {/* Valores e Forma de Pagamento */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -875,7 +876,7 @@ export default function AgendaPage() {
                   </div>
                 </div>
 
-                {/* 5. Modelo de Contrato */}
+                {/* Modelo de Contrato */}
                 {modelosContrato.length > 0 && (
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -905,7 +906,7 @@ export default function AgendaPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-2/3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-white text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="w-2/3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center space-x-1.5 cursor-pointer"
                   >
                     {submitting ? (
                       <span>Verificando & Gerando Contrato...</span>
@@ -928,8 +929,8 @@ export default function AgendaPage() {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-blue-600" />
-                  <span>Cadastrar Novo Cliente / Hóspede</span>
+                  <UserPlus className="w-4 h-4 text-amber-600" />
+                  <span>Cadastrar Novo Hóspede / Locatário</span>
                 </h3>
                 <button
                   onClick={() => setShowNovoLocatarioModal(false)}
@@ -949,7 +950,7 @@ export default function AgendaPage() {
                     required
                     value={novoLocatarioNome}
                     onChange={(e) => setNovoLocatarioNome(e.target.value)}
-                    placeholder="ex: João Silva Santos"
+                    placeholder="ex: Carlos Eduardo Santos"
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
                   />
                 </div>
@@ -990,7 +991,7 @@ export default function AgendaPage() {
                       type="email"
                       value={novoLocatarioEmail}
                       onChange={(e) => setNovoLocatarioEmail(e.target.value)}
-                      placeholder="joao@email.com"
+                      placeholder="hospede@email.com"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
                     />
                   </div>
@@ -1007,7 +1008,7 @@ export default function AgendaPage() {
                   <button
                     type="submit"
                     disabled={salvandoLocatario}
-                    className="w-2/3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+                    className="w-2/3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
                   >
                     {salvandoLocatario ? "Salvando..." : "Salvar Hóspede"}
                   </button>
@@ -1017,14 +1018,14 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* MODAL DE DETALHES DA RESERVA SELECIONADA */}
+        {/* MODAL DE DETALHES DA RESERVA */}
         {selectedReserva && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                    <CalendarCheck className="w-5 h-5" />
+                  <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                    <Sun className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
@@ -1059,9 +1060,9 @@ export default function AgendaPage() {
 
               {/* Período e Valor */}
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
+                <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50">
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Check-in</span>
-                  <strong className="text-blue-600 dark:text-blue-400 text-sm">
+                  <strong className="text-emerald-600 dark:text-emerald-400 text-sm">
                     {new Date(selectedReserva.dataInicio + "T00:00:00").toLocaleDateString("pt-BR")}
                   </strong>
                 </div>
@@ -1089,7 +1090,7 @@ export default function AgendaPage() {
                 </Link>
                 <button
                   onClick={() => setSelectedReserva(null)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs cursor-pointer"
                 >
                   Fechar
                 </button>
@@ -1098,7 +1099,7 @@ export default function AgendaPage() {
           </div>
         )}
 
-        {/* MODAL DE SUCESSO PÓS-EMISSÃO DE RESERVA */}
+        {/* MODAL DE SUCESSO PÓS-EMISSÃO */}
         {sucessoContrato && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in zoom-in-95">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center space-y-4">
@@ -1108,10 +1109,10 @@ export default function AgendaPage() {
 
               <div>
                 <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                  Reserva & Contrato Confirmados!
+                  Reserva Confirmada com Sucesso!
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  O contrato de locação por temporada e as parcelas no Contas a Receber foram gerados com sucesso no banco de dados.
+                  O contrato por diárias e as parcelas a receber foram gerados com sucesso no banco de dados.
                 </p>
               </div>
 
