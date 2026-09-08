@@ -53,8 +53,8 @@ function ShellContent({ children }: ShellProps) {
 
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [relatoriosExpanded, setRelatoriosExpanded] = useState(true);
-  const [parametrosExpanded, setParametrosExpanded] = useState(true);
+  const [relatoriosExpanded, setRelatoriosExpanded] = useState(false);
+  const [parametrosExpanded, setParametrosExpanded] = useState(false);
   const [user, setUser] = useState<{
     nome: string;
     email: string;
@@ -74,15 +74,20 @@ function ShellContent({ children }: ShellProps) {
     podeAcessar: boolean;
   } | null>(null);
 
-  // Auto-expandir relatórios/parâmetros e sincronizar aba ativa reativamente
+  // Sincronizar estado dos menus apenas quando estiver na respectiva página
   useEffect(() => {
     if (pathname.startsWith("/relatorios")) {
       setRelatoriosExpanded(true);
       setCurrentAba(abaParam || "checklist");
+    } else {
+      setRelatoriosExpanded(false);
     }
+
     if (pathname.startsWith("/parametros")) {
       setParametrosExpanded(true);
       setCurrentParametrosAba(abaParam || "empresa");
+    } else {
+      setParametrosExpanded(false);
     }
   }, [pathname, abaParam]);
 
@@ -180,9 +185,9 @@ function ShellContent({ children }: ShellProps) {
   const isParametrosActive = pathname.startsWith("/parametros");
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
       {/* Sidebar Desktop */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 backdrop-blur p-4 space-y-6 flex-shrink-0">
+      <aside className="hidden md:flex flex-col w-64 h-full border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur p-4 space-y-4 flex-shrink-0 select-none">
         <div className="flex items-center space-x-3 px-2">
           {user?.logomarcaUrl ? (
             <img
@@ -205,7 +210,7 @@ function ShellContent({ children }: ShellProps) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto">
+        <nav className="flex-1 space-y-1 overflow-y-auto scrollbar-none pr-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -328,9 +333,9 @@ function ShellContent({ children }: ShellProps) {
       </aside>
 
       {/* Area Conteúdo Mobile Header + Drawer */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-hidden">
         {/* Header Mobile / Topo Desktop */}
-        <header className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -521,8 +526,8 @@ function ShellContent({ children }: ShellProps) {
         )}
 
         {/* Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
-          <div>{children}</div>
+        <main className="flex-1 overflow-y-auto scrollbar-thin p-3 sm:p-5 lg:p-6 bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
+          <div className="max-w-7xl w-full mx-auto">{children}</div>
 
           {/* RODAPÉ DAS TELAS APÓS LOGIN */}
           <footer className="mt-8 pt-4 text-center text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
