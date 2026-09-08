@@ -365,15 +365,28 @@ export default function GridMeses({
             <User className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm sm:text-base">{locatarioNome}</h3>
-              {statusAssinatura === "ASSINADO" ? (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
-                  ✓ Contrato Assinado
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm sm:text-base mr-1">{locatarioNome}</h3>
+              
+              {/* 1. Status Vistoria de Entrada */}
+              {vistoriaEntrada?.statusAssinatura?.includes("ASSINADO") ? (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                  <span>1.</span> <span>✓ Vistoria Assinada</span>
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
-                  Aguardando Assinatura
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1">
+                  <span>1.</span> <span>Vistoria Pendente</span>
+                </span>
+              )}
+
+              {/* 2. Status Contrato de Locação */}
+              {statusAssinatura === "ASSINADO" ? (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                  <span>2.</span> <span>✓ Contrato Assinado</span>
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-[10px] font-bold flex items-center gap-1">
+                  <span>2.</span> <span>Aguardando Assinatura</span>
                 </span>
               )}
             </div>
@@ -386,29 +399,9 @@ export default function GridMeses({
           </div>
         </div>
 
-        {/* BOTOES DE ACAO DO CONTRATO E VISTORIAS (3 LINHAS ALINHADAS À DIREITA) */}
+        {/* BOTOES DE ACAO DO CONTRATO E VISTORIAS (ORDEM: 1. VISTORIA ENTRADA -> 2. CONTRATO -> 3. VISTORIA SAIDA) */}
         <div className="flex flex-col sm:items-end gap-1.5 flex-shrink-0">
-          {/* LINHA 1: BOTÃO DO CONTRATO */}
-          {statusAssinatura === "ASSINADO" && activeToken ? (
-            <button
-              onClick={() => handleVisualizarDocumentoAssinado(`/assinar/contrato/${activeToken}`)}
-              className="py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition w-full sm:w-auto justify-center sm:justify-start"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Ver Contrato Assinado</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleGerarOuExibirLinkContrato}
-              disabled={generatingToken}
-              className="py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition disabled:opacity-50 w-full sm:w-auto justify-center sm:justify-start"
-            >
-              <FileSignature className="w-3.5 h-3.5" />
-              <span>{generatingToken ? "Gerando..." : "Gerar Link Assinatura Contrato"}</span>
-            </button>
-          )}
-
-          {/* LINHA 2: VISTORIA DE ENTRADA */}
+          {/* LINHA 1: 1. VISTORIA DE ENTRADA */}
           <button
             onClick={() => {
               if (vistoriaEntrada?.laudoImpressoUrl) {
@@ -430,12 +423,32 @@ export default function GridMeses({
             <ClipboardCheck className="w-3.5 h-3.5 text-emerald-500" />
             <span>
               {vistoriaEntrada
-                ? `Vistoria Entrada (${vistoriaEntrada.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
-                : "🟢 Vistoria Entrada"}
+                ? `1. Vistoria Entrada (${vistoriaEntrada.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
+                : "1. 🟢 Vistoria Entrada"}
             </span>
           </button>
 
-          {/* LINHA 3: VISTORIA DE SAÍDA */}
+          {/* LINHA 2: 2. CONTRATO DE LOCAÇÃO */}
+          {statusAssinatura === "ASSINADO" && activeToken ? (
+            <button
+              onClick={() => handleVisualizarDocumentoAssinado(`/assinar/contrato/${activeToken}`)}
+              className="py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition w-full sm:w-auto justify-center sm:justify-start"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>2. Ver Contrato Assinado</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleGerarOuExibirLinkContrato}
+              disabled={generatingToken}
+              className="py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition disabled:opacity-50 w-full sm:w-auto justify-center sm:justify-start"
+            >
+              <FileSignature className="w-3.5 h-3.5" />
+              <span>{generatingToken ? "Gerando..." : "2. Gerar Link Assinatura Contrato"}</span>
+            </button>
+          )}
+
+          {/* LINHA 3: 3. VISTORIA DE SAÍDA */}
           <button
             onClick={() => {
               if (vistoriaSaida?.laudoImpressoUrl) {
@@ -457,8 +470,8 @@ export default function GridMeses({
             <ClipboardCheck className="w-3.5 h-3.5 text-amber-500" />
             <span>
               {vistoriaSaida
-                ? `Vistoria Saída (${vistoriaSaida.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
-                : "🔴 Vistoria Saída"}
+                ? `3. Vistoria Saída (${vistoriaSaida.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
+                : "3. 🔴 Vistoria Saída"}
             </span>
           </button>
         </div>

@@ -222,8 +222,13 @@ export default function ContratosPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Gestão de Contratos e Aluguéis</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Emissão, Vistoria de Entrada/Saída, Assinatura Digital e Acompanhamento das Parcelas
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 flex-wrap mt-0.5">
+                <span className="text-blue-600 dark:text-blue-400 font-bold">Fluxo:</span>
+                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">1º Vistoria de Entrada</span>
+                <span>➔</span>
+                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">2º Contrato de Locação</span>
+                <span>➔</span>
+                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">3º Vistoria de Saída</span>
               </p>
             </div>
           </div>
@@ -344,9 +349,12 @@ export default function ContratosPage() {
                   </select>
                 </div>
 
-                {/* Status da Vistoria de Entrada Vinculada ao Flat */}
+                {/* ETAPA 1: Vistoria de Entrada Vinculada ao Flat */}
                 {flatId && (
-                  <div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                      1º Passo: Vistoria de Entrada (Laudo & Fotos)
+                    </label>
                     {vistoriaStatusInfo.checking ? (
                       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
                         <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -358,13 +366,13 @@ export default function ContratosPage() {
                           <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <div>
                             <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
-                              <span>✓ Vistoria de Entrada Localizada</span>
+                              <span>✓ 1º Vistoria de Entrada Localizada</span>
                               <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
                                 {vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos
                               </span>
                             </span>
                             <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
-                              O laudo com as fotos reais da vistoria será <strong>anexado automaticamente ao contrato</strong> para assinatura do locatário.
+                              O laudo com as fotos reais da vistoria será <strong>anexado ao contrato</strong> para assinatura do locatário.
                             </p>
                           </div>
                         </div>
@@ -383,7 +391,7 @@ export default function ContratosPage() {
                           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
                           <div>
                             <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase">
-                              ⚠️ Vistoria de Entrada não realizada
+                              ⚠️ 1º Vistoria de Entrada Pendente
                             </span>
                             <p className="text-[11px] text-amber-700/90 dark:text-amber-400 mt-0.5">
                               Recomendado: Faça a vistoria e tire as fotos do imóvel antes para que o locatário assine o contrato com o laudo já anexado.
@@ -402,6 +410,12 @@ export default function ContratosPage() {
                     )}
                   </div>
                 )}
+
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
+                    2º Passo: Condições do Contrato de Locação
+                  </span>
+                </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
