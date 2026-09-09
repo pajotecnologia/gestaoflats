@@ -28,6 +28,8 @@ import {
   ShieldCheck,
   CreditCard,
   Percent,
+  Zap,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -60,6 +62,10 @@ interface Repasse {
   flat?: {
     id: string;
     numero: string;
+    taxaAdministracao?: number | null;
+    valorPadrao?: number;
+    proprietarioId?: string | null;
+    proprietario?: any;
     local?: { nome: string };
   } | null;
   contrato?: {
@@ -105,6 +111,9 @@ export default function RepassesPage() {
   const [newObservacoes, setNewObservacoes] = useState("");
   const [newSubmitting, setNewSubmitting] = useState(false);
 
+  // Geração Automática
+  const [generatingRepasses, setGeneratingRepasses] = useState(false);
+
   // WhatsApp Sending State
   const [sendingWhatsId, setSendingWhatsId] = useState<string | null>(null);
 
@@ -146,6 +155,28 @@ export default function RepassesPage() {
     loadData();
     loadAuxData();
   }, [selectedMes, selectedStatus]);
+
+  const handleGerarRepassesMes = async () => {
+    setGeneratingRepasses(true);
+    try {
+      const res = await fetch("/api/repasses/gerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mes: selectedMes }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`✅ ${data.message}`);
+        await loadData();
+      } else {
+        alert(`❌ Erro ao gerar repasses: ${data.error || "Erro no servidor."}`);
+      }
+    } catch (err: any) {
+      alert(`❌ Erro ao conectar: ${err.message || err}`);
+    } finally {
+      setGeneratingRepasses(false);
+    }
+  };
 
   const handleOpenBaixa = (repasse: Repasse) => {
     setSelectedRepasseForBaixa(repasse);
@@ -385,7 +416,17 @@ export default function RepassesPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleGerarRepassesMes}
+              disabled={generatingRepasses}
+              className="py-2.5 px-3.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 font-bold text-amber-700 dark:text-amber-300 text-xs border border-amber-200 dark:border-amber-800/50 flex items-center space-x-2 transition shadow-xs disabled:opacity-50 cursor-pointer"
+              title="Gerar e sincronizar repasses a proprietários automaticamente com base nos contratos ativos e parcelas do mês selecionado"
+            >
+              <Zap className={`w-4 h-4 text-amber-600 dark:text-amber-400 ${generatingRepasses ? "animate-spin" : ""}`} />
+              <span>{generatingRepasses ? "Gerando..." : `Gerar Repasses de ${selectedMes}`}</span>
+            </button>
+
             <Link
               href="/proprietarios"
               className="py-2.5 px-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-2 transition"
@@ -770,9 +811,10 @@ export default function RepassesPage() {
                     required
                     value={newProprietarioId}
                     onChange={(e) => {
-                      setNewProprietarioId(e.target.value);
-                      const prop = proprietariosList.find((p) => p.id === e.target.value);
-                      if (prop?.taxaAdministracaoPadrao) {
+                      const pId = e.target.value;
+                      setNewProprietarioId(pId);
+                      const prop = proprietariosList.find((p) => p.id === pId);
+                      if (prop?.taxaAdministracaoPadrao !== null && prop?.taxaAdministracaoPadrao !== undefined) {
                         setNewTaxaAdmin(String(prop.taxaAdministracaoPadrao));
                       }
                     }}
@@ -781,7 +823,7 @@ export default function RepassesPage() {
                     <option value="">Selecione um proprietário...</option>
                     {proprietariosList.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.nome} ({p.cpfCnpj})
+                        {p.nome} ({p.cpfCnpj}) • Taxa Padrão: {p.taxaAdministracaoPadrao ?? 10}%
                       </option>
                     ))}
                   </select>
@@ -793,13 +835,30 @@ export default function RepassesPage() {
                   </label>
                   <select
                     value={newFlatId}
-                    onChange={(e) => setNewFlatId(e.target.value)}
+                    onChange={(e) => {
+                      const fId = e.target.value;
+                      setNewFlatId(fId);
+                      const flat = flatsList.find((f) => f.id === fId);
+                      if (flat) {
+                        if (flat.proprietarioId) {
+                          setNewProprietarioId(flat.proprietarioId);
+                        }
+                        if (flat.taxaAdministracao !== null && flat.taxaAdministracao !== undefined) {
+                          setNewTaxaAdmin(String(flat.taxaAdministracao));
+                        } else if (flat.proprietario?.taxaAdministracaoPadrao !== null && flat.proprietario?.taxaAdministracaoPadrao !== undefined) {
+                          setNewTaxaAdmin(String(flat.proprietario.taxaAdministracaoPadrao));
+                        }
+                        if (flat.valorPadrao) {
+                          setNewValorBruto(String(flat.valorPadrao));
+                        }
+                      }
+                    }}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-medium"
                   >
                     <option value="">Selecione um flat (se aplicável)...</option>
                     {flatsList.map((f) => (
                       <option key={f.id} value={f.id}>
-                        Flat {f.numero} - {f.local?.nome || "Condomínio"}
+                        Flat {f.numero} - {f.local?.nome || "Condomínio"} {f.proprietario ? `(Prop: ${f.proprietario.nome})` : ""}
                       </option>
                     ))}
                   </select>
@@ -847,6 +906,47 @@ export default function RepassesPage() {
                     />
                   </div>
                 </div>
+
+                {/* Preview em Tempo Real do Cálculo Financeiro */}
+                {Number(newValorBruto || 0) > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 space-y-1.5 text-xs">
+                    <div className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                      <Percent className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Demonstrativo do Cálculo em Tempo Real:</span>
+                    </div>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span>Valor Bruto do Aluguel:</span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        {formatCurrency(Number(newValorBruto || 0))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                      <span>(-) Taxa da Imobiliária ({newTaxaAdmin}%):</span>
+                      <span className="font-bold">
+                        - {formatCurrency((Number(newValorBruto || 0) * Number(newTaxaAdmin || 0)) / 100)}
+                      </span>
+                    </div>
+                    {Number(newDescontos || 0) > 0 && (
+                      <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                        <span>(-) Descontos Extras:</span>
+                        <span className="font-bold">- {formatCurrency(Number(newDescontos || 0))}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-emerald-200 dark:border-emerald-800/80 pt-1.5 font-black text-emerald-800 dark:text-emerald-300 text-sm">
+                      <span>(=) Líquido ao Proprietário ({Math.max(0, 100 - Number(newTaxaAdmin || 0))}%):</span>
+                      <span>
+                        {formatCurrency(
+                          Math.max(
+                            0,
+                            Number(newValorBruto || 0) -
+                              (Number(newValorBruto || 0) * Number(newTaxaAdmin || 0)) / 100 -
+                              Number(newDescontos || 0)
+                          )
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700 dark:text-slate-300">
