@@ -11,25 +11,17 @@ const REFRESH_TOKEN_NAME = "refresh_token";
 
 export const SUPER_ADMIN_EMAILS = [
   "pajotecnologia@gmail.com",
-  "admin@primeflats.com.br",
-  "contato@pajotech.com.br",
-  "admin@pajotech.com.br",
-  "admin@pajotecnologia.com.br",
-  "paulojsilva@live.com",
 ];
 
 /**
- * Valida se um usuário é Super Administrador global do SaaS
+ * Valida se um usuário é Super Administrador global do SaaS (Exclusivo para pajotecnologia@gmail.com)
  */
 export function isUserSuperAdmin(email?: string | null, cargo?: string | null): boolean {
   if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
   
-  if (cargo === "SUPER_ADMIN") return true;
-  if (SUPER_ADMIN_EMAILS.includes(cleanEmail)) return true;
-  if (process.env.ADMIN_NOTIFICATION_EMAIL && cleanEmail === process.env.ADMIN_NOTIFICATION_EMAIL.trim().toLowerCase()) {
-    return true;
-  }
+  if (cleanEmail === "pajotecnologia@gmail.com") return true;
+  if (cargo === "SUPER_ADMIN" && cleanEmail === "pajotecnologia@gmail.com") return true;
   return false;
 }
 
