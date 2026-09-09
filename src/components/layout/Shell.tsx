@@ -168,9 +168,9 @@ function ShellContent({ children }: ShellProps) {
     {
       title: "CONTRATOS & VISTORIAS",
       items: [
-        { label: "Vistorias & Checklists", href: "/vistorias", icon: ClipboardCheck },
         { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
         { label: "Modelos de Checklist", href: "/checklists", icon: SlidersHorizontal },
+        { label: "Vistorias & Checklists", href: "/vistorias", icon: ClipboardCheck },
         { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
       ],
     },
