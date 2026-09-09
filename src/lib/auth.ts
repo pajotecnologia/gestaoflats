@@ -15,6 +15,7 @@ export const SUPER_ADMIN_EMAILS = [
   "contato@pajotech.com.br",
   "admin@pajotech.com.br",
   "admin@pajotecnologia.com.br",
+  "paulojsilva@live.com",
 ];
 
 /**
@@ -39,6 +40,7 @@ export interface TokenPayload {
   nome: string;
   cargo: string;
   isSuperAdmin?: boolean;
+  isMestre?: boolean;
   [key: string]: unknown;
 }
 
@@ -142,7 +144,11 @@ export async function getAuthSession(): Promise<TokenPayload | null> {
 export async function getAuthSessionOrFallback(): Promise<TokenPayload | null> {
   const session = await getAuthSession();
   if (session && session.empresaId) {
-    return session;
+    const superAdmin = isUserSuperAdmin(session.email, session.cargo) || Boolean(session.isSuperAdmin);
+    return {
+      ...session,
+      isSuperAdmin: superAdmin,
+    };
   }
   return null;
 }

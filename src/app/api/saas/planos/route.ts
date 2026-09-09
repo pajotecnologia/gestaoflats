@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthSessionOrFallback } from "@/lib/auth";
+import { getAuthSessionOrFallback, isUserSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SAAS_PLANS, PlanDefinition } from "@/lib/plans/planDefinitions";
 
@@ -30,7 +30,9 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
-  if (!session || (!session.isSuperAdmin && !session.isMestre)) {
+  const isSuper = session && (isUserSuperAdmin(session.email, session.cargo) || Boolean(session.isSuperAdmin) || Boolean(session.isMestre));
+
+  if (!isSuper) {
     return NextResponse.json({ error: "Acesso restrito ao Super Administrador." }, { status: 403 });
   }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, createAccessToken, createRefreshToken, setAuthCookies } from "@/lib/auth";
+import { verifyPassword, createAccessToken, createRefreshToken, setAuthCookies, isUserSuperAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 });
     }
 
+    const isSuper = isUserSuperAdmin(user.email, user.cargo) || Boolean(user.empresa.isMestre);
+
     const tokenPayload = {
       userId: user.id,
       empresaId: user.empresaId,
@@ -32,6 +34,8 @@ export async function POST(request: NextRequest) {
       nome: user.nome,
       cargo: user.cargo,
       empresaNome: user.empresa.nomeFantasia,
+      isSuperAdmin: isSuper,
+      isMestre: Boolean(user.empresa.isMestre),
     };
 
     const accessToken = await createAccessToken(tokenPayload);
