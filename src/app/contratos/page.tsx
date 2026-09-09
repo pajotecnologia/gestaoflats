@@ -112,8 +112,9 @@ export default function ContratosPage() {
     });
   };
 
-  const checkVistoriaForFlat = async (selectedFlatId: string) => {
-    if (!selectedFlatId) {
+  const checkVistoriaForFlat = async (selectedFlatId: string, selectedLocatarioId?: string) => {
+    const activeLocId = selectedLocatarioId !== undefined ? selectedLocatarioId : locatarioId;
+    if (!selectedFlatId && !activeLocId) {
       setAvailableVistorias([]);
       setSelectedVistoriaId("");
       setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
@@ -122,13 +123,26 @@ export default function ContratosPage() {
 
     setVistoriaStatusInfo((prev) => ({ ...prev, checking: true }));
     try {
-      const res = await fetch(`/api/vistorias?flatId=${selectedFlatId}&tipoVistoria=ENTRADA&apenasDisponiveis=true`);
+      let url = `/api/vistorias?tipoVistoria=ENTRADA&apenasDisponiveis=true`;
+      if (selectedFlatId && activeLocId) {
+        url += `&flatId=${selectedFlatId}&locatarioId=${activeLocId}&flatOuLocatario=true`;
+      } else if (selectedFlatId) {
+        url += `&flatId=${selectedFlatId}`;
+      } else if (activeLocId) {
+        url += `&locatarioId=${activeLocId}`;
+      }
+
+      const res = await fetch(url);
       const data = await res.json();
 
       if (res.ok && data.vistorias && data.vistorias.length > 0) {
         setAvailableVistorias(data.vistorias);
-        // Priorizar vistoria assinada ou a mais recente
-        const preferred = data.vistorias.find((v: any) => v.statusAssinatura?.includes("ASSINADO")) || data.vistorias[0];
+        // Priorizar vistoria assinada para o locatário selecionado
+        const matchLocAndAssinado = activeLocId ? data.vistorias.find((v: any) => v.locatarioId === activeLocId && v.statusAssinatura?.includes("ASSINADO")) : null;
+        const matchLoc = activeLocId ? data.vistorias.find((v: any) => v.locatarioId === activeLocId) : null;
+        const matchAssinado = data.vistorias.find((v: any) => v.statusAssinatura?.includes("ASSINADO"));
+        const preferred = matchLocAndAssinado || matchLoc || matchAssinado || data.vistorias[0];
+
         setSelectedVistoriaId(preferred.id);
         updateVistoriaInfoFromObject(preferred);
       } else {
@@ -143,10 +157,15 @@ export default function ContratosPage() {
     }
   };
 
+  const handleLocatarioChange = (selectedLocatarioId: string) => {
+    setLocatarioId(selectedLocatarioId);
+    checkVistoriaForFlat(flatId, selectedLocatarioId);
+  };
+
   const handleFlatChange = (selectedFlatId: string) => {
     if (!selectedFlatId) {
       setFlatId("");
-      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+      checkVistoriaForFlat("", locatarioId);
       return;
     }
 
@@ -180,7 +199,7 @@ export default function ContratosPage() {
 
       setFlatId(selectedFlatId);
       if (flatSelected.valorPadrao) setValorMensal(flatSelected.valorPadrao.toString());
-      checkVistoriaForFlat(selectedFlatId);
+      checkVistoriaForFlat(selectedFlatId, locatarioId);
     } else {
       setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
     }
@@ -350,7 +369,7 @@ export default function ContratosPage() {
                   <select
                     required
                     value={locatarioId}
-                    onChange={(e) => setLocatarioId(e.target.value)}
+                    onChange={(e) => handleLocatarioChange(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
                   >
                     <option value="">-- Escolha o Locatário --</option>
@@ -427,11 +446,14 @@ export default function ContratosPage() {
                             }}
                             className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
                           >
-                            {availableVistorias.map((v) => (
-                              <option key={v.id} value={v.id}>
-                                📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} | Vistoriador: {v.vistoriadorNome || "N/I"} {v.locatario?.nome ? `• Locatário: ${v.locatario.nome}` : ""}
-                              </option>
-                            ))}
+                            {availableVistorias.map((v) => {
+                              const isThisLoc = locatarioId && (v.locatarioId === locatarioId || v.locatario?.id === locatarioId);
+                              return (
+                                <option key={v.id} value={v.id}>
+                                  📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} {isThisLoc ? "★ [Locatário Selecionado]" : ""} {v.locatario?.nome ? `• Locatário: ${v.locatario.nome}` : ""} (Flat {v.flat?.numero})
+                                </option>
+                              );
+                            })}
                             <option value="none">-- Não vincular nenhuma vistoria agora --</option>
                           </select>
                         </div>

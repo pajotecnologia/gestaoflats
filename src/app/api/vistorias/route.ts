@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   const flatId = searchParams.get("flatId");
   const locatarioId = searchParams.get("locatarioId");
   const tipoVistoria = searchParams.get("tipoVistoria");
+  const flatOuLocatario = searchParams.get("flatOuLocatario") === "true";
   const statusAssinatura = searchParams.get("statusAssinatura");
   const apenasDisponiveis = searchParams.get("apenasDisponiveis") === "true";
   const search = searchParams.get("search");
@@ -22,12 +23,18 @@ export async function GET(request: NextRequest) {
       empresaId: session.empresaId,
     };
 
-    if (flatId) {
-      whereClause.flatId = flatId;
-    }
-
-    if (locatarioId) {
-      whereClause.locatarioId = locatarioId;
+    if (flatOuLocatario && flatId && locatarioId) {
+      whereClause.OR = [
+        { flatId: flatId },
+        { locatarioId: locatarioId },
+      ];
+    } else {
+      if (flatId) {
+        whereClause.flatId = flatId;
+      }
+      if (locatarioId) {
+        whereClause.locatarioId = locatarioId;
+      }
     }
 
     if (tipoVistoria && tipoVistoria !== "TODOS") {
@@ -138,6 +145,20 @@ export async function POST(request: NextRequest) {
         empresa: true,
       },
     });
+
+    if (contratoId) {
+      if (tipoVistoria === "ENTRADA") {
+        await prisma.contrato.update({
+          where: { id: contratoId },
+          data: { anexoChecklistEntrada: itensJsonPayload },
+        }).catch(() => {});
+      } else if (tipoVistoria === "SAIDA") {
+        await prisma.contrato.update({
+          where: { id: contratoId },
+          data: { anexoChecklistSaida: itensJsonPayload },
+        }).catch(() => {});
+      }
+    }
 
     return NextResponse.json({
       success: true,

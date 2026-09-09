@@ -22,6 +22,10 @@ import {
   Check,
   Share2,
   ExternalLink,
+  XCircle,
+  Link2,
+  ShieldAlert,
+  PlusCircle,
 } from "lucide-react";
 
 export interface ParcelaItem {
@@ -95,6 +99,23 @@ export default function GridMeses({
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [targetTipoVistoria, setTargetTipoVistoria] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
 
+  // Modal de Encerramento do Contrato
+  const [showEncerrarModal, setShowEncerrarModal] = useState(false);
+  const [vistoriasSaidaParaEncerramento, setVistoriasSaidaParaEncerramento] = useState<any[]>([]);
+  const [selectedVistoriaSaidaId, setSelectedVistoriaSaidaId] = useState<string>("");
+  const [cancelarParcelasFuturas, setCancelarParcelasFuturas] = useState(true);
+  const [motivoEncerramento, setMotivoEncerramento] = useState("Término de vigência / Devolução de chaves");
+  const [loadingEncerramento, setLoadingEncerramento] = useState(false);
+  const [loadingVistoriasSaida, setLoadingVistoriasSaida] = useState(false);
+
+  // Modal de Vincular Vistoria Existente
+  const [showVincularModal, setShowVincularModal] = useState(false);
+  const [vincularTipo, setVincularTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
+  const [vistoriasParaVincular, setVistoriasParaVincular] = useState<any[]>([]);
+  const [selectedVistoriaIdParaVincular, setSelectedVistoriaIdParaVincular] = useState<string>("");
+  const [loadingVistoriasVincular, setLoadingVistoriasVincular] = useState(false);
+  const [loadingSalvarVinculo, setLoadingSalvarVinculo] = useState(false);
+
   const [activeToken, setActiveToken] = useState<string | null>(tokenAssinatura || null);
   const [generatingToken, setGeneratingToken] = useState(false);
   const [showLinkBox, setShowLinkBox] = useState(false);
@@ -138,6 +159,136 @@ export default function GridMeses({
   const handleOpenVistoriaModal = (tipo: "ENTRADA" | "SAIDA") => {
     setTargetTipoVistoria(tipo);
     setShowChecklistModal(true);
+  };
+
+  const handleAbrirModalEncerramento = async () => {
+    setShowEncerrarModal(true);
+    setLoadingVistoriasSaida(true);
+    try {
+      let url = `/api/vistorias?tipoVistoria=SAIDA&apenasDisponiveis=true`;
+      if (flatId && locatarioId) {
+        url += `&flatId=${flatId}&locatarioId=${locatarioId}&flatOuLocatario=true`;
+      } else if (flatId) {
+        url += `&flatId=${flatId}`;
+      } else if (locatarioId) {
+        url += `&locatarioId=${locatarioId}`;
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = data.vistorias || [];
+      setVistoriasSaidaParaEncerramento(list);
+
+      if (vistoriaSaida?.id) {
+        setSelectedVistoriaSaidaId(vistoriaSaida.id);
+      } else if (list.length > 0) {
+        const preferred = list.find((v: any) => v.statusAssinatura?.includes("ASSINADO")) || list[0];
+        setSelectedVistoriaSaidaId(preferred.id);
+      } else {
+        setSelectedVistoriaSaidaId("none");
+      }
+    } catch (e) {
+      setVistoriasSaidaParaEncerramento([]);
+      setSelectedVistoriaSaidaId("none");
+    } finally {
+      setLoadingVistoriasSaida(false);
+    }
+  };
+
+  const handleConfirmarEncerramento = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingEncerramento(true);
+    try {
+      const res = await fetch("/api/contratos/encerrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contratoId,
+          vistoriaSaidaId: selectedVistoriaSaidaId !== "none" ? selectedVistoriaSaidaId : null,
+          cancelarParcelasPendentes: cancelarParcelasFuturas,
+          motivo: motivoEncerramento,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("✅ Contrato encerrado com sucesso!\nO imóvel foi liberado e o status foi atualizado para DISPONÍVEL.");
+        setShowEncerrarModal(false);
+        if (onBaixaSucesso) onBaixaSucesso();
+      } else {
+        alert(data.error || "Erro ao encerrar contrato.");
+      }
+    } catch (err: any) {
+      alert("Erro ao encerrar contrato: " + (err.message || err));
+    } finally {
+      setLoadingEncerramento(false);
+    }
+  };
+
+  const handleAbrirModalVincular = async (tipo: "ENTRADA" | "SAIDA") => {
+    setVincularTipo(tipo);
+    setShowVincularModal(true);
+    setLoadingVistoriasVincular(true);
+    try {
+      let url = `/api/vistorias?tipoVistoria=${tipo}&apenasDisponiveis=true`;
+      if (flatId && locatarioId) {
+        url += `&flatId=${flatId}&locatarioId=${locatarioId}&flatOuLocatario=true`;
+      } else if (flatId) {
+        url += `&flatId=${flatId}`;
+      } else if (locatarioId) {
+        url += `&locatarioId=${locatarioId}`;
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = data.vistorias || [];
+      setVistoriasParaVincular(list);
+      if (list.length > 0) {
+        const preferred = list.find((v: any) => v.locatarioId === locatarioId) || list[0];
+        setSelectedVistoriaIdParaVincular(preferred.id);
+      } else {
+        setSelectedVistoriaIdParaVincular("");
+      }
+    } catch (e) {
+      setVistoriasParaVincular([]);
+      setSelectedVistoriaIdParaVincular("");
+    } finally {
+      setLoadingVistoriasVincular(false);
+    }
+  };
+
+  const handleSalvarVinculo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVistoriaIdParaVincular) {
+      alert("Selecione uma vistoria para vincular.");
+      return;
+    }
+
+    setLoadingSalvarVinculo(true);
+    try {
+      const res = await fetch("/api/contratos/vincular-vistoria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contratoId,
+          vistoriaId: selectedVistoriaIdParaVincular,
+          tipoVistoria: vincularTipo,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("✅ Vistoria vinculada com sucesso ao contrato!");
+        setShowVincularModal(false);
+        if (onBaixaSucesso) onBaixaSucesso();
+      } else {
+        alert(data.error || "Erro ao vincular vistoria.");
+      }
+    } catch (err: any) {
+      alert("Erro ao vincular vistoria: " + (err.message || err));
+    } finally {
+      setLoadingSalvarVinculo(false);
+    }
   };
 
   const contractPublicUrl = activeToken
@@ -415,11 +566,15 @@ export default function GridMeses({
               {/* 1. Status Vistoria de Entrada */}
               {vistoriaEntrada?.statusAssinatura?.includes("ASSINADO") ? (
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1">
-                  <span>1.</span> <span>✓ Vistoria Assinada</span>
+                  <span>1.</span> <span>✓ Vistoria Entrada Assinada</span>
+                </span>
+              ) : vistoriaEntrada ? (
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex items-center gap-1">
+                  <span>1.</span> <span>Vistoria Entrada Pendente</span>
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1">
-                  <span>1.</span> <span>Vistoria Pendente</span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold flex items-center gap-1">
+                  <span>1.</span> <span>Sem Vistoria Entrada</span>
                 </span>
               )}
 
@@ -433,6 +588,17 @@ export default function GridMeses({
                   <span>2.</span> <span>Aguardando Assinatura</span>
                 </span>
               )}
+
+              {/* 3. Status Encerramento / Status Geral */}
+              {contratoCompleto?.status === "FINALIZADO" ? (
+                <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[10px] font-extrabold flex items-center gap-1">
+                  <span>🏁 Contrato Encerrado</span>
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold flex items-center gap-1">
+                  <span>🟢 Ativo</span>
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               CPF: {locatarioCpf} • {flatNumero} •{" "}
@@ -443,34 +609,48 @@ export default function GridMeses({
           </div>
         </div>
 
-        {/* BOTOES DE ACAO DO CONTRATO E VISTORIAS (ORDEM: 1. VISTORIA ENTRADA -> 2. CONTRATO -> 3. VISTORIA SAIDA) */}
+        {/* BOTOES DE ACAO DO CONTRATO E VISTORIAS */}
         <div className="flex flex-col sm:items-end gap-1.5 flex-shrink-0">
           {/* LINHA 1: 1. VISTORIA DE ENTRADA */}
-          <button
-            onClick={() => {
-              if (vistoriaEntrada?.laudoImpressoUrl) {
-                handleVisualizarDocumentoAssinado(vistoriaEntrada.laudoImpressoUrl);
-              } else if (vistoriaEntrada?.tokenAssinatura && vistoriaEntrada.statusAssinatura === "ASSINADO") {
-                handleVisualizarDocumentoAssinado(`/assinar/vistoria/${vistoriaEntrada.tokenAssinatura}`);
-              } else {
-                handleOpenVistoriaModal("ENTRADA");
-              }
-            }}
-            className={`py-1 px-3 rounded-lg text-xs font-semibold flex items-center space-x-1.5 border transition w-full sm:w-auto justify-center sm:justify-start ${
-              vistoriaEntrada
-                ? vistoriaEntrada.statusAssinatura?.includes("ASSINADO")
-                  ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-                  : "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300"
-                : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
-            }`}
-          >
-            <ClipboardCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>
-              {vistoriaEntrada
-                ? `1. Vistoria Entrada (${vistoriaEntrada.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
-                : "1. 🟢 Vistoria Entrada"}
-            </span>
-          </button>
+          <div className="flex items-center gap-1 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                if (vistoriaEntrada?.laudoImpressoUrl) {
+                  handleVisualizarDocumentoAssinado(vistoriaEntrada.laudoImpressoUrl);
+                } else if (vistoriaEntrada?.tokenAssinatura && vistoriaEntrada.statusAssinatura === "ASSINADO") {
+                  handleVisualizarDocumentoAssinado(`/assinar/vistoria/${vistoriaEntrada.tokenAssinatura}`);
+                } else {
+                  handleOpenVistoriaModal("ENTRADA");
+                }
+              }}
+              className={`py-1 px-3 rounded-lg text-xs font-semibold flex items-center space-x-1.5 border transition flex-1 sm:flex-initial justify-center sm:justify-start ${
+                vistoriaEntrada
+                  ? vistoriaEntrada.statusAssinatura?.includes("ASSINADO")
+                    ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                    : "bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300"
+                  : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <ClipboardCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>
+                {vistoriaEntrada
+                  ? `1. Vistoria Entrada (${vistoriaEntrada.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
+                  : "1. 🟢 Nova Vistoria Entrada"}
+              </span>
+            </button>
+
+            {!vistoriaEntrada && (
+              <button
+                type="button"
+                onClick={() => handleAbrirModalVincular("ENTRADA")}
+                className="p-1 px-2 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-bold flex items-center gap-1 transition"
+                title="Vincular Vistoria de Entrada Existente"
+              >
+                <Link2 className="w-3 h-3" />
+                <span>Vincular</span>
+              </button>
+            )}
+          </div>
 
           {/* LINHA 2: 2. CONTRATO DE LOCAÇÃO */}
           {statusAssinatura === "ASSINADO" && activeToken ? (
@@ -492,32 +672,58 @@ export default function GridMeses({
             </button>
           )}
 
-          {/* LINHA 3: 3. VISTORIA DE SAÍDA */}
-          <button
-            onClick={() => {
-              if (vistoriaSaida?.laudoImpressoUrl) {
-                handleVisualizarDocumentoAssinado(vistoriaSaida.laudoImpressoUrl);
-              } else if (vistoriaSaida?.tokenAssinatura && vistoriaSaida.statusAssinatura === "ASSINADO") {
-                handleVisualizarDocumentoAssinado(`/assinar/vistoria/${vistoriaSaida.tokenAssinatura}`);
-              } else {
-                handleOpenVistoriaModal("SAIDA");
-              }
-            }}
-            className={`py-1 px-3 rounded-lg text-xs font-semibold flex items-center space-x-1.5 border transition w-full sm:w-auto justify-center sm:justify-start ${
-              vistoriaSaida
-                ? vistoriaSaida.statusAssinatura?.includes("ASSINADO")
-                  ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-                  : "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300"
-                : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
-            }`}
-          >
-            <ClipboardCheck className="w-3.5 h-3.5 text-amber-500" />
-            <span>
-              {vistoriaSaida
-                ? `3. Vistoria Saída (${vistoriaSaida.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
-                : "3. 🔴 Vistoria Saída"}
-            </span>
-          </button>
+          {/* LINHA 3: 3. VISTORIA DE SAÍDA & ENCERRAMENTO */}
+          <div className="flex items-center gap-1 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                if (vistoriaSaida?.laudoImpressoUrl) {
+                  handleVisualizarDocumentoAssinado(vistoriaSaida.laudoImpressoUrl);
+                } else if (vistoriaSaida?.tokenAssinatura && vistoriaSaida.statusAssinatura === "ASSINADO") {
+                  handleVisualizarDocumentoAssinado(`/assinar/vistoria/${vistoriaSaida.tokenAssinatura}`);
+                } else {
+                  handleOpenVistoriaModal("SAIDA");
+                }
+              }}
+              className={`py-1 px-3 rounded-lg text-xs font-semibold flex items-center space-x-1.5 border transition flex-1 sm:flex-initial justify-center sm:justify-start ${
+                vistoriaSaida
+                  ? vistoriaSaida.statusAssinatura?.includes("ASSINADO")
+                    ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                    : "bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300"
+                  : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              <ClipboardCheck className="w-3.5 h-3.5 text-amber-500" />
+              <span>
+                {vistoriaSaida
+                  ? `3. Vistoria Saída (${vistoriaSaida.statusAssinatura?.includes("ASSINADO") ? "✓ Ver Assinado" : "⌛ Pendente"})`
+                  : "3. 🔴 Nova Vistoria Saída"}
+              </span>
+            </button>
+
+            {!vistoriaSaida && (
+              <button
+                type="button"
+                onClick={() => handleAbrirModalVincular("SAIDA")}
+                className="p-1 px-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold flex items-center gap-1 transition"
+                title="Vincular Vistoria de Saída Existente"
+              >
+                <Link2 className="w-3 h-3" />
+                <span>Vincular</span>
+              </button>
+            )}
+          </div>
+
+          {/* LINHA 4: ENCERRAMENTO DE CONTRATO */}
+          {contratoCompleto?.status !== "FINALIZADO" && (
+            <button
+              type="button"
+              onClick={handleAbrirModalEncerramento}
+              className="py-1 px-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center space-x-1.5 transition shadow-xs w-full sm:w-auto justify-center sm:justify-start mt-0.5"
+            >
+              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+              <span>Encerrar Contrato / Desocupar</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -736,6 +942,222 @@ export default function GridMeses({
           empresaData={empresaData}
           onClose={() => setShowChecklistModal(false)}
         />
+      )}
+
+      {/* Modal de Encerramento do Contrato */}
+      {showEncerrarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Encerramento de Contrato
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {locatarioNome} • {flatNumero}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEncerrarModal(false)}
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-200 text-xs space-y-1">
+              <p className="font-bold flex items-center gap-1">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Atenção ao Encerrar a Locação:</span>
+              </p>
+              <p className="text-[11px] leading-relaxed">
+                Ao finalizar o contrato, o status do imóvel será automaticamente alterado para <strong>DISPONÍVEL</strong> e o contrato será arquivado como <strong>FINALIZADO</strong>.
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmarEncerramento} className="space-y-4">
+              {/* Selecionar Vistoria de Saída */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Selecionar Vistoria de Saída (Desocupação):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEncerrarModal(false);
+                      handleOpenVistoriaModal("SAIDA");
+                    }}
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    <PlusCircle className="w-3 h-3" />
+                    <span>Nova Vistoria de Saída</span>
+                  </button>
+                </div>
+
+                {loadingVistoriasSaida ? (
+                  <div className="p-3 text-xs text-slate-500 bg-slate-50 dark:bg-slate-950 rounded-xl border">
+                    Carregando vistorias de saída disponíveis...
+                  </div>
+                ) : (
+                  <select
+                    value={selectedVistoriaSaidaId}
+                    onChange={(e) => setSelectedVistoriaSaidaId(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                  >
+                    {vistoriasSaidaParaEncerramento.map((v) => {
+                      const isThisLoc = locatarioId && (v.locatarioId === locatarioId || v.locatario?.id === locatarioId);
+                      return (
+                        <option key={v.id} value={v.id}>
+                          📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} {isThisLoc ? "★ [Locatário]" : ""} | Vistoriador: {v.responsavelVistoria || "N/I"} (Flat {v.flat?.numero})
+                        </option>
+                      );
+                    })}
+                    <option value="none">-- Sem Vistoria de Saída (Não vincular laudo) --</option>
+                  </select>
+                )}
+              </div>
+
+              {/* Motivo do Encerramento */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Motivo / Observações do Encerramento
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={motivoEncerramento}
+                  onChange={(e) => setMotivoEncerramento(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                  placeholder="Ex: Término de vigência contratual / Entrega de chaves"
+                />
+              </div>
+
+              {/* Checkbox cancelar parcelas pendentes */}
+              <label className="flex items-center space-x-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={cancelarParcelasFuturas}
+                  onChange={(e) => setCancelarParcelasFuturas(e.target.checked)}
+                  className="rounded border-slate-300 bg-slate-50 dark:bg-slate-950 text-rose-600 focus:ring-rose-500"
+                />
+                <span>Cancelar parcelas pendentes futuras deste contrato</span>
+              </label>
+
+              <div className="flex items-center space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEncerrarModal(false)}
+                  className="w-1/3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingEncerramento}
+                  className="w-2/3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-md flex items-center justify-center space-x-1.5 transition"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>{loadingEncerramento ? "Encerrando..." : "Confirmar e Liberar Imóvel"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Vincular Vistoria Existente */}
+      {showVincularModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Link2 className="w-5 h-5 text-blue-600" />
+                <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  Vincular Vistoria de {vincularTipo} Existente
+                </h4>
+              </div>
+              <button
+                onClick={() => setShowVincularModal(false)}
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Selecione uma vistoria de <strong>{vincularTipo}</strong> realizada para o Flat <strong>{flatNumero}</strong> ou Locatário <strong>{locatarioNome}</strong> para vincular a este contrato.
+            </p>
+
+            <form onSubmit={handleSalvarVinculo} className="space-y-4">
+              {loadingVistoriasVincular ? (
+                <div className="p-4 text-center text-xs text-slate-500">
+                  Buscando vistorias de {vincularTipo} disponíveis...
+                </div>
+              ) : vistoriasParaVincular.length === 0 ? (
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border text-center space-y-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                    Nenhuma vistoria de {vincularTipo} disponível encontrada para este imóvel/locatário.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowVincularModal(false);
+                      handleOpenVistoriaModal(vincularTipo);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                  >
+                    + Criar Nova Vistoria de {vincularTipo} Agora
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Vistorias Disponíveis ({vistoriasParaVincular.length}):
+                  </label>
+                  <select
+                    required
+                    value={selectedVistoriaIdParaVincular}
+                    onChange={(e) => setSelectedVistoriaIdParaVincular(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                  >
+                    {vistoriasParaVincular.map((v) => {
+                      const isThisLoc = locatarioId && (v.locatarioId === locatarioId || v.locatario?.id === locatarioId);
+                      return (
+                        <option key={v.id} value={v.id}>
+                          📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} {isThisLoc ? "★ [Locatário]" : ""} | Vistoriador: {v.responsavelVistoria || "N/I"} (Flat {v.flat?.numero})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowVincularModal(false)}
+                  className="w-1/3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingSalvarVinculo || vistoriasParaVincular.length === 0}
+                  className="w-2/3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold shadow-md flex items-center justify-center space-x-1.5 transition"
+                >
+                  <Link2 className="w-4 h-4" />
+                  <span>{loadingSalvarVinculo ? "Vinculando..." : "Confirmar Vínculo"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
