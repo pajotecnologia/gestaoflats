@@ -656,8 +656,13 @@ export default function ContasReceberPage() {
                     return (
                       <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                         <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-200">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <span>{c.locatario?.nome || "Locatário"}</span>
+                            {c.numeroParcela === 0 && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                                <span>🛡️ Depósito Caução</span>
+                              </span>
+                            )}
                             {temInter && (
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60 flex items-center space-x-1" title={`Inter ID: ${c.bancoInterCodigoSolicitacao}`}>
                                 <Zap className="w-2.5 h-2.5 text-orange-500" />

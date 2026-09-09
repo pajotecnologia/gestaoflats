@@ -489,15 +489,18 @@ export default function FlatsPage() {
                                   </div>
 
                                   {flat.proprietario ? (
-                                    <div className="mt-1 flex items-center gap-1">
-                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-medium truncate max-w-[180px]" title={`Proprietário: ${flat.proprietario.nome}`}>
-                                        👤 {flat.proprietario.nome} ({flat.taxaAdministracao ?? 10}%)
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-semibold truncate max-w-[180px]" title={`Proprietário: ${flat.proprietario.nome}`}>
+                                        👤 {flat.proprietario.nome}
+                                      </span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-bold" title={`Taxa de Gestão Empresa: ${flat.taxaAdministracao ?? 10}% | Repasse Proprietário: ${100 - (flat.taxaAdministracao ?? 10)}%`}>
+                                        💰 Repasse: {100 - (flat.taxaAdministracao ?? 10)}% (Adm: {flat.taxaAdministracao ?? 10}%)
                                       </span>
                                     </div>
                                   ) : (
                                     <div className="mt-1 flex items-center gap-1">
-                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/60 text-slate-500 font-medium">
-                                        🏢 Imóvel Próprio
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 font-medium">
+                                        🏢 Imóvel Próprio (100%)
                                       </span>
                                     </div>
                                   )}
@@ -748,13 +751,16 @@ export default function FlatsPage() {
                       <strong className="text-amber-700 dark:text-amber-400 block truncate" title={selectedDetailFlat.proprietario.nome}>
                         👤 {selectedDetailFlat.proprietario.nome}
                       </strong>
-                      <span className="text-[10px] text-slate-500">
-                        Taxa: {selectedDetailFlat.taxaAdministracao ?? 10}%
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block">
+                        Repasse: {100 - (selectedDetailFlat.taxaAdministracao ?? 10)}%
+                      </span>
+                      <span className="text-[10px] text-slate-500 block">
+                        Taxa Adm: {selectedDetailFlat.taxaAdministracao ?? 10}%
                       </span>
                     </div>
                   ) : (
                     <div>
-                      <strong className="text-slate-700 dark:text-slate-300 block">🏢 Próprio</strong>
+                      <strong className="text-slate-700 dark:text-slate-300 block">🏢 Imóvel Próprio (100%)</strong>
                       <span className="text-[10px] text-slate-500">Empresa Gestora</span>
                     </div>
                   )}

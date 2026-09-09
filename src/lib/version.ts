@@ -1,4 +1,4 @@
-export const SYSTEM_VERSION = "v1.61";
+export const SYSTEM_VERSION = "v1.62";
 export const SYSTEM_BUILD_DATE = "2026-09-09";
-export const SYSTEM_CHANGELOG = "Versão 1.61: Gestão integrada de vistorias nos contratos com seleção automática/manual de vistorias de entrada e saída por locatário e flat, vinculação retroativa e fluxo completo de encerramento de contrato com liberação do imóvel e cancelamento de parcelas pendentes.";
+export const SYSTEM_CHANGELOG = "Versão 1.62: Correção do carregamento de proprietários terceiros no grid de flats/condomínios com exibição clara dos percentuais de repasse e taxa de gestão, além de detalhamento visual do depósito caução no Contas a Receber e na linha do tempo contratual.";
 

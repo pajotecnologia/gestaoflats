@@ -14,6 +14,9 @@ export async function GET() {
       where: { empresaId: session.empresaId },
       include: {
         flats: {
+          include: {
+            proprietario: true,
+          },
           orderBy: { numero: "asc" },
         },
       },

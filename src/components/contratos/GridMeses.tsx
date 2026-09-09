@@ -785,7 +785,9 @@ export default function GridMeses({
                     : "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/50 text-amber-800 dark:text-amber-300 hover:bg-amber-100"
                 }`}
               >
-                <span className="text-[10px] opacity-75 font-normal">#{p.numeroParcela}</span>
+                <span className="text-[10px] opacity-75 font-normal">
+                  {p.numeroParcela === 0 ? "🛡️ Caução" : `#${p.numeroParcela}`}
+                </span>
                 <span className="text-xs font-bold my-0.5">{getMonthAbbrev(p.mesReferencia)}</span>
 
                 <div className="flex items-center space-x-1 mt-1 text-[10px]">
@@ -819,7 +821,9 @@ export default function GridMeses({
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Mês {getMonthAbbrev(selectedParcela.mesReferencia)} - Parcela #{selectedParcela.numeroParcela}
+                  {selectedParcela.numeroParcela === 0
+                    ? "🛡️ Depósito Caução - Garantia Locatícia"
+                    : `Mês ${getMonthAbbrev(selectedParcela.mesReferencia)} - Parcela #${selectedParcela.numeroParcela}`}
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {locatarioNome} • {flatNumero}
