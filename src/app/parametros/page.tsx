@@ -157,7 +157,7 @@ function ParametrosContent() {
   const [testingSmtp, setTestingSmtp] = useState(false);
 
   // Estados do SaaS & Assinaturas
-  const [saasSubTab, setSaasSubTab] = useState<"empresas" | "config">("empresas");
+  const [saasSubTab, setSaasSubTab] = useState<"empresas" | "planos" | "config">("empresas");
   const [saasDiasTrial, setSaasDiasTrial] = useState(7);
   const [saasChavePix, setSaasChavePix] = useState("contato@pajotech.com.br");
   const [saasTipoPix, setSaasTipoPix] = useState("EMAIL");
@@ -172,6 +172,12 @@ function ParametrosContent() {
   const [saasEmailAdmin, setSaasEmailAdmin] = useState("pajotecnologia@gmail.com");
   const [saasMsgAviso, setSaasMsgAviso] = useState("");
   const [savingSaasConfig, setSavingSaasConfig] = useState(false);
+
+  // Gestão Dinâmica dos Planos SaaS (Limites e Preços)
+  const [saasPlanos, setSaasPlanos] = useState<Record<string, any>>({});
+  const [loadingPlanos, setLoadingPlanos] = useState(false);
+  const [salvandoPlanos, setSalvandoPlanos] = useState(false);
+  const [hasCustomPlanos, setHasCustomPlanos] = useState(false);
 
   // Gestão de Empresas
   const [empresasSaaS, setEmpresasSaaS] = useState<any[]>([]);
@@ -190,6 +196,68 @@ function ParametrosContent() {
 
   const [savingAll, setSavingAll] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
+
+  const carregarPlanosSaaS = async () => {
+    setLoadingPlanos(true);
+    try {
+      const res = await fetch("/api/saas/planos");
+      const data = await res.json();
+      if (res.ok && data.planos) {
+        setSaasPlanos(data.planos);
+        setHasCustomPlanos(data.hasCustomConfig);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingPlanos(false);
+    }
+  };
+
+  const handleSalvarPlanosSaaS = async () => {
+    setSalvandoPlanos(true);
+    try {
+      const res = await fetch("/api/saas/planos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planos: saasPlanos }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ Limites e preços dos planos salvos com sucesso no sistema!");
+        setHasCustomPlanos(true);
+      } else {
+        alert(data.error || "Erro ao salvar planos.");
+      }
+    } catch (err) {
+      alert("Erro ao conectar com o servidor.");
+    } finally {
+      setSalvandoPlanos(false);
+    }
+  };
+
+  const handleRestaurarPlanosPadrao = async () => {
+    if (!window.confirm("Deseja restaurar as configurações padrão de fábrica para todos os planos SaaS?")) return;
+    setSalvandoPlanos(true);
+    try {
+      const res = await fetch("/api/saas/planos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ Planos restaurados para a configuração padrão de fábrica!");
+        setSaasPlanos(data.planos);
+        setHasCustomPlanos(false);
+      } else {
+        alert(data.error || "Erro ao restaurar.");
+      }
+    } catch (err) {
+      alert("Erro ao conectar com o servidor.");
+    } finally {
+      setSalvandoPlanos(false);
+    }
+  };
 
   const loadSaasConfig = async () => {
     try {
@@ -210,6 +278,7 @@ function ParametrosContent() {
         setSaasEmailAdmin(data.config.emailNotificacaoAdmin || "pajotecnologia@gmail.com");
         setSaasMsgAviso(data.config.mensagemAvisoWhatsApp || "");
       }
+      carregarPlanosSaaS();
     } catch (e) {
       console.error(e);
     }
@@ -2016,8 +2085,8 @@ function ParametrosContent() {
         {activeTab === "saas" && isSuperAdmin && (
           <div className="space-y-6">
             {/* Sub-navegação interna da aba SaaS */}
-            <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-2xl">
-              <div className="flex space-x-2">
+            <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-2xl flex-wrap gap-2">
+              <div className="flex space-x-2 flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => setSaasSubTab("empresas")}
@@ -2029,6 +2098,22 @@ function ParametrosContent() {
                 >
                   <Building2 className="w-4 h-4" />
                   <span>🏢 Empresas & Assinaturas ({empresasSaaS.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaasSubTab("planos");
+                    if (Object.keys(saasPlanos).length === 0) carregarPlanosSaaS();
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+                    saasSubTab === "planos"
+                      ? "bg-amber-600 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>📦 Gestão de Planos, Limites & Preços</span>
                 </button>
 
                 <button
@@ -2402,11 +2487,331 @@ function ParametrosContent() {
                     </table>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-ABA 2: GESTÃO DE PLANOS, LIMITES E PREÇOS */}
+          {saasSubTab === "planos" && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs">
+                  <div>
+                    <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>Matriz de Planos, Limites & Preços do SaaS</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Defina os limites de imóveis, usuários, assinaturas digitais, repasses e preços cobrados em cada plano. Todas as alterações têm efeito imediato no sistema.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleRestaurarPlanosPadrao}
+                      disabled={salvandoPlanos}
+                      className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+                    >
+                      Restaurar Padrões
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSalvarPlanosSaaS}
+                      disabled={salvandoPlanos}
+                      className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{salvandoPlanos ? "Salvando..." : "Salvar Configurações dos Planos"}</span>
+                    </button>
+                  </div>
                 </div>
+
+                {loadingPlanos ? (
+                  <div className="text-center py-12 text-xs text-slate-500">Carregando dados dos planos...</div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL"].map((slug) => {
+                      const p = saasPlanos[slug] || {};
+                      const limits = p.limits || {};
+                      const features = p.features || {};
+
+                      const updatePlan = (field: string, val: any) => {
+                        setSaasPlanos((prev) => ({
+                          ...prev,
+                          [slug]: {
+                            ...prev[slug],
+                            [field]: val,
+                          },
+                        }));
+                      };
+
+                      const updateLimit = (field: string, val: any) => {
+                        setSaasPlanos((prev) => ({
+                          ...prev,
+                          [slug]: {
+                            ...prev[slug],
+                            limits: {
+                              ...(prev[slug]?.limits || {}),
+                              [field]: Number(val),
+                            },
+                          },
+                        }));
+                      };
+
+                      const updateFeature = (field: string, val: any) => {
+                        setSaasPlanos((prev) => ({
+                          ...prev,
+                          [slug]: {
+                            ...prev[slug],
+                            features: {
+                              ...(prev[slug]?.features || {}),
+                              [field]: val,
+                            },
+                          },
+                        }));
+                      };
+
+                      return (
+                        <div
+                          key={slug}
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-xs"
+                        >
+                          {/* Topo do Card do Plano */}
+                          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                            <div className="flex items-center space-x-2">
+                              <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                                {slug}
+                              </span>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={p.name || ""}
+                                  onChange={(e) => updatePlan("name", e.target.value)}
+                                  className="font-bold text-sm text-slate-900 dark:text-slate-100 bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 px-1 py-0.5"
+                                  placeholder="Nome do Plano"
+                                />
+                              </div>
+                            </div>
+
+                            <input
+                              type="text"
+                              value={p.badge || ""}
+                              onChange={(e) => updatePlan("badge", e.target.value)}
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-center max-w-[130px]"
+                              placeholder="Badge (opcional)"
+                            />
+                          </div>
+
+                          {/* Bloco 1: Preços */}
+                          <div className="space-y-2">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                              💰 Tabela de Preços (R$)
+                            </span>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">Preço Mensal (R$)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={p.priceMonthly ?? 0}
+                                  onChange={(e) => updatePlan("priceMonthly", parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">Equiv. Mensal no Anual</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={p.priceYearlyMonthlyEquivalent ?? 0}
+                                  onChange={(e) => updatePlan("priceYearlyMonthlyEquivalent", parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">Preço Anual Total (R$)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={p.priceYearlyTotal ?? 0}
+                                  onChange={(e) => updatePlan("priceYearlyTotal", parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bloco 2: Limites Numéricos de Capacidade */}
+                          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                              📊 Limites de Capacidade & Quotas
+                            </span>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">🏢 Imóveis / Flats</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={limits.maxProperties ?? 1}
+                                  onChange={(e) => updateLimit("maxProperties", e.target.value)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">👥 Usuários / Equipe</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={limits.maxUsers ?? 1}
+                                  onChange={(e) => updateLimit("maxUsers", e.target.value)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">✍️ Assinaturas / Mês</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={limits.maxSignaturesPerMonth ?? 5}
+                                  onChange={(e) => updateLimit("maxSignaturesPerMonth", e.target.value)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">💾 Armazenamento (GB)</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={limits.maxStorageGB ?? 2}
+                                  onChange={(e) => updateLimit("maxStorageGB", e.target.value)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">🤝 Proprietários / Repasses</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={limits.maxOwners ?? 0}
+                                  onChange={(e) => updateLimit("maxOwners", e.target.value)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">📱 Disparos WhatsApp / Mês</label>
+                                <input
+                                  type="number"
+                                  min="10"
+                                  value={limits.maxWhatsAppMessagesPerMonth ?? 150}
+                                  onChange={(e) => updateLimit("maxWhatsAppMessagesPerMonth", e.target.value)}
+                                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Bloco 3: Recursos & Suporte */}
+                          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                              ⚙️ Recursos & Nível de Suporte
+                            </span>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(features.gestaoProprietarios)}
+                                  onChange={(e) => updateFeature("gestaoProprietarios", e.target.checked)}
+                                  className="rounded text-amber-600"
+                                />
+                                <span className="text-slate-700 dark:text-slate-300">Gestão de Proprietários</span>
+                              </label>
+
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(features.repassesAutomaticos)}
+                                  onChange={(e) => updateFeature("repassesAutomaticos", e.target.checked)}
+                                  className="rounded text-amber-600"
+                                />
+                                <span className="text-slate-700 dark:text-slate-300">Repasses Automáticos</span>
+                              </label>
+
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(features.boletosInterBolepix)}
+                                  onChange={(e) => updateFeature("boletosInterBolepix", e.target.checked)}
+                                  className="rounded text-amber-600"
+                                />
+                                <span className="text-slate-700 dark:text-slate-300">Boletos Bolepix Inter</span>
+                              </label>
+
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(features.vistoriasComFotos)}
+                                  onChange={(e) => updateFeature("vistoriasComFotos", e.target.checked)}
+                                  className="rounded text-amber-600"
+                                />
+                                <span className="text-slate-700 dark:text-slate-300">Vistorias com Câmera</span>
+                              </label>
+                            </div>
+
+                            <div className="pt-2">
+                              <label className="block text-[10px] text-slate-500 mb-0.5">Nível de Suporte</label>
+                              <select
+                                value={features.suporteNivel || "PADRAO"}
+                                onChange={(e) => updateFeature("suporteNivel", e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                              >
+                                <option value="PADRAO">WhatsApp Padrão</option>
+                                <option value="PRIORITARIO">Suporte Prioritário</option>
+                                <option value="GERENTE_CONTA">Gerente de Conta Dedicado</option>
+                                <option value="SLA_DEDICADO">SLA 24/7 Dedicado</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Bloco 4: Descrição e Recomendado Para */}
+                          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                            <div>
+                              <label className="block text-[10px] text-slate-500 mb-0.5">Descrição do Plano</label>
+                              <input
+                                type="text"
+                                value={p.description || ""}
+                                onChange={(e) => updatePlan("description", e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-slate-100"
+                                placeholder="Descrição..."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-slate-500 mb-0.5">Ideal Para (Recomendação)</label>
+                              <input
+                                type="text"
+                                value={p.idealPara || ""}
+                                onChange={(e) => updatePlan("idealPara", e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-slate-100"
+                                placeholder="Ex: Investidores com até 10 flats..."
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* SUB-ABA 2: CONFIGURAÇÃO GLOBAL DO SAAS */}
+            {/* SUB-ABA 3: CONFIGURAÇÃO GLOBAL DO SAAS */}
             {saasSubTab === "config" && (
               <form onSubmit={handleSaveSaasConfig} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 text-xs">
                 <div className="border-b border-slate-200 dark:border-slate-800 pb-3">

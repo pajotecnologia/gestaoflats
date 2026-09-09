@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatMesReferencia } from "./validation";
 
 /**
  * Sincroniza e calcula automaticamente os repasses aos proprietários
@@ -110,7 +111,7 @@ export async function sincronizarRepassesEmpresa(empresaId: string, mesReferenci
             observacoes:
               p.status === "PAGO"
                 ? `Repasse calculado a partir do pagamento recebido (${p.formaPagamento || "PIX"})`
-                : `Repasse previsto para o aluguel Ref: ${mes}`,
+                : `Repasse previsto para o aluguel Ref: ${formatMesReferencia(mes)}`,
           },
         });
       }

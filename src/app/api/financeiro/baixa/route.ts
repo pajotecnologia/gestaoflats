@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage } from "@/lib/evolutionApi";
+import { formatMesReferencia } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (enviarWhatsApp && conta.locatario.telefone) {
       const config = conta.empresa.configuracaoParametros;
       if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
-        const msg = `*RECIBO DE PAGAMENTO* - ${conta.empresa.nomeFantasia}\n\nOlá *${conta.locatario.nome}*,\nConfirmamos o recebimento do valor de *R$ ${parseFloat(valorPago).toFixed(2)}* via *${formaPagamento}* referente ao aluguel do *${conta.contrato?.flat.numero || "Flat"}* (Mês: ${conta.mesReferencia}).\n\nObrigado!`;
+        const msg = `*RECIBO DE PAGAMENTO* - ${conta.empresa.nomeFantasia}\n\nOlá *${conta.locatario.nome}*,\nConfirmamos o recebimento do valor de *R$ ${parseFloat(valorPago).toFixed(2)}* via *${formaPagamento}* referente ao aluguel do *${conta.contrato?.flat.numero || "Flat"}* (Ref: ${formatMesReferencia(conta.mesReferencia)}).\n\nObrigado!`;
         
         whatsAppResult = await sendWhatsAppMessage(config, conta.locatario.telefone, msg);
       }

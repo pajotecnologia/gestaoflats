@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Shell from "@/components/layout/Shell";
-import { formatCurrency } from "@/lib/validation";
+import { formatCurrency, formatMesReferencia } from "@/lib/validation";
 import { generateRepassePDF, getRepassePDFBase64 } from "@/lib/repassePdfGenerator";
 import { sendWhatsAppDocument, sendWhatsAppMessage } from "@/lib/evolutionApi";
 import {
@@ -264,7 +264,8 @@ export default function RepassesPage() {
         locatarioNome: repasse.contrato?.locatario?.nome,
       });
 
-      pdf.save(`Extrato_Repasse_${repasse.proprietario.nome.replace(/\s+/g, "_")}_${repasse.mesReferencia}.pdf`);
+      const formattedMes = formatMesReferencia(repasse.mesReferencia);
+      pdf.save(`Extrato_Repasse_${repasse.proprietario.nome.replace(/\s+/g, "_")}_${formattedMes.replace("/", "-")}.pdf`);
     } catch (err) {
       console.error("Erro ao gerar PDF de repasse:", err);
       alert("Erro ao gerar PDF.");
@@ -324,9 +325,10 @@ export default function RepassesPage() {
         locatarioNome: repasse.contrato?.locatario?.nome,
       });
 
-      const fileName = `Extrato_Repasse_${repasse.mesReferencia}.pdf`;
+      const formattedMes = formatMesReferencia(repasse.mesReferencia);
+      const fileName = `Extrato_Repasse_${formattedMes.replace("/", "-")}.pdf`;
       const isPago = repasse.status === "PAGO";
-      const caption = `Olá, *${repasse.proprietario.nome}*! 👋\n\nSegue em anexo o seu *Extrato de Repasse de Aluguel* referente ao mês *${repasse.mesReferencia}*.\n\n💰 *Valor Líquido:* R$ ${repasse.valorLiquidoRepasse.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n📊 *Situação:* ${isPago ? "✅ QUITADO" : "⏳ AGENDADO"}\n\nAtenciosamente,\n*${emp.nomeFantasia || "Administradora"}*`;
+      const caption = `Olá, *${repasse.proprietario.nome}*! 👋\n\nSegue em anexo o seu *Extrato de Repasse de Aluguel* referente ao mês *${formattedMes}*.\n\n💰 *Valor Líquido:* R$ ${repasse.valorLiquidoRepasse.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n📊 *Situação:* ${isPago ? "✅ QUITADO" : "⏳ AGENDADO"}\n\nAtenciosamente,\n*${emp.nomeFantasia || "Administradora"}*`;
 
       const res = await sendWhatsAppDocument(
         {
@@ -710,7 +712,7 @@ export default function RepassesPage() {
                   <span>Quitar Repasse ao Proprietário</span>
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {selectedRepasseForBaixa.proprietario.nome} • Ref: {selectedRepasseForBaixa.mesReferencia}
+                  {selectedRepasseForBaixa.proprietario.nome} • Ref: {formatMesReferencia(selectedRepasseForBaixa.mesReferencia)}
                 </p>
               </div>
 

@@ -74,6 +74,7 @@ model ConfiguracaoSaaS {
   diasAvisoAntesExpirar   Int      @default(3)
   telefoneSuporteWhatsApp String?  @default("(87) 99654-0551")
   mensagemAvisoWhatsApp   String?  @default("Olá, {{nome}}! Informamos que o período de teste do IMOB para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}")
+  planosConfigJson        String?  // JSON estruturado com os limites, preços e recursos customizados dos planos
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }

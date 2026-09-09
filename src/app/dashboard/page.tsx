@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Shell from "@/components/layout/Shell";
-import { formatCurrency, formatPhone } from "@/lib/validation";
+import { formatCurrency, formatPhone, formatMesReferencia } from "@/lib/validation";
 import Link from "next/link";
 import {
   Users,
@@ -803,7 +803,7 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[10px] font-bold">
-                          Ref: {r.mesReferencia}
+                          Ref: {formatMesReferencia(r.mesReferencia)}
                         </span>
                       </div>
 

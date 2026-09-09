@@ -1,6 +1,7 @@
 import https from "https";
 import querystring from "querystring";
 import { prisma } from "@/lib/prisma";
+import { formatMesReferencia } from "./validation";
 
 export interface BancoInterConfig {
   clientId: string;
@@ -421,7 +422,7 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
       telefone,
     },
     mensagem: {
-      linha1: `Aluguel Ref: ${conta.mesReferencia || "2026-09"}`,
+      linha1: `Aluguel Ref: ${formatMesReferencia(conta.mesReferencia) || "09/2026"}`,
       linha2: conta.contrato?.flat?.numero ? `Imovel: Flat ${conta.contrato.flat.numero}` : "Locacao de Imovel",
     },
   };

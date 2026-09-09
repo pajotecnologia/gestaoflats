@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { formatMesReferencia } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -182,7 +183,7 @@ export async function GET(request: NextRequest) {
         titulo: `Aluguel em Atraso (${diasAtraso}d)`,
         subtitulo: `${locNome} • ${flatInfo}`,
         detalhes: `Parcela ${conta.numeroParcela}${
-          conta.mesReferencia ? ` • Ref: ${conta.mesReferencia}` : ""
+          conta.mesReferencia ? ` • Ref: ${formatMesReferencia(conta.mesReferencia)}` : ""
         }`,
         valor: Number(conta.valor),
         data: dataVenc.toISOString().split("T")[0],
@@ -215,7 +216,7 @@ export async function GET(request: NextRequest) {
         titulo: diasRestantes === 0 ? "Aluguel Vence Hoje" : `Aluguel Vence em ${diasRestantes}d`,
         subtitulo: `${locNome} • ${flatInfo}`,
         detalhes: `Parcela ${conta.numeroParcela}${
-          conta.mesReferencia ? ` • Ref: ${conta.mesReferencia}` : ""
+          conta.mesReferencia ? ` • Ref: ${formatMesReferencia(conta.mesReferencia)}` : ""
         }`,
         valor: Number(conta.valor),
         data: dataVenc.toISOString().split("T")[0],

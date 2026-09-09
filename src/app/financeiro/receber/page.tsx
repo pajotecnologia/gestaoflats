@@ -1149,7 +1149,7 @@ export default function ContasReceberPage() {
                   Locatário: {baixaConta.locatario?.nome || "Locatário"}
                 </p>
                 <p className="text-emerald-700 dark:text-emerald-300">
-                  Ref: {baixaConta.mesReferencia || "Avulso"} | Flat: {baixaConta.contrato?.flat?.numero || "Geral"} | Valor Original: {formatCurrency(baixaConta.valor)}
+                  Ref: {formatMesReferencia(baixaConta.mesReferencia) || "Avulso"} | Flat: {baixaConta.contrato?.flat?.numero || "Geral"} | Valor Original: {formatCurrency(baixaConta.valor)}
                 </p>
               </div>
 

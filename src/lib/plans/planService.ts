@@ -56,60 +56,86 @@ export interface CheckLimitResult {
 }
 
 /**
+ * Retorna os planos ativos do SaaS (mesclando padrões com customizações salvas no banco)
+ */
+export async function getActiveSaasPlans(): Promise<Record<string, PlanDefinition>> {
+  try {
+    const config = await prisma.configuracaoSaaS.findFirst();
+    if (config?.planosConfigJson) {
+      const custom = JSON.parse(config.planosConfigJson);
+      return { ...SAAS_PLANS, ...custom };
+    }
+  } catch (e) {}
+  return SAAS_PLANS;
+}
+
+/**
  * Normaliza o slug do plano cadastrado no banco para a definição canônica
  */
-export function normalizePlanSlug(planoString?: string | null, isMestre?: boolean, isTrial?: boolean): PlanDefinition {
-  if (isMestre) return SAAS_PLANS.MESTRE;
-  if (isTrial) return SAAS_PLANS.TRIAL;
+export function normalizePlanSlug(
+  planoString?: string | null,
+  isMestre?: boolean,
+  isTrial?: boolean,
+  customPlans?: Record<string, PlanDefinition>
+): PlanDefinition {
+  const plans = customPlans || SAAS_PLANS;
+  if (isMestre) return plans.MESTRE || SAAS_PLANS.MESTRE;
+  if (isTrial) return plans.TRIAL || SAAS_PLANS.TRIAL;
 
   const raw = (planoString || "").toUpperCase().trim();
-  if (raw === "ESSENCIAL") return SAAS_PLANS.ESSENCIAL;
-  if (raw === "PROFISSIONAL" || raw === "MENSAL" || raw === "TRIMESTRAL") return SAAS_PLANS.PROFISSIONAL;
-  if (raw === "GESTAO" || raw === "SEMESTRAL") return SAAS_PLANS.GESTAO;
-  if (raw === "EMPRESARIAL" || raw === "ANUAL") return SAAS_PLANS.EMPRESARIAL;
-  if (raw === "ENTERPRISE") return SAAS_PLANS.ENTERPRISE;
-  if (raw === "TRIAL") return SAAS_PLANS.TRIAL;
-  if (raw === "VITALICIO" || raw === "MESTRE") return SAAS_PLANS.MESTRE;
+  if (raw === "ESSENCIAL") return plans.ESSENCIAL || SAAS_PLANS.ESSENCIAL;
+  if (raw === "PROFISSIONAL" || raw === "MENSAL" || raw === "TRIMESTRAL") return plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL;
+  if (raw === "GESTAO" || raw === "SEMESTRAL") return plans.GESTAO || SAAS_PLANS.GESTAO;
+  if (raw === "EMPRESARIAL" || raw === "ANUAL") return plans.EMPRESARIAL || SAAS_PLANS.EMPRESARIAL;
+  if (raw === "ENTERPRISE") return plans.ENTERPRISE || SAAS_PLANS.ENTERPRISE;
+  if (raw === "TRIAL") return plans.TRIAL || SAAS_PLANS.TRIAL;
+  if (raw === "VITALICIO" || raw === "MESTRE") return plans.MESTRE || SAAS_PLANS.MESTRE;
 
-  return SAAS_PLANS.PROFISSIONAL; // Padrão seguro
+  return plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL; // Padrão seguro
 }
 
 /**
  * Retorna o plano efetivo de uma empresa
  */
 export async function getOrganizationPlan(empresaId: string): Promise<PlanDefinition> {
-  const empresa = await prisma.empresa.findUnique({
-    where: { id: empresaId },
-    select: { isMestre: true, statusAssinatura: true, planoAtual: true },
-  });
+  const [empresa, activePlans] = await Promise.all([
+    prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { isMestre: true, statusAssinatura: true, planoAtual: true },
+    }),
+    getActiveSaasPlans(),
+  ]);
 
-  if (!empresa) return SAAS_PLANS.ESSENCIAL;
+  if (!empresa) return activePlans.ESSENCIAL || SAAS_PLANS.ESSENCIAL;
   const isTrial = empresa.statusAssinatura === "TRIAL";
-  return normalizePlanSlug(empresa.planoAtual, Boolean(empresa.isMestre), isTrial);
+  return normalizePlanSlug(empresa.planoAtual, Boolean(empresa.isMestre), isTrial, activePlans);
 }
 
 /**
  * Calcula o consumo real e métricas de quotas da empresa
  */
 export async function getOrganizationUsage(empresaId: string): Promise<OrganizationUsage> {
-  const empresa = await prisma.empresa.findUnique({
-    where: { id: empresaId },
-    select: {
-      id: true,
-      nomeFantasia: true,
-      isMestre: true,
-      statusAssinatura: true,
-      planoAtual: true,
-      createdAt: true,
-    },
-  });
+  const [empresa, activePlans] = await Promise.all([
+    prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: {
+        id: true,
+        nomeFantasia: true,
+        isMestre: true,
+        statusAssinatura: true,
+        planoAtual: true,
+        createdAt: true,
+      },
+    }),
+    getActiveSaasPlans(),
+  ]);
 
   if (!empresa) {
     throw new Error("Empresa não encontrada.");
   }
 
   const statusAcesso = await verificarStatusAcesso(empresaId);
-  const plan = normalizePlanSlug(empresa.planoAtual, Boolean(empresa.isMestre), statusAcesso.isTrial);
+  const plan = normalizePlanSlug(empresa.planoAtual, Boolean(empresa.isMestre), statusAcesso.isTrial, activePlans);
 
   // Início e fim do mês corrente para cota de assinaturas
   const now = new Date();

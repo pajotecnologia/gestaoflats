@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
 import { convertUrlToBase64 } from "./baseUrl";
+import { formatMesReferencia } from "./validation";
 
 export interface RepassePDFData {
   empresa: {
@@ -71,7 +72,7 @@ export async function generateRepassePDF(data: RepassePDFData): Promise<jsPDF> {
     empresaEmail: data.empresa.email,
     empresaLogomarcaUrl: logoBase64,
     tituloDocumento: "EXTRATO DE REPASSE DE ALUGUEL",
-    subtituloDocumento: `Demonstrativo Financeiro Oficial • Referência: ${data.repasse.mesReferencia}`,
+    subtituloDocumento: `Demonstrativo Financeiro Oficial • Referência: ${formatMesReferencia(data.repasse.mesReferencia)}`,
     variant: "white",
   });
 
@@ -125,7 +126,7 @@ export async function generateRepassePDF(data: RepassePDFData): Promise<jsPDF> {
     : "Imóvel Administrado";
   doc.text(`Imóvel: ${imovelStr}`, 16, currentY + 13);
   doc.text(`Locatário(a): ${data.locatarioNome || "Contrato em vigor"}`, 16, currentY + 18);
-  doc.text(`Mês de Referência: ${data.repasse.mesReferencia}`, 120, currentY + 13);
+  doc.text(`Mês de Referência: ${formatMesReferencia(data.repasse.mesReferencia)}`, 120, currentY + 13);
   doc.text(
     `Vencimento do Repasse: ${new Date(data.repasse.dataVencimento).toLocaleDateString("pt-BR")}`,
     120,
