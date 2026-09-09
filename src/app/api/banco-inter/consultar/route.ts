@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { consultarBolepixInter } from "@/lib/bancoInter";
+import { sincronizarRepassesEmpresa } from "@/lib/repassesSync";
 
 export async function GET(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -87,6 +88,10 @@ export async function POST() {
           error: err.message,
         });
       }
+    }
+
+    if (baixadas > 0) {
+      await sincronizarRepassesEmpresa(session.empresaId);
     }
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sincronizarRepassesEmpresa } from "@/lib/repassesSync";
 
 export async function GET(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -13,6 +14,9 @@ export async function GET(request: NextRequest) {
     const mes = searchParams.get("mes"); // Ex: "2026-09"
     const proprietarioId = searchParams.get("proprietarioId");
     const status = searchParams.get("status");
+
+    // Sincroniza e calcula repasses automaticamente de pagamentos e contas do período
+    await sincronizarRepassesEmpresa(session.empresaId, mes || undefined);
 
     const where: any = { empresaId: session.empresaId };
     if (mes) where.mesReferencia = mes;

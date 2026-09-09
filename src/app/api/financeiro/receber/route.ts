@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sincronizarRepassesEmpresa } from "@/lib/repassesSync";
 
 export async function GET() {
   const session = await getAuthSessionOrFallback();
@@ -89,6 +90,9 @@ export async function PUT(request: NextRequest) {
       where: { id, empresaId: session.empresaId },
       data: updateData,
     });
+
+    // Se a conta for vinculada a um imóvel com proprietário terceiro, recalcula e sincroniza o repasse
+    await sincronizarRepassesEmpresa(session.empresaId, updatedConta.mesReferencia);
 
     return NextResponse.json({ conta: updatedConta });
   } catch (error: any) {
