@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
       vistoriaEntradaId,
     } = await request.json();
 
-    const dtEmissao = new Date(dataEmissao);
+    const [anoE, mesE, diaE] = String(dataEmissao).split("T")[0].split("-").map(Number);
+    const dtEmissao = new Date(anoE, mesE - 1, diaE, 0, 0, 0, 0);
     const vlrMensalNum = parseFloat(valorMensal);
     const isDias = tipoValidade === "DIAS";
     const duracaoValor = parseInt(validadeValor || validadeMeses || (isDias ? "30" : "12"), 10);
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     const mesesInt = isDias ? Math.max(1, Math.ceil(duracaoValor / 30)) : duracaoValor;
     const diasInt: number | null = isDias ? duracaoValor : null;
 
-    const dtFinal = new Date(dtEmissao);
+    const dtFinal = new Date(dtEmissao.getTime());
     if (isDias) {
       dtFinal.setDate(dtFinal.getDate() + duracaoValor);
     } else {

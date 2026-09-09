@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
-import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera } from "lucide-react";
+import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera, Calendar, CalendarCheck, CalendarX, Clock } from "lucide-react";
 
 export default function ContratosPage() {
   const [contratos, setContratos] = useState<any[]>([]);
@@ -28,6 +28,24 @@ export default function ContratosPage() {
   const [tipoValidade, setTipoValidade] = useState<"MESES" | "DIAS">("MESES");
   const [validadeValor, setValidadeValor] = useState("12");
   const [valorMensal, setValorMensal] = useState("");
+
+  // Estado de Verificação em Tempo Real da Disponibilidade na Agenda
+  const [disponibilidadeInfo, setDisponibilidadeInfo] = useState<{
+    checking: boolean;
+    checked: boolean;
+    disponivel: boolean;
+    mensagem: string;
+    dataInicioFormatada?: string;
+    dataFimFormatada?: string;
+    duracao?: number;
+    tipoValidade?: string;
+    conflitos?: any[];
+  }>({
+    checking: false,
+    checked: false,
+    disponivel: true,
+    mensagem: "",
+  });
 
   // Novos Campos de Condições Financeiras e Regras do Contrato
   const [diaVencimento, setDiaVencimento] = useState("5");
@@ -157,6 +175,67 @@ export default function ContratosPage() {
     }
   };
 
+  // Verificação em Tempo Real da Disponibilidade de Datas na Agenda
+  useEffect(() => {
+    if (!flatId || !dataEmissao || !validadeValor) {
+      setDisponibilidadeInfo({
+        checking: false,
+        checked: false,
+        disponivel: true,
+        mensagem: "",
+      });
+      return;
+    }
+
+    let active = true;
+    setDisponibilidadeInfo((prev) => ({ ...prev, checking: true }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/contratos/verificar-disponibilidade?flatId=${flatId}&dataEmissao=${dataEmissao}&tipoValidade=${tipoValidade}&validadeValor=${validadeValor}`
+        );
+        const data = await res.json();
+        if (active) {
+          if (res.ok) {
+            setDisponibilidadeInfo({
+              checking: false,
+              checked: true,
+              disponivel: data.disponivel,
+              mensagem: data.mensagem,
+              dataInicioFormatada: data.dataInicioFormatada,
+              dataFimFormatada: data.dataFimFormatada,
+              duracao: data.duracao,
+              tipoValidade: data.tipoValidade,
+              conflitos: data.conflitos || [],
+            });
+          } else {
+            setDisponibilidadeInfo({
+              checking: false,
+              checked: true,
+              disponivel: false,
+              mensagem: data.error || "Erro ao verificar disponibilidade de datas.",
+            });
+          }
+        }
+      } catch (e) {
+        if (active) {
+          setDisponibilidadeInfo({
+            checking: false,
+            checked: true,
+            disponivel: true,
+            mensagem: "",
+          });
+        }
+      }
+    }, 200);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [flatId, dataEmissao, tipoValidade, validadeValor]);
+
   const handleLocatarioChange = (selectedLocatarioId: string) => {
     setLocatarioId(selectedLocatarioId);
     checkVistoriaForFlat(flatId, selectedLocatarioId);
@@ -178,23 +257,6 @@ export default function ContratosPage() {
         setFlatId("");
         setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
         return;
-      }
-
-      const activeContract = contratos.find(
-        (c) => c.flatId === flatSelected.id && c.status === "ATIVO"
-      );
-
-      if (activeContract) {
-        const dFim = new Date(activeContract.dataFinal).toLocaleDateString("pt-BR");
-        const locNome = activeContract.locatario?.nome || "outro locatário";
-        const continuar = window.confirm(
-          `ℹ️ AVISO DE CONTRATO ATIVO\n\nO flat "${flatSelected.numero}" possui um contrato ativo com ${locNome} até ${dFim}.\n\nDeseja continuar para cadastrar um novo contrato / reserva com data de início posterior a ${dFim}?`
-        );
-        if (!continuar) {
-          setFlatId("");
-          setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
-          return;
-        }
       }
 
       setFlatId(selectedFlatId);
@@ -219,6 +281,11 @@ export default function ContratosPage() {
 
   const handleEmitirContrato = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel) {
+      setErrorMsg(disponibilidadeInfo.mensagem || "O período selecionado está indisponível na agenda.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg("");
 
@@ -601,6 +668,66 @@ export default function ContratosPage() {
                   </div>
                 </div>
 
+                {/* Validação em Tempo Real de Disponibilidade na Agenda */}
+                {flatId && (
+                  <div className="pt-1">
+                    {disponibilidadeInfo.checking ? (
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
+                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span>Verificando disponibilidade de datas na agenda...</span>
+                      </div>
+                    ) : disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel ? (
+                      <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800/80 text-red-800 dark:text-red-200 space-y-2 shadow-xs">
+                        <div className="flex items-start space-x-2.5">
+                          <CalendarX className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <span className="text-xs font-black uppercase text-red-700 dark:text-red-300 tracking-wide flex items-center gap-1.5">
+                              <span>❌ Período Indisponível na Agenda</span>
+                            </span>
+                            <p className="text-xs font-semibold text-red-900 dark:text-red-200">
+                              {disponibilidadeInfo.mensagem}
+                            </p>
+                            {disponibilidadeInfo.conflitos && disponibilidadeInfo.conflitos.length > 0 && (
+                              <div className="mt-2 text-[11px] bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-lg border border-red-200 dark:border-red-900 space-y-1.5 shadow-xs">
+                                <span className="font-bold text-slate-900 dark:text-slate-100 block border-b border-slate-100 dark:border-slate-800 pb-1">
+                                  Reserva(s) / Contrato(s) Conflitante(s):
+                                </span>
+                                {disponibilidadeInfo.conflitos.map((c: any) => (
+                                  <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between text-slate-700 dark:text-slate-300 gap-1">
+                                    <span>👤 <strong>{c.locatarioNome}</strong> ({c.tipoValidade === "DIAS" ? `${c.validadeDias} dias` : `${c.validadeMeses} meses`})</span>
+                                    <span className="font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded text-[10px]">
+                                      {c.dataInicioFormatada} até {c.dataFimFormatada}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <p className="text-[11px] text-red-700 dark:text-red-400 mt-1 font-medium flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span>Para continuar, selecione outra data de início ou altere o prazo da locação.</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : disponibilidadeInfo.checked && disponibilidadeInfo.disponivel ? (
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-2.5 shadow-xs">
+                        <CalendarCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <div>
+                          <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                            <span>✅ Período 100% Livre na Agenda</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-black">
+                              {disponibilidadeInfo.dataInicioFormatada} ➔ {disponibilidadeInfo.dataFimFormatada}
+                            </span>
+                          </span>
+                          <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                            Nenhum conflito de reserva/contrato encontrado para este imóvel nestas datas.
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
                 {/* Bloco 1: Condições de Pagamento & Dados Bancários */}
                 <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
@@ -759,10 +886,20 @@ export default function ContratosPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md"
+                  disabled={submitting || (disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel)}
+                  className={`w-full py-2.5 rounded-xl font-semibold text-white text-xs shadow-md transition flex items-center justify-center space-x-2 ${
+                    disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
+                      ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70"
+                      : "bg-blue-600 hover:bg-blue-500"
+                  }`}
                 >
-                  <span>{submitting ? "Gerando..." : "Emitir Contrato & Gerar Link de Assinatura"}</span>
+                  <span>
+                    {submitting
+                      ? "Gerando..."
+                      : disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
+                      ? "❌ Período Indisponível na Agenda (Altere as Datas)"
+                      : "Emitir Contrato & Gerar Link de Assinatura"}
+                  </span>
                 </button>
               </form>
             </div>

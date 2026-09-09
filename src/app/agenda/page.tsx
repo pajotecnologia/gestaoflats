@@ -18,6 +18,7 @@ import {
   FileText,
   Sun,
   CalendarCheck,
+  CalendarX,
   UserPlus,
   ArrowRight,
   Info,
@@ -70,6 +71,20 @@ export default function AgendaPage() {
   const [reservaValorTotal, setReservaValorTotal] = useState("");
   const [reservaFormaPagamento, setReservaFormaPagamento] = useState("PIX");
   const [reservaModeloContratoId, setReservaModeloContratoId] = useState("");
+
+  // Estado de Disponibilidade em Tempo Real da Reserva
+  const [disponibilidadeReserva, setDisponibilidadeReserva] = useState<{
+    checking: boolean;
+    checked: boolean;
+    disponivel: boolean;
+    mensagem: string;
+    conflitos?: any[];
+  }>({
+    checking: false,
+    checked: false,
+    disponivel: true,
+    mensagem: "",
+  });
 
   // Modal de Cadastro Rápido de Locatário
   const [showNovoLocatarioModal, setShowNovoLocatarioModal] = useState(false);
@@ -133,7 +148,7 @@ export default function AgendaPage() {
     setDataAtual(new Date());
   };
 
-  // Cálculo automático de diárias e valor total
+  // Cálculo automático de diárias, valor total e verificação de conflitos na agenda
   useEffect(() => {
     if (reservaCheckIn && reservaCheckOut && reservaValorDiaria) {
       const dIn = new Date(reservaCheckIn + "T00:00:00");
@@ -142,8 +157,54 @@ export default function AgendaPage() {
       const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
       const vDiaria = parseFloat(reservaValorDiaria) || 0;
       setReservaValorTotal((diffDays * vDiaria).toFixed(2));
+
+      if (reservaFlatId && diffDays > 0) {
+        let active = true;
+        setDisponibilidadeReserva((prev) => ({ ...prev, checking: true }));
+
+        const timer = setTimeout(async () => {
+          try {
+            const res = await fetch(
+              `/api/contratos/verificar-disponibilidade?flatId=${reservaFlatId}&dataEmissao=${reservaCheckIn}&tipoValidade=DIAS&validadeValor=${diffDays}`
+            );
+            const data = await res.json();
+            if (active) {
+              if (res.ok) {
+                setDisponibilidadeReserva({
+                  checking: false,
+                  checked: true,
+                  disponivel: data.disponivel,
+                  mensagem: data.mensagem,
+                  conflitos: data.conflitos || [],
+                });
+              } else {
+                setDisponibilidadeReserva({
+                  checking: false,
+                  checked: true,
+                  disponivel: false,
+                  mensagem: data.error || "Erro ao verificar datas.",
+                });
+              }
+            }
+          } catch (e) {
+            if (active) {
+              setDisponibilidadeReserva({
+                checking: false,
+                checked: true,
+                disponivel: true,
+                mensagem: "",
+              });
+            }
+          }
+        }, 200);
+
+        return () => {
+          active = false;
+          clearTimeout(timer);
+        };
+      }
     }
-  }, [reservaCheckIn, reservaCheckOut, reservaValorDiaria]);
+  }, [reservaFlatId, reservaCheckIn, reservaCheckOut, reservaValorDiaria]);
 
   const handleOpenNovaReserva = (flatIdDefault?: string, dateDefault?: string) => {
     if (flats.length === 0) {
@@ -235,6 +296,11 @@ export default function AgendaPage() {
     const dOut = new Date(reservaCheckOut + "T00:00:00");
     if (dOut <= dIn) {
       setErrorMessage("A data de check-out deve ser posterior à data de check-in.");
+      return;
+    }
+
+    if (disponibilidadeReserva.checked && !disponibilidadeReserva.disponivel) {
+      setErrorMessage(disponibilidadeReserva.mensagem || "O período selecionado está indisponível na agenda.");
       return;
     }
 
@@ -828,6 +894,39 @@ export default function AgendaPage() {
                   </div>
                 </div>
 
+                {/* Validação em Tempo Real de Disponibilidade na Agenda */}
+                {reservaFlatId && (
+                  <div>
+                    {disponibilidadeReserva.checking ? (
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
+                        <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span>Verificando disponibilidade de diárias na agenda...</span>
+                      </div>
+                    ) : disponibilidadeReserva.checked && !disponibilidadeReserva.disponivel ? (
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800/80 text-red-800 dark:text-red-200 space-y-1.5 shadow-xs">
+                        <div className="flex items-start space-x-2">
+                          <CalendarX className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-xs font-black uppercase text-red-700 dark:text-red-300">
+                              ❌ Período Indisponível
+                            </span>
+                            <p className="text-xs font-semibold text-red-900 dark:text-red-200 mt-0.5">
+                              {disponibilidadeReserva.mensagem}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : disponibilidadeReserva.checked && disponibilidadeReserva.disponivel ? (
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-2 shadow-xs">
+                        <CalendarCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                          ✅ Período 100% Livre na Agenda para Reserva
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
                 {/* Valores e Forma de Pagamento */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -905,14 +1004,20 @@ export default function AgendaPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="w-2/3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center space-x-1.5 cursor-pointer"
+                    disabled={submitting || (disponibilidadeReserva.checked && !disponibilidadeReserva.disponivel)}
+                    className={`w-2/3 py-2.5 rounded-xl font-bold text-white text-xs shadow-md transition flex items-center justify-center space-x-1.5 ${
+                      disponibilidadeReserva.checked && !disponibilidadeReserva.disponivel
+                        ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70"
+                        : "bg-amber-600 hover:bg-amber-500 cursor-pointer"
+                    }`}
                   >
                     {submitting ? (
                       <span>Verificando & Gerando Contrato...</span>
+                    ) : disponibilidadeReserva.checked && !disponibilidadeReserva.disponivel ? (
+                      <span>❌ Período Indisponível</span>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4" />
+                        <Sparkles className="w-3.5 h-3.5" />
                         <span>Confirmar Reserva & Gerar Contrato</span>
                       </>
                     )}
