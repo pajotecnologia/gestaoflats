@@ -52,6 +52,20 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const empresaAtual = await prisma.empresa.findUnique({
+      where: { id: session.empresaId },
+    });
+
+    const finalLogomarcaUrl =
+      logomarcaUrl !== undefined && logomarcaUrl !== null && logomarcaUrl !== ""
+        ? logomarcaUrl
+        : empresaAtual?.logomarcaUrl || null;
+
+    const finalAssinaturaUrl =
+      assinaturaUrl !== undefined && assinaturaUrl !== null && assinaturaUrl !== ""
+        ? assinaturaUrl
+        : empresaAtual?.assinaturaUrl || null;
+
     const empresaAtualizada = await prisma.empresa.update({
       where: { id: session.empresaId },
       data: {
@@ -65,8 +79,8 @@ export async function PUT(request: NextRequest) {
         cidade: cidade || null,
         estado: estado || null,
         cep: cep || null,
-        logomarcaUrl: logomarcaUrl || null,
-        assinaturaUrl: assinaturaUrl || null,
+        logomarcaUrl: finalLogomarcaUrl,
+        assinaturaUrl: finalAssinaturaUrl,
         chavePix: chavePix?.trim() || null,
         tipoChavePix: tipoChavePix || "CNPJ",
         nomeBeneficiarioPix: nomeBeneficiarioPix?.trim() || null,

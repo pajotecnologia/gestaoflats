@@ -11,6 +11,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const contentType = request.headers.get("content-type") || "";
+
+    // 1) Se for JSON com string base64 / url direta
+    if (contentType.includes("application/json")) {
+      const { logomarcaUrl } = await request.json();
+
+      if (!logomarcaUrl) {
+        return NextResponse.json({ error: "Nenhuma imagem enviada." }, { status: 400 });
+      }
+
+      const empresaAtualizada = await prisma.empresa.update({
+        where: { id: session.empresaId },
+        data: { logomarcaUrl },
+      });
+
+      return NextResponse.json({
+        success: true,
+        logomarcaUrl,
+        empresa: empresaAtualizada,
+      });
+    }
+
+    // 2) Se for FormData com arquivo de imagem
     const formData = await request.formData();
     const file = formData.get("logoFile") as File | null;
 
@@ -28,26 +51,37 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileExtension = path.extname(file.name) || ".png";
-    const filename = `logo-${session.empresaId}-${Date.now()}${fileExtension}`;
+    const fileExtension = path.extname(file.name).toLowerCase() || ".png";
+    let mimeType = "image/png";
+    if (fileExtension === ".jpg" || fileExtension === ".jpeg") mimeType = "image/jpeg";
+    else if (fileExtension === ".webp") mimeType = "image/webp";
+    else if (fileExtension === ".svg") mimeType = "image/svg+xml";
+    else if (fileExtension === ".gif") mimeType = "image/gif";
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
+    const base64Data = buffer.toString("base64");
+    const logomarcaDataUri = `data:${mimeType};base64,${base64Data}`;
 
-    const filePath = path.join(uploadsDir, filename);
-    await writeFile(filePath, buffer);
-    await chmod(filePath, 0o755).catch(() => {});
+    // Também gravamos o arquivo em disco como fallback / redundância
+    try {
+      const filename = `logo-${session.empresaId}${fileExtension}`;
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadsDir, { recursive: true });
+      const filePath = path.join(uploadsDir, filename);
+      await writeFile(filePath, buffer);
+      await chmod(filePath, 0o755).catch(() => {});
+    } catch (fsErr) {
+      console.warn("Aviso: Falha ao gravar arquivo em disco, mas a imagem foi salva no banco de dados:", fsErr);
+    }
 
-    const logomarcaUrl = `/uploads/${filename}`;
-
+    // Grava o Base64 Data URI diretamente no banco de dados (100% permanente contra git resets)
     const empresaAtualizada = await prisma.empresa.update({
       where: { id: session.empresaId },
-      data: { logomarcaUrl },
+      data: { logomarcaUrl: logomarcaDataUri },
     });
 
     return NextResponse.json({
       success: true,
-      logomarcaUrl,
+      logomarcaUrl: logomarcaDataUri,
       empresa: empresaAtualizada,
     });
   } catch (error: any) {

@@ -41,5 +41,6 @@ next-env.d.ts
 dev.db
 scratch/
 test-ots.js
-*.zip
-release/
+# uploads & user content (preserva uploads no servidor sem conflito no git)
+/public/uploads/*
+!/public/uploads/.gitkeep
