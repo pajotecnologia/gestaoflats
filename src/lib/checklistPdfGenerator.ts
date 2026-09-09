@@ -67,7 +67,9 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
 
   doc.setFont("helvetica", "normal");
   doc.text(`• Unidade / Flat: ${data.flatNumero}`, 14, 64);
-  doc.text(`• Locatário(a): ${data.locatarioNome} (CPF: ${data.locatarioCpf})`, 14, 70);
+  const locCpfClean = data.locatarioCpf && data.locatarioCpf !== "Não informado" && data.locatarioCpf !== "000.000.000-00" && data.locatarioCpf !== "-" ? data.locatarioCpf : "";
+  const locCpfSuffix = locCpfClean ? ` (CPF: ${locCpfClean})` : "";
+  doc.text(`• Locatário(a): ${data.locatarioNome || "Locatário Não Informado"}${locCpfSuffix}`, 14, 70);
   doc.text(`• Responsável pela Vistoria: ${data.responsavelVistoria}`, 14, 76);
 
   doc.setLineWidth(0.5);
@@ -278,10 +280,11 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.text(data.locatarioNome, 110, y + 5);
+  doc.text(data.locatarioNome || "Locatário(a)", 110, y + 5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.text(`Locatário(a) - CPF: ${data.locatarioCpf}`, 110, y + 9);
+  const locSignCpf = data.locatarioCpf && data.locatarioCpf !== "Não informado" && data.locatarioCpf !== "000.000.000-00" && data.locatarioCpf !== "-" ? `Locatário(a) - CPF: ${data.locatarioCpf}` : "Locatário(a)";
+  doc.text(locSignCpf, 110, y + 9);
 
   if (data.ipAssinaturaLocatario) {
     const cleanIp = data.ipAssinaturaLocatario.replace(/^::ffff:/i, "").trim();

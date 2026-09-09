@@ -116,9 +116,25 @@ export default function ChecklistVistoriaModal({
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [liveEmpresaData, setLiveEmpresaData] = useState<any>(empresaData || null);
+  const [locatariosList, setLocatariosList] = useState<any[]>([]);
 
-  // Carregar dados do usuário logado (nome e assinatura digital) e modelos de checklist
+  // Carregar dados da empresa atualizada, locatários e usuário logado
   useEffect(() => {
+    fetch("/api/empresa")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.empresa) setLiveEmpresaData(data.empresa);
+      })
+      .catch(() => {});
+
+    fetch("/api/locatarios")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.locatarios) setLocatariosList(data.locatarios);
+      })
+      .catch(() => {});
+
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
@@ -126,6 +142,9 @@ export default function ChecklistVistoriaModal({
           setCurrentUser(data.user);
           if (!responsavelDefault || responsavelDefault === "Vistoriador Responsável") {
             setResponsavel(data.user.nome);
+          }
+          if (data.user.empresa && !liveEmpresaData) {
+            setLiveEmpresaData(data.user.empresa);
           }
         }
       })
@@ -489,15 +508,17 @@ export default function ChecklistVistoriaModal({
     setSendingWhatsApp(true);
     setWhatsAppFeedback(null);
 
-    // Gerar PDF base64 do laudo de vistoria
+    const emp = liveEmpresaData || empresaData;
+
+    // Gerar PDF base64 do laudo de vistoria com dados atualizados da empresa e locatário
     const pdfBase64 = await getChecklistPDFBase64({
       tipoVistoria,
-      empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresaData?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresaData?.endereco || undefined,
-      empresaTelefone: empresaData?.telefone || undefined,
-      empresaEmail: empresaData?.email || undefined,
-      empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaNome: emp?.nomeFantasia || "Prime Gestão Imobiliária",
+      empresaCnpj: emp?.cnpj || "00.000.000/0001-00",
+      empresaEndereco: emp?.endereco || undefined,
+      empresaTelefone: emp?.telefone || undefined,
+      empresaEmail: emp?.email || undefined,
+      empresaLogomarcaUrl: emp?.logomarcaUrl || undefined,
       locatarioNome: currentLocatarioNome || locatarioNome || "Locatário",
       locatarioCpf: currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado",
       flatNumero,
@@ -506,7 +527,7 @@ export default function ChecklistVistoriaModal({
       itens: items,
       observacoesGerais,
       usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
-      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || emp?.assinaturaUrl || undefined,
     });
 
     const text = `*LAUDO DE VISTORIA DE ${tipoVistoria} DO FLAT (${flatNumero})*\n\nOlá *${currentLocatarioNome || locatarioNome || "Locatário"}*,\nSegue em anexo o laudo de vistoria em PDF.\n\n👉 *Clique no link abaixo para conferir e assinar digitalmente:*\n${linkAssinatura}`;
@@ -575,14 +596,16 @@ export default function ChecklistVistoriaModal({
 
   const handleGerarLaudoPDF = async () => {
     await handleSalvarVistoria();
+    const emp = liveEmpresaData || empresaData;
+
     await generateChecklistPDF({
       tipoVistoria,
-      empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresaData?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresaData?.endereco || undefined,
-      empresaTelefone: empresaData?.telefone || undefined,
-      empresaEmail: empresaData?.email || undefined,
-      empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaNome: emp?.nomeFantasia || "Prime Gestão Imobiliária",
+      empresaCnpj: emp?.cnpj || "00.000.000/0001-00",
+      empresaEndereco: emp?.endereco || undefined,
+      empresaTelefone: emp?.telefone || undefined,
+      empresaEmail: emp?.email || undefined,
+      empresaLogomarcaUrl: emp?.logomarcaUrl || undefined,
       locatarioNome: currentLocatarioNome || locatarioNome || "Locatário",
       locatarioCpf: currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado",
       flatNumero,
@@ -591,7 +614,7 @@ export default function ChecklistVistoriaModal({
       itens: items,
       observacoesGerais,
       usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
-      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || emp?.assinaturaUrl || undefined,
     });
   };
 
@@ -706,17 +729,55 @@ export default function ChecklistVistoriaModal({
 
         {/* Resumo de Locatário, Vistoriador e Assinatura Digital */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-xs">
-          <div className="flex items-center space-x-2">
-            <span className="p-1.5 rounded-lg bg-blue-600 text-white font-bold text-[10px]">LOC</span>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Locatário(a) Vinculado:</span>
-              <strong className="text-slate-800 dark:text-slate-200">
-                {currentLocatarioNome || locatarioNome || "Locatário Não Informado"}
-              </strong>
-              <span className="text-slate-500 block text-[11px]">
-                CPF: {currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado no cadastro"}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <span className="p-1 rounded bg-blue-600 text-white font-bold text-[9px]">LOC</span>
+                <span>Locatário(a) Vinculado:</span>
               </span>
+              {currentLocatarioNome && (
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  ✓ Selecionado
+                </span>
+              )}
             </div>
+
+            {locatariosList.length > 0 ? (
+              <select
+                value={currentLocatarioId}
+                onChange={(e) => {
+                  const lId = e.target.value;
+                  setCurrentLocatarioId(lId);
+                  const found = locatariosList.find((l) => l.id === lId);
+                  if (found) {
+                    setCurrentLocatarioNome(found.nome);
+                    setCurrentLocatarioCpf(found.cpf || "");
+                    setCurrentLocatarioTelefone(found.telefone || "");
+                  } else {
+                    setCurrentLocatarioNome("");
+                    setCurrentLocatarioCpf("");
+                    setCurrentLocatarioTelefone("");
+                  }
+                }}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-slate-100"
+              >
+                <option value="">-- Selecionar Locatário Cadastrado --</option>
+                {locatariosList.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.nome} {loc.cpf ? `(${loc.cpf})` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div>
+                <strong className="text-slate-800 dark:text-slate-200 block">
+                  {currentLocatarioNome || locatarioNome || "Locatário Não Informado"}
+                </strong>
+                <span className="text-slate-500 block text-[11px]">
+                  CPF: {currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado"}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">

@@ -78,21 +78,26 @@ export default function VistoriasPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [resVistorias, resFlats, resLocais, resLocatarios, resMe] = await Promise.all([
+      const [resVistorias, resFlats, resLocais, resLocatarios, resMe, resEmpresa] = await Promise.all([
         fetch("/api/vistorias").then((r) => r.json()),
         fetch("/api/flats").then((r) => r.json()),
         fetch("/api/locais").then((r) => r.json()).catch(() => ({ locais: [] })),
         fetch("/api/locatarios").then((r) => r.json()),
         fetch("/api/auth/me").then((r) => r.json()),
+        fetch("/api/empresa").then((r) => r.json()).catch(() => null),
       ]);
 
       setVistorias(resVistorias.vistorias || []);
       setFlats(resFlats.flats || []);
       setLocais(resLocais.locais || []);
       setLocatarios(resLocatarios.locatarios || []);
+      if (resEmpresa && resEmpresa.nomeFantasia) {
+        setEmpresaData(resEmpresa);
+      } else if (resMe.user?.empresa) {
+        setEmpresaData(resMe.user.empresa);
+      }
       if (resMe.user) {
         setCurrentUser(resMe.user);
-        if (resMe.user.empresa) setEmpresaData(resMe.user.empresa);
       }
     } catch (err) {
       console.error("Erro ao carregar dados de vistorias:", err);

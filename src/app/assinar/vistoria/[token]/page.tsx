@@ -338,7 +338,10 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
 
   const handleEnviarWhatsAppCopia = async () => {
     const locTel = vistoria?.locatario?.telefone || vistoria?.contrato?.locatario?.telefone;
-    if (!vistoria || !locTel) return;
+    if (!vistoria || !locTel) {
+      alert("Telefone/WhatsApp do locatário não disponível para envio.");
+      return;
+    }
 
     const locSignature = vistoria.assinaturaLocatarioUrl || assinaturaBase64;
     const ipAssinatura = vistoria.ipAssinaturaLocatario || "127.0.0.1";
@@ -353,7 +356,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       empresaEmail: vistoria.empresa?.email,
       empresaLogomarcaUrl: vistoria.empresa?.logomarcaUrl,
       locatarioNome: vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário",
-      locatarioCpf: vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "Não informado",
+      locatarioCpf: vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "",
       flatNumero: vistoria.flat?.numero || "Flat",
       dataVistoria: new Date(vistoria.dataVistoria || vistoria.createdAt || Date.now()).toLocaleDateString("pt-BR"),
       responsavelVistoria: vistoria.responsavelVistoria || "Vistoriador Responsável",
@@ -369,14 +372,14 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
     });
 
     const publicUrl = `${getAppBaseUrl()}/assinar/vistoria/${params.token}`;
-    const text = `*COMPROVANTE DE LAUDO DE VISTORIA ASSINADO*\n\nOlá *${vistoria.locatario?.nome || "Locatário"}*,\nConfirmamos a assinatura do Laudo de Vistoria de *${vistoria.tipoVistoria}* do *Flat ${vistoria.flat?.numero}*.\n\nSegue em anexo o documento em PDF assinado.\n\n👉 *Visualizar laudo online:*\n${publicUrl}`;
+    const text = `*COMPROVANTE DE LAUDO DE VISTORIA ASSINADO*\n\nOlá *${vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário"}*,\nConfirmamos a assinatura do Laudo de Vistoria de *${vistoria.tipoVistoria}* do *Flat ${vistoria.flat?.numero}*.\n\nSegue em anexo o documento em PDF assinado.\n\n👉 *Visualizar laudo online:*\n${publicUrl}`;
 
     try {
       const res = await fetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: vistoria.locatario.telefone,
+          phone: locTel,
           message: text,
           pdfBase64,
           fileName: `Laudo_Vistoria_${vistoria.tipoVistoria}_Flat_${(vistoria.flat?.numero || "").replace(/\s+/g, "_")}.pdf`,
@@ -387,12 +390,12 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       if (res.ok && data.success) {
         alert("✅ Laudo PDF enviado com sucesso pelo WhatsApp!");
       } else {
-        const phone = vistoria.locatario.telefone.replace(/\D/g, "");
+        const phone = locTel.replace(/\D/g, "");
         const formattedPhone = phone.startsWith("55") ? phone : `55${phone}`;
         window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
       }
     } catch (err) {
-      const phone = vistoria.locatario.telefone.replace(/\D/g, "");
+      const phone = locTel.replace(/\D/g, "");
       const formattedPhone = phone.startsWith("55") ? phone : `55${phone}`;
       window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
     }

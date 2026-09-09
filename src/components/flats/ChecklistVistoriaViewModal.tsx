@@ -37,12 +37,20 @@ export default function ChecklistVistoriaViewModal({
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [currentUser, setCurrentUser] = React.useState<any>(null);
+  const [liveEmpresaData, setLiveEmpresaData] = useState<any>(null);
 
   React.useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
         if (data?.user) setCurrentUser(data.user);
+      })
+      .catch(() => {});
+
+    fetch("/api/empresa")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.nomeFantasia) setLiveEmpresaData(data);
       })
       .catch(() => {});
   }, []);
@@ -63,10 +71,11 @@ export default function ChecklistVistoriaViewModal({
     }
   }
 
+  const activeEmpresa = liveEmpresaData || vistoria.empresa || empresaData || {};
   const tipoVistoria = vistoria.tipoVistoria || "ENTRADA";
   const flatNumero = vistoria.flat?.numero || "Flat";
   const locatarioNome = vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário Não Informado";
-  const locatarioCpf = vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "Não informado";
+  const locatarioCpf = vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "";
   const locatarioTelefone = vistoria.locatario?.telefone || vistoria.contrato?.locatario?.telefone || "";
   const responsavel = vistoria.responsavelVistoria || "Vistoriador Responsável";
   const dataFormatada = vistoria.dataVistoria || vistoria.createdAt
@@ -76,12 +85,12 @@ export default function ChecklistVistoriaViewModal({
   const handlePrintPDF = async () => {
     await generateChecklistPDF({
       tipoVistoria,
-      empresaNome: vistoria.empresa?.nomeFantasia || empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: vistoria.empresa?.cnpj || empresaData?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: vistoria.empresa?.endereco || empresaData?.endereco,
-      empresaTelefone: vistoria.empresa?.telefone || empresaData?.telefone,
-      empresaEmail: vistoria.empresa?.email || empresaData?.email,
-      empresaLogomarcaUrl: vistoria.empresa?.logomarcaUrl || empresaData?.logomarcaUrl,
+      empresaNome: activeEmpresa.nomeFantasia || "Prime Gestão Imobiliária",
+      empresaCnpj: activeEmpresa.cnpj || "00.000.000/0001-00",
+      empresaEndereco: activeEmpresa.endereco,
+      empresaTelefone: activeEmpresa.telefone,
+      empresaEmail: activeEmpresa.email,
+      empresaLogomarcaUrl: activeEmpresa.logomarcaUrl,
       locatarioNome,
       locatarioCpf,
       flatNumero,
@@ -90,7 +99,7 @@ export default function ChecklistVistoriaViewModal({
       itens: itemsList,
       observacoesGerais: obsGerais,
       usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
-      empresaAssinaturaUrl: currentUser?.assinaturaUrl || vistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || activeEmpresa.assinaturaUrl,
       locatarioAssinaturaUrl: vistoria.assinaturaLocatarioUrl,
       dataAssinaturaLocatario: vistoria.dataAssinaturaLocatario,
       ipAssinaturaLocatario: vistoria.ipAssinaturaLocatario,
@@ -107,12 +116,12 @@ export default function ChecklistVistoriaViewModal({
     try {
       const pdfBase64 = await getChecklistPDFBase64({
         tipoVistoria,
-        empresaNome: vistoria.empresa?.nomeFantasia || empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-        empresaCnpj: vistoria.empresa?.cnpj || empresaData?.cnpj || "00.000.000/0001-00",
-        empresaEndereco: vistoria.empresa?.endereco || empresaData?.endereco,
-        empresaTelefone: vistoria.empresa?.telefone || empresaData?.telefone,
-        empresaEmail: vistoria.empresa?.email || empresaData?.email,
-        empresaLogomarcaUrl: vistoria.empresa?.logomarcaUrl || empresaData?.logomarcaUrl,
+        empresaNome: activeEmpresa.nomeFantasia || "Prime Gestão Imobiliária",
+        empresaCnpj: activeEmpresa.cnpj || "00.000.000/0001-00",
+        empresaEndereco: activeEmpresa.endereco,
+        empresaTelefone: activeEmpresa.telefone,
+        empresaEmail: activeEmpresa.email,
+        empresaLogomarcaUrl: activeEmpresa.logomarcaUrl,
         locatarioNome,
         locatarioCpf,
         flatNumero,
@@ -121,7 +130,7 @@ export default function ChecklistVistoriaViewModal({
         itens: itemsList,
         observacoesGerais: obsGerais,
         usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
-        empresaAssinaturaUrl: currentUser?.assinaturaUrl || vistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
+        empresaAssinaturaUrl: currentUser?.assinaturaUrl || activeEmpresa.assinaturaUrl,
         locatarioAssinaturaUrl: vistoria.assinaturaLocatarioUrl,
         dataAssinaturaLocatario: vistoria.dataAssinaturaLocatario,
         ipAssinaturaLocatario: vistoria.ipAssinaturaLocatario,
@@ -134,7 +143,7 @@ export default function ChecklistVistoriaViewModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: vistoria.locatario.telefone,
+          phone: locatarioTelefone,
           message: text,
           pdfBase64,
           fileName: `Laudo_Vistoria_${tipoVistoria}_Flat_${flatNumero.replace(/\s+/g, "_")}.pdf`,
