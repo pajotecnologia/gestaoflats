@@ -115,18 +115,21 @@ export default function ChecklistVistoriaModal({
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Carregar nome do usuário logado para sugerir como vistoriador e carregar modelos de checklist
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Carregar dados do usuário logado (nome e assinatura digital) e modelos de checklist
   useEffect(() => {
-    if (!responsavelDefault || responsavelDefault === "Vistoriador Responsável") {
-      fetch("/api/auth/me")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.user?.nome) {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+          if (!responsavelDefault || responsavelDefault === "Vistoriador Responsável") {
             setResponsavel(data.user.nome);
           }
-        })
-        .catch(() => {});
-    }
+        }
+      })
+      .catch(() => {});
 
     fetch("/api/modelos-checklist")
       .then((res) => res.json())
@@ -502,7 +505,8 @@ export default function ChecklistVistoriaModal({
       responsavelVistoria: responsavel,
       itens: items,
       observacoesGerais,
-      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
     });
 
     const text = `*LAUDO DE VISTORIA DE ${tipoVistoria} DO FLAT (${flatNumero})*\n\nOlá *${currentLocatarioNome || locatarioNome || "Locatário"}*,\nSegue em anexo o laudo de vistoria em PDF.\n\n👉 *Clique no link abaixo para conferir e assinar digitalmente:*\n${linkAssinatura}`;
@@ -586,7 +590,8 @@ export default function ChecklistVistoriaModal({
       responsavelVistoria: responsavel,
       itens: items,
       observacoesGerais,
-      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
     });
   };
 

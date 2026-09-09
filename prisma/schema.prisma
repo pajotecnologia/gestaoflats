@@ -121,6 +121,7 @@ model Usuario {
   senhaHash                 String
   cargo                     String    @default("ADMIN") // ADMIN, OPERADOR, FINANCEIRO
   status                    String    @default("ATIVO") // ATIVO, INATIVO
+  assinaturaUrl             String?   // Assinatura/Carimbo Digital individual do Usuário
   tokenRecuperacaoSenha     String?
   validadeTokenRecuperacao  DateTime?
   createdAt                 DateTime  @default(now())

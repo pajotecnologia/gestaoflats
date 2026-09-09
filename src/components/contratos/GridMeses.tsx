@@ -107,6 +107,16 @@ export default function GridMeses({
   const [enviarWhatsAppAuto, setEnviarWhatsAppAuto] = useState(true);
   const [loadingBaixa, setLoadingBaixa] = useState(false);
   const [messageFeedback, setMessageFeedback] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user) setCurrentUser(data.user);
+      })
+      .catch(() => {});
+  }, []);
 
   const vistoriasEntradaList = (vistoriasChecklist || []).filter((v: any) => v.tipoVistoria === "ENTRADA");
   const vistoriaEntrada = vistoriasEntradaList.find((v: any) => v.statusAssinatura?.includes("ASSINADO"))
@@ -183,7 +193,8 @@ export default function GridMeses({
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
       locatarioNome,
       locatarioCpf,
       locatarioTelefone,
@@ -286,7 +297,7 @@ export default function GridMeses({
     }
   };
 
-  const handleDownloadRecibo = () => {
+  const handleGerarRecibo = () => {
     if (!selectedParcela) return;
 
     const formattedMesRef = formatMesReferencia(selectedParcela.mesReferencia);
@@ -298,7 +309,8 @@ export default function GridMeses({
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
       locatarioNome,
       locatarioCpf,
       flatNumero,
@@ -309,6 +321,7 @@ export default function GridMeses({
         : new Date().toLocaleDateString("pt-BR"),
       formaPagamento: selectedParcela.formaPagamento || "PIX",
       numeroRecibo: selectedParcela.id.slice(0, 8).toUpperCase(),
+      observacao: selectedParcela.observacao || (selectedParcela.numeroParcela === 0 ? "Depósito Caução / Garantia Locatícia" : undefined),
     });
   };
 
@@ -319,6 +332,7 @@ export default function GridMeses({
     let fileName: string | undefined = undefined;
     let text = "";
     const formattedMesRef = formatMesReferencia(selectedParcela.mesReferencia);
+    const isCaucaoItem = selectedParcela.numeroParcela === 0 || selectedParcela.observacao?.toLowerCase().includes("caução") || selectedParcela.observacao?.toLowerCase().includes("caucao");
 
     if (selectedParcela.status === "PAGO") {
       pdfBase64 = await getReciboPDFBase64({
@@ -328,7 +342,8 @@ export default function GridMeses({
         empresaTelefone: empresaData?.telefone || undefined,
         empresaEmail: empresaData?.email || undefined,
         empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-        empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+        usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+        empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
         locatarioNome,
         locatarioCpf,
         flatNumero,
@@ -339,12 +354,19 @@ export default function GridMeses({
           : new Date().toLocaleDateString("pt-BR"),
         formaPagamento: selectedParcela.formaPagamento || "PIX",
         numeroRecibo: selectedParcela.id.slice(0, 8).toUpperCase(),
+        observacao: selectedParcela.observacao || (isCaucaoItem ? "Depósito Caução / Garantia Locatícia" : undefined),
       });
 
-      fileName = `Recibo_${selectedParcela.id.slice(0, 8).toUpperCase()}_${formattedMesRef.replace("/", "_")}.pdf`;
-      text = `*COMPROVANTE DE PAGAMENTO / RECIBO*\n\nOlá *${locatarioNome}*,\nSegue em anexo o recibo de pagamento em PDF do *${flatNumero}* (Ref: ${formattedMesRef}). Obrigado!`;
+      fileName = isCaucaoItem
+        ? `Recibo_Caucao_${flatNumero.replace(/\s+/g, "_")}.pdf`
+        : `Recibo_${selectedParcela.id.slice(0, 8).toUpperCase()}_${formattedMesRef.replace("/", "_")}.pdf`;
+      text = isCaucaoItem
+        ? `*COMPROVANTE DE DEPÓSITO CAUÇÃO / GARANTIA*\n\nOlá *${locatarioNome}*,\nSegue em anexo o recibo de Depósito Caução em PDF referente ao *${flatNumero}*. Obrigado!`
+        : `*COMPROVANTE DE PAGAMENTO / RECIBO*\n\nOlá *${locatarioNome}*,\nSegue em anexo o recibo de pagamento em PDF do *${flatNumero}* (Ref: ${formattedMesRef}). Obrigado!`;
     } else {
-      text = `*LEMBRETE DE COBRANÇA - ALUGUEL*\n\nOlá *${locatarioNome}*,\nLembramos sobre a parcela do aluguel do *${flatNumero}* (Vencimento: ${new Date(selectedParcela.dataVencimento).toLocaleDateString("pt-BR")}) no valor de *${formatCurrency(selectedParcela.valor)}*.\n\nMês Ref: ${formattedMesRef}.\n\nPara maiores dúvidas ou comprovantes, favor responder este WhatsApp. Obrigado!`;
+      text = isCaucaoItem
+        ? `*LEMBRETE DE PAGAMENTO - DEPÓSITO CAUÇÃO*\n\nOlá *${locatarioNome}*,\nLembramos sobre o pagamento do Depósito Caução do *${flatNumero}* no valor de *${formatCurrency(selectedParcela.valor)}*.\n\nVencimento: ${new Date(selectedParcela.dataVencimento).toLocaleDateString("pt-BR")}.`
+        : `*LEMBRETE DE COBRANÇA - ALUGUEL*\n\nOlá *${locatarioNome}*,\nLembramos sobre a parcela do aluguel do *${flatNumero}* (Vencimento: ${new Date(selectedParcela.dataVencimento).toLocaleDateString("pt-BR")}) no valor de *${formatCurrency(selectedParcela.valor)}*.\n\nMês Ref: ${formattedMesRef}.\n\nPara maiores dúvidas ou comprovantes, favor responder este WhatsApp. Obrigado!`;
     }
 
     try {
@@ -680,7 +702,7 @@ export default function GridMeses({
             <div className="border-t border-slate-200 dark:border-slate-800 pt-4 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={handleDownloadRecibo}
+                onClick={handleGerarRecibo}
                 className="py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center space-x-2 transition"
               >
                 <FileDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />

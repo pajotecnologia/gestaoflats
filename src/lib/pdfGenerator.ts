@@ -11,6 +11,7 @@ export interface ReciboPDFData {
   empresaEmail?: string;
   empresaLogomarcaUrl?: string;
   empresaAssinaturaUrl?: string;
+  usuarioAssinaturaUrl?: string;
   locatarioNome: string;
   locatarioCpf: string;
   flatNumero: string;
@@ -20,6 +21,8 @@ export interface ReciboPDFData {
   dataPagamento: string;
   formaPagamento: string;
   numeroRecibo: string;
+  observacao?: string;
+  tituloPersonalizado?: string;
 }
 
 export async function prepareReciboDataWithBase64Images(data: ReciboPDFData): Promise<ReciboPDFData> {
@@ -27,7 +30,7 @@ export async function prepareReciboDataWithBase64Images(data: ReciboPDFData): Pr
   if (logoUrl && !logoUrl.startsWith("data:image")) {
     logoUrl = await convertUrlToBase64(logoUrl);
   }
-  let sigUrl = data.empresaAssinaturaUrl;
+  let sigUrl = data.usuarioAssinaturaUrl || data.empresaAssinaturaUrl;
   if (sigUrl && !sigUrl.startsWith("data:image")) {
     sigUrl = await convertUrlToBase64(sigUrl);
   }
@@ -35,11 +38,20 @@ export async function prepareReciboDataWithBase64Images(data: ReciboPDFData): Pr
     ...data,
     empresaLogomarcaUrl: logoUrl,
     empresaAssinaturaUrl: sigUrl,
+    usuarioAssinaturaUrl: sigUrl,
   };
 }
 
 export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
   const doc = new jsPDF();
+
+  const isCaucao = Boolean(
+    data.observacao?.toLowerCase().includes("caução") ||
+    data.observacao?.toLowerCase().includes("caucao") ||
+    data.tituloPersonalizado?.toLowerCase().includes("caução")
+  );
+
+  const docTitle = data.tituloPersonalizado || (isCaucao ? "RECIBO DE DEPÓSITO CAUÇÃO (GARANTIA LOCATÍCIA)" : "RECIBO DE PAGAMENTO DE ALUGUEL");
 
   // Cabeçalho Padrão com Logomarca e Dados da Empresa
   drawStandardPDFHeader(doc, {
@@ -49,7 +61,7 @@ export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
     empresaTelefone: data.empresaTelefone,
     empresaEmail: data.empresaEmail,
     empresaLogomarcaUrl: data.empresaLogomarcaUrl,
-    tituloDocumento: "RECIBO DE PAGAMENTO DE ALUGUEL",
+    tituloDocumento: docTitle,
     subtituloDocumento: `Nº #${data.numeroRecibo}`,
   });
 
@@ -83,7 +95,7 @@ export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
   }
 
   const mesRefFormatado = formatMesReferencia(data.mesReferencia);
-  doc.text(`Mês de Referência: ${mesRefFormatado}`, 14, 86);
+  doc.text(isCaucao ? `Finalidade: ${data.observacao || "Depósito Caução"}` : `Mês de Referência: ${mesRefFormatado}`, 14, 86);
   doc.text(`Data do Pagamento: ${data.dataPagamento}`, 14, 92);
   doc.text(`Forma de Pagamento: ${data.formaPagamento}`, 14, 98);
 
@@ -100,7 +112,9 @@ export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
   doc.setTextColor(75, 85, 99);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  const declaracao = `Declaramos para os devidos fins de direito que recebemos da pessoa acima identificada a quantia supra discriminada, referente ao aluguel da unidade habitacional indicada, dando-lhe plena, geral e irrevogável quitação referente ao mês citado.`;
+  const declaracao = isCaucao
+    ? `Declaramos para os devidos fins de direito que recebemos da pessoa acima identificada a quantia supra discriminada, a título de Depósito Caução / Garantia Locatícia (Art. 38 da Lei 8.245/91), referente à locação da unidade indicada, dando-lhe o devido comprovante de depósito de garantia.`
+    : `Declaramos para os devidos fins de direito que recebemos da pessoa acima identificada a quantia supra discriminada, referente ao aluguel da unidade habitacional indicada, dando-lhe plena, geral e irrevogável quitação referente ao mês citado.`;
   doc.text(doc.splitTextToSize(declaracao, 182), 14, 160);
 
   // Imagem da Assinatura / Carimbo da Empresa

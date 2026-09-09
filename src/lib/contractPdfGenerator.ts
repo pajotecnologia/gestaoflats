@@ -14,6 +14,7 @@ export interface ContratoPDFData {
   empresaEmail?: string;
   empresaLogomarcaUrl?: string;
   empresaAssinaturaUrl?: string;
+  usuarioAssinaturaUrl?: string;
   locatarioNome: string;
   locatarioCpf: string;
   locatarioRg?: string;
@@ -510,7 +511,7 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
 
 export async function prepareContratoDataWithBase64Images(data: ContratoPDFData): Promise<ContratoPDFData> {
   let logoUrl = data.empresaLogomarcaUrl;
-  let assUrl = data.empresaAssinaturaUrl;
+  let assUrl = data.usuarioAssinaturaUrl || data.empresaAssinaturaUrl;
   let locatarioAssUrl = data.locatarioAssinaturaUrl;
 
   if (logoUrl && !logoUrl.startsWith("data:image")) {
@@ -555,6 +556,7 @@ export async function prepareContratoDataWithBase64Images(data: ContratoPDFData)
     ...data,
     empresaLogomarcaUrl: logoUrl,
     empresaAssinaturaUrl: assUrl,
+    usuarioAssinaturaUrl: assUrl,
     locatarioAssinaturaUrl: locatarioAssUrl,
     vistoriaEntrada: vistoriaEntradaProcessada,
     documentoHashSha256: sha256,

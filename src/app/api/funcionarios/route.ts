@@ -19,6 +19,7 @@ export async function GET() {
         email: true,
         cargo: true,
         status: true,
+        assinaturaUrl: true,
         createdAt: true,
       },
       orderBy: { nome: "asc" },
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { nome, email, senha, cargo } = await request.json();
+    const { nome, email, senha, cargo, assinaturaUrl } = await request.json();
 
     const existingUser = await prisma.usuario.findUnique({
       where: { email },
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
         senhaHash,
         cargo: cargo || "OPERADOR",
         status: "ATIVO",
+        assinaturaUrl: assinaturaUrl || null,
       },
       select: {
         id: true,
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
         email: true,
         cargo: true,
         status: true,
+        assinaturaUrl: true,
         createdAt: true,
       },
     });
@@ -98,7 +101,7 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { id, nome, email, senha, cargo, status } = await request.json();
+    const { id, nome, email, senha, cargo, status, assinaturaUrl } = await request.json();
 
     if (!id) {
       return NextResponse.json({ error: "ID do funcionário é obrigatório." }, { status: 400 });
@@ -110,6 +113,10 @@ export async function PUT(request: NextRequest) {
       cargo,
       status,
     };
+
+    if (assinaturaUrl !== undefined) {
+      updateData.assinaturaUrl = assinaturaUrl;
+    }
 
     if (senha && senha.trim() !== "") {
       updateData.senhaHash = await bcrypt.hash(senha, 12);
@@ -124,6 +131,7 @@ export async function PUT(request: NextRequest) {
         email: true,
         cargo: true,
         status: true,
+        assinaturaUrl: true,
         createdAt: true,
       },
     });

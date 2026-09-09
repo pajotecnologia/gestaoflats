@@ -28,6 +28,7 @@ export interface ChecklistPDFData {
   itens: ChecklistItem[];
   observacoesGerais?: string;
   empresaAssinaturaUrl?: string;
+  usuarioAssinaturaUrl?: string;
   locatarioAssinaturaUrl?: string;
   dataAssinaturaLocatario?: string;
   ipAssinaturaLocatario?: string;
@@ -377,7 +378,7 @@ export async function convertUrlToBase64(url: string): Promise<string> {
 
 export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFData): Promise<ChecklistPDFData> {
   let logoUrl = data.empresaLogomarcaUrl;
-  let assUrl = data.empresaAssinaturaUrl;
+  let assUrl = data.usuarioAssinaturaUrl || data.empresaAssinaturaUrl;
   let locAssUrl = data.locatarioAssinaturaUrl;
 
   if (logoUrl && !logoUrl.startsWith("data:image")) {
@@ -414,6 +415,7 @@ export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFDat
     ...data,
     empresaLogomarcaUrl: logoUrl,
     empresaAssinaturaUrl: assUrl,
+    usuarioAssinaturaUrl: assUrl,
     locatarioAssinaturaUrl: locAssUrl,
     itens: updatedItens,
     documentoHashSha256: sha256,

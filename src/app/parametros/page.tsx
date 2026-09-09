@@ -48,6 +48,9 @@ function ParametrosContent() {
   const [activeTab, setActiveTab] = useState<"empresa" | "evolution" | "email" | "funcionarios" | "formas" | "saas" | "inter">("empresa");
   const [empresa, setEmpresa] = useState<any>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [mySignatureUrl, setMySignatureUrl] = useState<string>("");
+  const [savingMySignature, setSavingMySignature] = useState(false);
 
   // Sync tab reativamente do parâmetro URL ?aba=
   useEffect(() => {
@@ -55,6 +58,8 @@ function ParametrosContent() {
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
+          setCurrentUser(data.user);
+          setMySignatureUrl(data.user.assinaturaUrl || "");
           const superAdmin = Boolean(data.user.isSuperAdmin);
           setIsSuperAdmin(superAdmin);
           if (abaParam && ["empresa", "evolution", "email", "funcionarios", "formas", "saas", "inter"].includes(abaParam)) {
@@ -147,6 +152,7 @@ function ParametrosContent() {
   const [senhaFunc, setSenhaFunc] = useState("");
   const [cargoFunc, setCargoFunc] = useState("OPERADOR");
   const [statusFunc, setStatusFunc] = useState("ATIVO");
+  const [assinaturaFunc, setAssinaturaFunc] = useState("");
   const [submittingFunc, setSubmittingFunc] = useState(false);
   const [errorFunc, setErrorFunc] = useState("");
 
@@ -514,6 +520,7 @@ function ParametrosContent() {
     setSenhaFunc("");
     setCargoFunc("OPERADOR");
     setStatusFunc("ATIVO");
+    setAssinaturaFunc("");
     setErrorFunc("");
     setShowFuncModal(true);
   };
@@ -525,6 +532,7 @@ function ParametrosContent() {
     setSenhaFunc("");
     setCargoFunc(func.cargo || "OPERADOR");
     setStatusFunc(func.status || "ATIVO");
+    setAssinaturaFunc(func.assinaturaUrl || "");
     setErrorFunc("");
     setShowFuncModal(true);
   };
@@ -546,6 +554,7 @@ function ParametrosContent() {
           senha: senhaFunc,
           cargo: cargoFunc,
           status: statusFunc,
+          assinaturaUrl: assinaturaFunc,
         }),
       });
 
@@ -557,12 +566,47 @@ function ParametrosContent() {
       }
 
       setShowFuncModal(false);
-      setFeedback({ type: "success", message: `✅ Funcionário ${nomeFunc} salvo com sucesso!` });
+      setFeedback({ type: "success", message: `✅ Funcionário ${nomeFunc} e sua Assinatura Digital foram salvos com sucesso!` });
       loadFuncionarios();
+      if (currentUser && editingFunc?.id === currentUser.id) {
+        setMySignatureUrl(assinaturaFunc);
+      }
     } catch (err) {
       setErrorFunc("Erro de conexão ao salvar funcionário.");
     } finally {
       setSubmittingFunc(false);
+    }
+  };
+
+  const handleSaveMySignature = async () => {
+    if (!mySignatureUrl) {
+      alert("Por favor, desenhe ou faça upload da sua assinatura antes de salvar.");
+      return;
+    }
+    setSavingMySignature(true);
+    setFeedback({ type: "", message: "" });
+
+    try {
+      const res = await fetch("/api/usuarios/upload-assinatura", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assinaturaUrl: mySignatureUrl,
+          usuarioId: currentUser?.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFeedback({ type: "success", message: "✅ Sua assinatura digital individual foi gravada com sucesso e será utilizada nos contratos e laudos!" });
+        loadFuncionarios();
+      } else {
+        setFeedback({ type: "error", message: `❌ Erro ao salvar assinatura: ${data.error || "Erro interno."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro de conexão ao salvar assinatura: ${err.message}` });
+    } finally {
+      setSavingMySignature(false);
     }
   };
 
@@ -1034,7 +1078,7 @@ function ParametrosContent() {
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>🏢 Empresa & Assinatura</span>
+            <span>🏢 Dados da Empresa</span>
           </button>
 
           <button
@@ -1073,7 +1117,7 @@ function ParametrosContent() {
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>👥 Funcionários & Equipe</span>
+            <span>👥 Usuários & Assinaturas Digitais</span>
           </button>
 
           <button
@@ -1367,58 +1411,6 @@ function ParametrosContent() {
                   </div>
                 </div>
               </div>
-
-              {/* QUADRO DE DESENHO DA ASSINATURA DA EMPRESA */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
-                    <PenTool className="w-4 h-4 text-blue-600" />
-                    <span>Quadro de Desenho da Assinatura Oficial da Empresa:</span>
-                  </span>
-                  {assinaturaUrl && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Assinatura Gravada</span>
-                    </span>
-                  )}
-                </div>
-
-                <SignaturePad onSaveSignature={(base64) => setAssinaturaUrl(base64)} />
-
-                <div className="flex items-center space-x-2 pt-1">
-                  <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Arquivo de Assinatura (PNG/JPG)</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (reader.result) {
-                              setAssinaturaUrl(reader.result as string);
-                              setFeedback({ type: "success", message: "Arquivo de assinatura carregado! Clique em 'Salvar Dados da Empresa' para confirmar." });
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-
-                {assinaturaUrl && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-                    <span className="text-[11px] text-slate-400 block mb-1">Assinatura Atual Registrada:</span>
-                    <div className="bg-white p-2 rounded-xl border border-slate-200 inline-block">
-                      <img src={assinaturaUrl} alt="Assinatura da Empresa" className="h-14 object-contain" />
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -1624,13 +1616,106 @@ function ParametrosContent() {
         {/* CONTEÚDO DA ABA 4: FUNCIONÁRIOS & EQUIPE */}
         {activeTab === "funcionarios" && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+            {/* SEÇÃO: MINHA ASSINATURA DIGITAL (USUÁRIO ATUAL) */}
+            <div className="p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-200/70 dark:border-indigo-800/40 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-600 text-white shadow">
+                    <PenTool className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                      <span>Minha Assinatura Digital</span>
+                      {currentUser?.nome && (
+                        <span className="text-[11px] font-normal text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-2 py-0.5 rounded-md">
+                          ({currentUser.nome})
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Esta assinatura individual será inserida automaticamente em todos os contratos, recibos e checklists/vistorias preenchidos por você.
+                    </p>
+                  </div>
+                </div>
+
+                {mySignatureUrl && (
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Assinatura Ativa</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                  Desenhar no Quadro ou Carregar Imagem da Assinatura:
+                </span>
+                <SignaturePad onSaveSignature={(base64) => setMySignatureUrl(base64)} />
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="flex items-center space-x-2">
+                    <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-sm transition">
+                      <Upload className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>Upload Arquivo (PNG/JPG)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                setMySignatureUrl(reader.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    {mySignatureUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setMySignatureUrl("")}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                      >
+                        Limpar Assinatura
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveMySignature}
+                    disabled={savingMySignature || !mySignatureUrl}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md flex items-center space-x-1.5 transition disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{savingMySignature ? "Gravando..." : "Salvar Minha Assinatura"}</span>
+                  </button>
+                </div>
+
+                {mySignatureUrl && (
+                  <div className="pt-2 border-t border-indigo-200/50 dark:border-indigo-800/40 flex items-center space-x-3">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Prévia Atual:</span>
+                    <div className="bg-white p-2 rounded-xl border border-slate-200 inline-block shadow-sm">
+                      <img src={mySignatureUrl} alt="Minha Assinatura" className="h-12 object-contain" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 pt-2">
               <div className="flex items-center space-x-2">
-                <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 <div>
                   <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Usuários & Funcionários da Empresa</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Gerencie os acessos, cargos e senhas da equipe com acesso ao sistema.
+                    Gerencie os acessos, cargos e assinaturas individuais de cada membro da equipe.
                   </p>
                 </div>
               </div>
@@ -1661,6 +1746,7 @@ function ParametrosContent() {
                       <th className="p-3">Nome</th>
                       <th className="p-3">E-mail</th>
                       <th className="p-3">Cargo / Função</th>
+                      <th className="p-3">Assinatura Digital</th>
                       <th className="p-3">Status</th>
                       <th className="p-3 text-right">Ações</th>
                     </tr>
@@ -1689,6 +1775,23 @@ function ParametrosContent() {
                           </span>
                         </td>
                         <td className="p-3">
+                          {func.assinaturaUrl ? (
+                            <div className="flex items-center space-x-1.5">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center space-x-1">
+                                <Check className="w-3 h-3" />
+                                <span>Cadastrada</span>
+                              </span>
+                              <div className="bg-white p-0.5 rounded border border-slate-200 inline-block shadow-xs">
+                                <img src={func.assinaturaUrl} alt="Assinatura" className="h-4 object-contain max-w-[50px]" />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                              Não cadastrada
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               func.status === "ATIVO"
@@ -1704,7 +1807,7 @@ function ParametrosContent() {
                             type="button"
                             onClick={() => handleOpenEditFuncModal(func)}
                             className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
-                            title="Editar Funcionário"
+                            title="Editar Funcionário e Assinatura"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
@@ -1720,12 +1823,12 @@ function ParametrosContent() {
 
         {/* MODAL ADICIONAR / EDITAR FUNCIONÁRIO */}
         {showFuncModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
                   <UserCheck className="w-4 h-4 text-indigo-600" />
-                  <span>{editingFunc ? "Editar Funcionário" : "Novo Funcionário"}</span>
+                  <span>{editingFunc ? "Editar Funcionário & Assinatura" : "Novo Funcionário"}</span>
                 </h3>
                 <button
                   type="button"
@@ -1743,7 +1846,7 @@ function ParametrosContent() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmitFuncionario} className="space-y-3 text-xs">
+              <form onSubmit={handleSubmitFuncionario} className="space-y-4 text-xs">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nome Completo</label>
                   <input
@@ -1809,6 +1912,67 @@ function ParametrosContent() {
                   </div>
                 </div>
 
+                {/* CAMPO DE ASSINATURA INDIVIDUAL DO FUNCIONÁRIO */}
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
+                      <PenTool className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Assinatura Digital deste Usuário:</span>
+                    </span>
+                    {assinaturaFunc && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1">
+                        <Check className="w-3 h-3" />
+                        <span>Assinatura Definida</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <SignaturePad onSaveSignature={(base64) => setAssinaturaFunc(base64)} />
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Imagem (PNG/JPG)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                setAssinaturaFunc(reader.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    {assinaturaFunc && (
+                      <button
+                        type="button"
+                        onClick={() => setAssinaturaFunc("")}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                      >
+                        Limpar Assinatura
+                      </button>
+                    )}
+                  </div>
+
+                  {assinaturaFunc && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center space-x-2">
+                      <span className="text-[10px] text-slate-400">Prévia:</span>
+                      <div className="bg-white p-1 rounded-lg border border-slate-200 inline-block">
+                        <img src={assinaturaFunc} alt="Assinatura" className="h-8 object-contain" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
                   <button
                     type="button"
@@ -1822,7 +1986,7 @@ function ParametrosContent() {
                     disabled={submittingFunc}
                     className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md disabled:opacity-50"
                   >
-                    {submittingFunc ? "Salvando..." : "Salvar Funcionário"}
+                    {submittingFunc ? "Salvando..." : "Salvar Funcionário & Assinatura"}
                   </button>
                 </div>
               </form>

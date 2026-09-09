@@ -11,8 +11,47 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const contentType = request.headers.get("content-type") || "";
+
+    // 1) Se for JSON com string base64 / url direta
+    if (contentType.includes("application/json")) {
+      const { assinaturaUrl, usuarioId } = await request.json();
+      
+      const targetUserId = (session.cargo === "ADMIN" && usuarioId) ? usuarioId : session.userId;
+
+      if (!targetUserId) {
+        return NextResponse.json({ error: "ID de usuário inválido." }, { status: 400 });
+      }
+
+      const updatedUser = await prisma.usuario.update({
+        where: { id: targetUserId },
+        data: { assinaturaUrl },
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          cargo: true,
+          assinaturaUrl: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        assinaturaUrl,
+        usuario: updatedUser,
+      });
+    }
+
+    // 2) Se for FormData com arquivo de imagem
     const formData = await request.formData();
     const file = formData.get("assinaturaFile") as File;
+    const usuarioId = (formData.get("usuarioId") as string) || "";
+
+    const targetUserId = (session.cargo === "ADMIN" && usuarioId) ? usuarioId : session.userId;
+
+    if (!targetUserId) {
+      return NextResponse.json({ error: "ID de usuário inválido." }, { status: 400 });
+    }
 
     if (!file || file.size === 0) {
       return NextResponse.json({ error: "Arquivo de assinatura não enviado." }, { status: 400 });
@@ -32,28 +71,28 @@ export async function POST(request: NextRequest) {
     await mkdir(uploadsDir, { recursive: true });
 
     const ext = path.extname(file.name) || ".png";
-    const filename = `empresa-assinatura-${session.empresaId}-${Date.now()}${ext}`;
+    const filename = `usuario-assinatura-${targetUserId}-${Date.now()}${ext}`;
     const filePath = path.join(uploadsDir, filename);
 
     await writeFile(filePath, buffer);
     const assinaturaUrl = `/uploads/assinaturas/${filename}`;
 
-    const updatedEmpresa = await prisma.empresa.update({
-      where: { id: session.empresaId },
+    const updatedUser = await prisma.usuario.update({
+      where: { id: targetUserId },
       data: { assinaturaUrl },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        cargo: true,
+        assinaturaUrl: true,
+      },
     });
-
-    if (session.userId) {
-      await prisma.usuario.updateMany({
-        where: { id: session.userId },
-        data: { assinaturaUrl },
-      });
-    }
 
     return NextResponse.json({
       success: true,
       assinaturaUrl,
-      empresa: updatedEmpresa,
+      usuario: updatedUser,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

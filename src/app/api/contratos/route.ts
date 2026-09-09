@@ -240,6 +240,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Gerar Lançamento(s) de Depósito Caução / Garantia no Contas a Receber se valorCaucao > 0
+    if (caucaoNum > 0) {
+      const numParcCaucao = caucaoParcNum && caucaoParcNum > 1 ? caucaoParcNum : 1;
+      const vlrParcCaucao = parseFloat((caucaoNum / numParcCaucao).toFixed(2));
+
+      for (let cp = 1; cp <= numParcCaucao; cp++) {
+        const vencCaucao = new Date(dtEmissao);
+        if (cp > 1) {
+          vencCaucao.setMonth(vencCaucao.getMonth() + (cp - 1));
+          if (diaVencNum && diaVencNum >= 1 && diaVencNum <= 31) {
+            vencCaucao.setDate(Math.min(diaVencNum, 28));
+          }
+        }
+        const mesRefCaucao = `${vencCaucao.getFullYear()}-${String(vencCaucao.getMonth() + 1).padStart(2, "0")}`;
+        const vlrFinalCaucao =
+          cp === numParcCaucao
+            ? parseFloat((caucaoNum - vlrParcCaucao * (numParcCaucao - 1)).toFixed(2))
+            : vlrParcCaucao;
+
+        parcelasData.push({
+          empresaId: session.empresaId,
+          contratoId: newContrato.id,
+          locatarioId,
+          mesReferencia: mesRefCaucao,
+          numeroParcela: 0,
+          valor: vlrFinalCaucao,
+          dataVencimento: vencCaucao,
+          status: "PENDENTE",
+          observacao:
+            numParcCaucao > 1
+              ? `Depósito Caução (Parcela ${cp}/${numParcCaucao}) - Garantia Locatícia`
+              : "Depósito Caução - Garantia Locatícia",
+        });
+      }
+    }
+
     await prisma.contaReceber.createMany({
       data: parcelasData,
     });

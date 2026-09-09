@@ -28,6 +28,7 @@ export async function GET() {
       nome: user.nome,
       email: user.email,
       cargo: user.cargo,
+      assinaturaUrl: user.assinaturaUrl,
       isSuperAdmin,
       empresa: user.empresa,
       statusAcesso,

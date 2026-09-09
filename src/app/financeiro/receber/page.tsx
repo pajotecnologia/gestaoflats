@@ -68,18 +68,23 @@ export default function ContasReceberPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [submitting, setSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const loadData = async () => {
     try {
-      const [resContas, resLocatarios, resEmpresa, resFormas] = await Promise.all([
+      const [resContas, resLocatarios, resEmpresa, resFormas, resMe] = await Promise.all([
         fetch("/api/financeiro/receber").then((r) => r.json()),
         fetch("/api/locatarios").then((r) => r.json()),
         fetch("/api/empresa").then((r) => r.json()),
         fetch("/api/formas-pagamento").then((r) => r.json()).catch(() => ({ formas: [] })),
+        fetch("/api/auth/me").then((r) => r.json()).catch(() => ({})),
       ]);
       setContas(resContas.contas || []);
       setLocatarios(resLocatarios.locatarios || []);
       setEmpresaData(resEmpresa.empresa || null);
+      if (resMe?.user) {
+        setCurrentUser(resMe.user);
+      }
       if (resFormas.formas && resFormas.formas.length > 0) {
         const ativas = resFormas.formas.filter((f: any) => f.ativo);
         setFormasPagamentoList(ativas);
@@ -110,7 +115,8 @@ export default function ContasReceberPage() {
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
       locatarioNome: c.locatario?.nome || "Locatário",
       locatarioCpf: c.locatario?.cpf || "000.000.000-00",
       flatNumero,
@@ -146,7 +152,8 @@ export default function ContasReceberPage() {
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-      empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
       locatarioNome: c.locatario?.nome || "Locatário",
       locatarioCpf: c.locatario?.cpf || "000.000.000-00",
       flatNumero,

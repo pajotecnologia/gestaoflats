@@ -36,6 +36,16 @@ export default function ChecklistVistoriaViewModal({
 }: ChecklistVistoriaViewModalProps) {
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [currentUser, setCurrentUser] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user) setCurrentUser(data.user);
+      })
+      .catch(() => {});
+  }, []);
 
   let itemsList: ChecklistItem[] = [];
   let obsGerais = "";
@@ -79,7 +89,8 @@ export default function ChecklistVistoriaViewModal({
       responsavelVistoria: responsavel,
       itens: itemsList,
       observacoesGerais: obsGerais,
-      empresaAssinaturaUrl: vistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
+      usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+      empresaAssinaturaUrl: currentUser?.assinaturaUrl || vistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
       locatarioAssinaturaUrl: vistoria.assinaturaLocatarioUrl,
       dataAssinaturaLocatario: vistoria.dataAssinaturaLocatario,
       ipAssinaturaLocatario: vistoria.ipAssinaturaLocatario,
@@ -109,7 +120,8 @@ export default function ChecklistVistoriaViewModal({
         responsavelVistoria: responsavel,
         itens: itemsList,
         observacoesGerais: obsGerais,
-        empresaAssinaturaUrl: vistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
+        usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
+        empresaAssinaturaUrl: currentUser?.assinaturaUrl || vistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
         locatarioAssinaturaUrl: vistoria.assinaturaLocatarioUrl,
         dataAssinaturaLocatario: vistoria.dataAssinaturaLocatario,
         ipAssinaturaLocatario: vistoria.ipAssinaturaLocatario,
