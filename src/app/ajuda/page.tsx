@@ -9,6 +9,7 @@ import {
   Home,
   Users,
   FileText,
+  FileCode,
   ClipboardCheck,
   DollarSign,
   Zap,
@@ -18,6 +19,11 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldCheck,
+  Calendar,
+  Truck,
+  CreditCard,
+  QrCode,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export default function AjudaPage() {
@@ -29,63 +35,70 @@ export default function AjudaPage() {
       id: "passo1",
       icon: Building2,
       title: "1. Dados da Empresa & Logotipo",
-      desc: "Como cadastrar CNPJ, endereço, logomarca e assinatura para sair nos relatórios PDF.",
+      desc: "Como cadastrar CNPJ, endereço, logomarca, chave PIX e assinatura para documentos PDF.",
       badge: "Configuração",
     },
     {
       id: "passo2",
       icon: Phone,
       title: "2. Conectar WhatsApp (Evolution API)",
-      desc: "Como parear o QR Code para envio de contratos, cobranças e recibos automáticos.",
+      desc: "Como parear o QR Code para envio direto de contratos em PDF, cobranças e recibos.",
       badge: "Integração",
     },
     {
       id: "passo3",
       icon: Building2,
-      title: "3. Cadastrar Condomínios / Edifícios",
-      desc: "Cadastrando os prédios e locais onde os flats estão situados.",
+      title: "3. Flats, Condomínios & Fornecedores",
+      desc: "Cadastre condomínios, apartamentos/flats com fotos da câmera e prestadores de serviço.",
       badge: "Cadastros",
     },
     {
       id: "passo4",
-      icon: Home,
-      title: "4. Cadastrar Flats & Imóveis",
-      desc: "Definir números, fotos com câmera/celular, descrição de mobília e valores de locação.",
+      icon: Users,
+      title: "4. Locatários & Inquilinos",
+      desc: "Cadastro completo com CPF/CNPJ, RG, WhatsApp com DDD e endereço do locatário.",
       badge: "Cadastros",
     },
     {
       id: "passo5",
-      icon: Users,
-      title: "5. Cadastrar Locatários",
-      desc: "Informações pessoais, CPF, RG e telefone/WhatsApp dos inquilinos.",
-      badge: "Cadastros",
+      icon: Calendar,
+      title: "5. Agenda de Reservas & Temporada",
+      desc: "Controle de diárias, bloqueio de calendário, cálculo de noites e geração de cobrança.",
+      badge: "Operação",
     },
     {
       id: "passo6",
-      icon: FileText,
-      title: "6. Emissão de Contratos & Tags",
-      desc: "Emissão de contratos residenciais (meses) ou temporada (dias) com envio em PDF.",
-      badge: "Operação",
+      icon: ClipboardCheck,
+      title: "6. Modelos de Checklist & Vistorias (1º Passo)",
+      desc: "Laudo com câmera do celular, webcam, laudo em PDF e link público de assinatura.",
+      badge: "Vistorias",
     },
     {
       id: "passo7",
-      icon: ClipboardCheck,
-      title: "7. Vistorias com Fotos & Câmera",
-      desc: "Laudos de entrada e saída com captura de fotos na câmera, webcam e assinatura na tela.",
-      badge: "Operação",
+      icon: FileText,
+      title: "7. Modelos & Gestão de Contratos (2º Passo)",
+      desc: "Editor de modelos com tags dinâmicas, vigência em meses/dias e assinatura digital.",
+      badge: "Contratos",
     },
     {
       id: "passo8",
       icon: DollarSign,
-      title: "8. Financeiro, Baixas & Recibos",
-      desc: "Contas a receber, quitação de parcelas com comprovantes e envio de recibos no WhatsApp.",
+      title: "8. Financeiro, Bolepix Banco Inter & Recibos",
+      desc: "Contas a receber, emissão de Boletos com Pix, baixa automática e recibos no WhatsApp.",
       badge: "Financeiro",
     },
     {
       id: "passo9",
+      icon: ShieldCheck,
+      title: "9. Relatórios, Auditoria & Blockchain",
+      desc: "Fluxo de caixa diário, laudos em branco e carimbo de tempo OpenTimestamps.",
+      badge: "Auditoria",
+    },
+    {
+      id: "passo10",
       icon: Zap,
-      title: "9. Teste Grátis & Planos SaaS",
-      desc: "Controle de dias restantes, pagamentos via PIX e liberação de acesso.",
+      title: "10. Teste Grátis & Planos SaaS",
+      desc: "Controle de dias restantes, renovação via PIX instantâneo e liberação de acesso.",
       badge: "Assinatura",
     },
   ];
@@ -99,7 +112,7 @@ export default function AjudaPage() {
   return (
     <Shell>
       <div className="space-y-6">
-        {/* Header (Clean White / Dark Standard sem Degradê) */}
+        {/* Header (Clean White / Dark Standard) */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div>
             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">
@@ -107,7 +120,7 @@ export default function AjudaPage() {
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Manual de Primeiros Passos</h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Siga o passo a passo ilustrado para configurar e operar 100% das funções do sistema.
+              Siga o fluxo recomendado para operar 100% dos módulos com eficiência e segurança jurídica.
             </p>
           </div>
 
@@ -178,14 +191,14 @@ export default function AjudaPage() {
 
                 <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   <p>
-                    Para que seus contratos de locação, recibos de aluguel e laudos de vistoria sejam emitidos com o logotipo, dados oficiais e a sua chave PIX de recebimento:
+                    Para que seus contratos de locação, recibos de aluguel e laudos de vistoria sejam emitidos com o logotipo oficial e chave PIX:
                   </p>
                   <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                    <li>No menu lateral esquerdo, clique em <strong>⚙️ Parâmetros</strong>.</li>
+                    <li>No menu lateral esquerdo, clique em <strong>⚙️ Parâmetros do Sistema</strong>.</li>
                     <li>Na aba <strong>Dados da Empresa</strong>, preencha o Nome Fantasia, Razão Social, CNPJ, E-mail e Telefone.</li>
                     <li>Informe o Endereço Físico completo da sua sede (Rua, Cidade, Estado e CEP).</li>
                     <li><strong>🔑 Chave PIX de Recebimento</strong>: Informe sua chave PIX (CNPJ, CPF, E-mail, Celular ou Aleatória), Nome do Beneficiário e Cidade. Esta chave será enviada automaticamente nas mensagens de cobrança aos locatários.</li>
-                    <li><strong>Upload do Logotipo</strong>: Faça upload da imagem do seu logo (PNG ou JPG transparente). O sistema redimensiona e otimiza automaticamente para os PDFs.</li>
+                    <li><strong>Upload do Logotipo (até 5MB)</strong>: Faça upload da imagem do seu logo (PNG ou JPG transparente). O sistema padroniza no cabeçalho limpo universal (White Clean).</li>
                     <li><strong>Upload da Assinatura Digital</strong>: Anexe a assinatura/rubrica do responsável para sair automaticamente no rodapé dos laudos e contratos.</li>
                     <li>Clique no botão <strong>💾 Salvar Dados da Empresa</strong>.</li>
                   </ol>
@@ -201,16 +214,16 @@ export default function AjudaPage() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 2: Conexão com WhatsApp (Evolution API)</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Envio direto de PDFs e mensagens com 1 clique</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Envio direto de PDFs anexados e mensagens com 1 clique</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   <p>
-                    O sistema integra-se diretamente com a <strong>Evolution API</strong> para envio automático de cobranças, recibos com comprovante e links de assinatura digital:
+                    O sistema integra-se diretamente com a <strong>Evolution API</strong> para disparo direto dos arquivos PDF (Contratos, Laudos de Vistoria, Boletos e Recibos):
                   </p>
                   <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                    <li>Acesse <strong>⚙️ Parâmetros</strong> → Aba <strong>WhatsApp (Evolution API)</strong>.</li>
+                    <li>Acesse <strong>⚙️ Parâmetros do Sistema</strong> → Aba <strong>WhatsApp (Evolution API)</strong>.</li>
                     <li>Informe a <strong>URL da API</strong>, a <strong>Chave Global (API Key)</strong> e o <strong>Nome da Instância</strong>.</li>
                     <li>Clique em <strong>Salvar Parâmetros</strong> e depois em <strong>📱 Conectar / Gerar QR Code</strong>.</li>
                     <li>No WhatsApp do seu celular, abra <strong>Aparelhos Conectados → Conectar um Aparelho</strong> e leia o QR Code na tela.</li>
@@ -227,20 +240,19 @@ export default function AjudaPage() {
                     <Building2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 3: Cadastrar Condomínios / Edifícios</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Organize seus imóveis por condomínio ou prédio</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 3: Flats, Condomínios & Fornecedores</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Organize seus imóveis por condomínio ou prédio e cadastre prestadores</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  <p>
-                    Cadastre primeiro os edifícios, condomínios ou residenciais onde os seus flats estão localizados:
-                  </p>
                   <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                    <li>No menu lateral, clique em <strong>🏢 Locais / Condomínios</strong>.</li>
-                    <li>Clique no botão <strong>➕ Novo Condomínio / Local</strong>.</li>
-                    <li>Informe o nome do edifício (ex: <em>Residencial Praia Formosa</em>) e o endereço completo.</li>
-                    <li>Clique em <strong>Salvar</strong>.</li>
+                    <li>No menu lateral <strong>IMÓVEIS & CADASTROS</strong>, acesse <strong>🏢 Flats & Condomínios</strong>.</li>
+                    <li>Cadastre primeiro os edifícios na aba <strong>Condomínios</strong> com nome e endereço completo.</li>
+                    <li>Na aba <strong>Flats / Imóveis</strong>, clique em <strong>➕ Novo Flat</strong>.</li>
+                    <li>Informe o número/identificação, condomínio, valor padrão da diária ou aluguel e status inicial (<em>DISPONÍVEL</em>).</li>
+                    <li><strong>Fotos do Flat</strong>: Tire fotos direto da câmera do smartphone ou selecione da galeria/computador.</li>
+                    <li>No menu <strong>Fornecedores</strong>, cadastre empresas de energia, condomínio, manutenção, limpeza e internet para controle no Contas a Pagar.</li>
                   </ol>
                 </div>
               </div>
@@ -249,36 +261,11 @@ export default function AjudaPage() {
             {activeTopic === "passo4" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
-                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-600/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
-                    <Home className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 4: Cadastrar Flats & Imóveis</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Defina os flats, fotos, valores de locação e mobília</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                    <li>No menu lateral, clique em <strong>🏠 Flats / Imóveis</strong>.</li>
-                    <li>Clique em <strong>➕ Novo Flat</strong>.</li>
-                    <li>Selecione o Condomínio/Local correspondente.</li>
-                    <li>Informe o número do apartamento (ex: <em>Flat 101 - Vista Mar</em>), o valor padrão do aluguel ou diária e o status inicial (<em>DISPONÍVEL</em> ou <em>OCUPADO</em>).</li>
-                    <li><strong>Fotos do Flat</strong>: Tire fotos direto da câmera do smartphone ou selecione da galeria/computador.</li>
-                    <li>Clique em <strong>Salvar Flat</strong>.</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            {activeTopic === "passo5" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
                   <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-600/20 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/30">
                     <Users className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 5: Cadastrar Locatários</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 4: Locatários & Inquilinos</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Gerencie todos os inquilinos e seus contatos</p>
                   </div>
                 </div>
@@ -287,8 +274,32 @@ export default function AjudaPage() {
                   <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
                     <li>Acesse o menu <strong>👥 Locatários</strong>.</li>
                     <li>Clique em <strong>➕ Novo Locatário</strong>.</li>
-                    <li>Informe o Nome Completo, CPF, RG, E-mail e o número de <strong>Telefone / WhatsApp com DDD</strong>.</li>
-                    <li>Preencha o endereço de residência do locatário e clique em <strong>Salvar</strong>.</li>
+                    <li>Informe o Nome Completo, CPF/CNPJ, RG, E-mail e o número de <strong>Telefone / WhatsApp com DDD</strong> (formatado com máscara automática).</li>
+                    <li>Preencha o endereço completo do locatário (essencial para emissão de Boletos com Pix no Banco Inter) e clique em <strong>Salvar</strong>.</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {activeTopic === "passo5" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-600/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
+                    <Calendar className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 5: Agenda de Reservas por Diárias / Temporada</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Visualização de calendário para locações de curta duração</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                    <li>No menu lateral <strong>PRINCIPAL</strong>, clique em <strong>📅 Agenda de Reservas</strong>.</li>
+                    <li>Selecione o Flat/Imóvel desejado no topo da tela para carregar o calendário mensal.</li>
+                    <li>Clique no dia desejado ou no botão <strong>➕ Nova Reserva</strong>.</li>
+                    <li>Defina a Data de Check-in e Check-out: o sistema calcula automaticamente a quantidade de noites e o valor total.</li>
+                    <li>Selecione o Locatário e confirme a reserva. O período é bloqueado no calendário e é gerada 1 única parcela no Contas a Receber.</li>
                   </ol>
                 </div>
               </div>
@@ -297,27 +308,26 @@ export default function AjudaPage() {
             {activeTopic === "passo6" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
-                  <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30">
-                    <FileText className="w-6 h-6" />
+                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                    <ClipboardCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 6: Modelos & Emissão de Contratos</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Contratos anuais (meses) ou temporadas (diárias)</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 6: Modelos de Checklist & Vistorias (1º Passo Obrigatório)</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Fluxo sequencial: 1º Vistoria de Entrada → 2º Contrato → 3º Vistoria de Saída</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p>
+                    No novo fluxo operacional do sistema, a vistoria é realizada antes da assinatura do contrato:
+                  </p>
                   <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                    <li>Acesse <strong>📄 Contratos</strong> → <strong>➕ Emitir Contrato</strong>.</li>
-                    <li>Selecione o Locatário e o Flat.</li>
-                    <li>Escolha a validade:
-                      <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li><strong>MESES</strong>: Gera parcelas mensais no Contas a Receber (ex: 12 meses).</li>
-                        <li><strong>DIAS</strong>: Locação por temporada (ex: 15 dias) gerando 1 única parcela com valor total.</li>
-                      </ul>
-                    </li>
-                    <li>Informe o valor e dia de vencimento.</li>
-                    <li>Clique em <strong>Emitir Contrato</strong> e envie o PDF diretamente pelo WhatsApp do locatário com 1 clique.</li>
+                    <li>No menu <strong>CONTRATOS & VISTORIAS</strong>, acesse <strong>📋 Modelos de Checklist</strong> para criar seus modelos personalizados de vistoria.</li>
+                    <li>Ao alugar um flat, inicie pela <strong>1. Vistoria de Entrada</strong>.</li>
+                    <li>Avalie cada cômodo marcando <em>OK</em>, <em>Atenção</em> ou <em>Avaria</em>.</li>
+                    <li>Tire fotos comprovatórias usando <strong>📷 Câmera Direta</strong>, <strong>📹 Webcam Ao Vivo</strong> ou <strong>📁 Galeria</strong>.</li>
+                    <li>Colete a assinatura na tela ou clique em <strong>Gerar Link Vistoria</strong> para enviar o link público interativo pelo WhatsApp do locatário.</li>
+                    <li>Ao assinar a vistoria de entrada, o flat muda para <strong>OCUPADO</strong>. Na vistoria de saída, o flat é liberado automaticamente como <strong>DISPONÍVEL</strong>.</li>
                   </ol>
                 </div>
               </div>
@@ -326,22 +336,22 @@ export default function AjudaPage() {
             {activeTopic === "passo7" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
-                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                    <Camera className="w-6 h-6" />
+                  <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30">
+                    <FileText className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 7: Vistorias com Fotos na Câmera & Assinatura</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Laudos com validade jurídica e fotos comprobatórias</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 7: Modelos & Gestão de Contratos (2º Passo)</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Editor visual com tags dinâmicas, vigência em Meses/Dias e assinatura digital</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-                    <li>Abra o flat ou contrato e clique em <strong>Checklist / Vistoria</strong>.</li>
-                    <li>Selecione <strong>ENTRADA</strong> ou <strong>SAÍDA</strong>.</li>
-                    <li>Para cada cômodo e item (Pintura, Portas, Ar, TV, etc.), marque <em>OK</em>, <em>Atenção</em> ou <em>Avaria</em>.</li>
-                    <li>Anexe fotos na hora usando <strong>📷 Câmera do Celular</strong>, <strong>📹 Webcam Ao Vivo</strong> ou <strong>📁 Galeria</strong>.</li>
-                    <li>Colete a assinatura do vistoriador e do locatário direto na tela ou envie o link público para assinatura à distância.</li>
+                    <li>Acesse <strong>📄 Modelos de Contrato</strong> para editar suas minutas com o editor visual (Drag & Drop de tags, cor preta mandatória e formatação A4).</li>
+                    <li>Em <strong>Gestão de Contratos</strong>, clique em <strong>➕ Emitir Contrato</strong> e selecione o modelo, o locatário e o flat.</li>
+                    <li>Escolha a vigência: <strong>MESES</strong> (aluguel tradicional com parcelas mensais) ou <strong>DIAS</strong> (temporada com parcela única).</li>
+                    <li>Após salvar, gere o <strong>Link de Assinatura</strong> para o inquilino assinar digitalmente pelo celular.</li>
+                    <li>O contrato exibe todas as cláusulas preenchidas e gera o PDF oficial com cabeçalho limpo universal (White Clean).</li>
                   </ol>
                 </div>
               </div>
@@ -354,93 +364,46 @@ export default function AjudaPage() {
                     <DollarSign className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 8: Controle de Pagamentos de Clientes & Locatários</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Ciclo financeiro completo: da geração do contrato à quitação com recibo</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 8: Financeiro, Bolepix Banco Inter & Recibos</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Emissão de boletos com QR Code Pix, baixa automática e envio de recibos</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                   <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
                     <h3 className="font-bold text-amber-600 dark:text-amber-400 text-sm flex items-center gap-2">
-                      <span>1️⃣ Geração Automática das Parcelas</span>
+                      <span>1️⃣ Integração Banco Inter (Boleto com Pix / Bolepix)</span>
                     </h3>
                     <p className="text-slate-600 dark:text-slate-300">
-                      Assim que você emite um contrato no sistema, as parcelas no <strong>Contas a Receber</strong> são criadas automaticamente:
+                      Configure seus certificados mTLS (.crt e .key) e Client ID/Secret do Banco Inter em <strong>Parâmetros → Formas de Pagamento</strong> para emitir cobranças com código de barras e QR Code Pix simultâneos.
                     </p>
-                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-500 dark:text-slate-400">
-                      <li><strong>Locações por Mês (Anuais/Mensais)</strong>: O sistema gera 1 parcela para cada mês de vigência (ex: 12 parcelas para 12 meses), com a data de vencimento programada para o dia escolhido.</li>
-                      <li><strong>Locações por Temporada (Dias)</strong>: O sistema gera 1 parcela única com o valor total do período contratado.</li>
-                    </ul>
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
                     <h3 className="font-bold text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2">
-                      <span>2️⃣ Envio de Cobranças com Chave PIX pelo WhatsApp</span>
+                      <span>2️⃣ Envio Direto de Cobranças pelo WhatsApp</span>
                     </h3>
                     <p className="text-slate-600 dark:text-slate-300">
-                      No menu <strong>💰 Contas a Receber</strong> ou na tela de detalhes do Flat/Contrato:
+                      Na listagem de <strong>Contas a Receber</strong>, clique no botão WhatsApp para enviar o PDF do boleto oficial do Banco Inter anexado, com a Linha Digitável e o Pix Copia e Cola formatados.
                     </p>
-                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-500 dark:text-slate-400">
-                      <li>Localize a parcela a ser cobrada e clique no botão com ícone do <strong>💬 WhatsApp</strong>.</li>
-                      <li>A mensagem é disparada instantaneamente para o WhatsApp do locatário informando o imóvel, vencimento, valor e a <strong>Chave PIX da sua empresa</strong> com nome do titular da conta.</li>
-                    </ul>
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
                     <h3 className="font-bold text-blue-600 dark:text-blue-400 text-sm flex items-center gap-2">
-                      <span>3️⃣ Como Dar Baixa / Registrar o Pagamento</span>
+                      <span>3️⃣ Baixa Automática e Conciliação</span>
                     </h3>
                     <p className="text-slate-600 dark:text-slate-300">
-                      Quando o locatário efetuar o pagamento via PIX, transferência, dinheiro ou cartão:
+                      O webhook do Banco Inter liquida as parcelas em tempo real assim que o locatário paga via Pix ou compensação de boleto. Você também pode sincronizar todas as cobranças pendentes com 1 clique no botão <strong>🔄 Sincronizar Inter</strong>.
                     </p>
-                    <ol className="list-decimal list-inside pl-2 space-y-1 text-slate-500 dark:text-slate-400">
-                      <li>Acesse <strong>Contas a Receber</strong> e clique no botão <strong>💲 Dar Baixa</strong> da parcela correspondente.</li>
-                      <li>Confirme ou ajuste a <strong>Data do Pagamento</strong> e o <strong>Valor Efetivamente Pago</strong>.</li>
-                      <li>Se aplicável, informe valores de <strong>Desconto</strong> ou <strong>Acréscimo (Multa/Juros por atraso)</strong>.</li>
-                      <li>Selecione a <strong>Forma de Pagamento</strong> (PIX, Transferência, Boleto, Dinheiro, etc.).</li>
-                      <li><strong>Comprovante</strong>: Você pode anexar a foto ou PDF do comprovante bancário para registro histórico.</li>
-                      <li>Clique em <strong>Confirmar Baixa</strong>. O status da parcela mudará imediatamente para <span className="text-emerald-600 dark:text-emerald-400 font-bold">PAGO</span>.</li>
-                    </ol>
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
                     <h3 className="font-bold text-purple-600 dark:text-purple-400 text-sm flex items-center gap-2">
-                      <span>4️⃣ Emissão e Envio do Recibo Oficial em PDF</span>
+                      <span>4️⃣ Recibo Oficial de Pagamento em PDF</span>
                     </h3>
                     <p className="text-slate-600 dark:text-slate-300">
-                      Após liquidar a parcela, o sistema libera a emissão do <strong>Recibo de Pagamento Oficial</strong>:
+                      Após a liquidação da parcela, clique em <strong>🖨️ Imprimir Recibo</strong> ou <strong>📱 Enviar Recibo WhatsApp</strong> para gerar o documento A4 com logotipo oficial, comprovante e assinatura digital.
                     </p>
-                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-500 dark:text-slate-400">
-                      <li>Clique no botão <strong>🖨️ Imprimir Recibo</strong> para gerar o PDF em folha A4 com logotipo da empresa, endereço, dados do inquilino, assinatura digital e QR Code de autenticidade.</li>
-                      <li>Clique no botão <strong>📱 Enviar Recibo no WhatsApp</strong> para disparar o PDF do recibo oficial diretamente no celular do inquilino.</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
-                    <h3 className="font-bold text-rose-600 dark:text-rose-400 text-sm flex items-center gap-2">
-                      <span>5️⃣ Gestão de Inadimplência & Atrasos</span>
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-300">
-                      O sistema monitora diariamente as datas de vencimento:
-                    </p>
-                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-500 dark:text-slate-400">
-                      <li>Parcelas com data vencida são destacadas automaticamente em <span className="text-rose-600 dark:text-rose-400 font-bold">EM ATRASO</span> com a contagem exata de dias de atraso.</li>
-                      <li>Utilize o filtro <strong>Status: Vencidas</strong> no topo do Contas a Receber para listar e renegociar pendências com rapidez.</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
-                    <h3 className="font-bold text-cyan-600 dark:text-cyan-400 text-sm flex items-center gap-2">
-                      <span>6️⃣ Relatórios Financeiros & Fluxo de Caixa</span>
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-300">
-                      No menu lateral <strong>📊 Relatórios</strong>, você tem acesso aos consolidados:
-                    </p>
-                    <ul className="list-disc list-inside pl-2 space-y-1 text-slate-500 dark:text-slate-400">
-                      <li><strong>Relatório - Contas a Receber</strong>: Extrato completo de valores recebidos e a receber por condomínio, flat ou locatário.</li>
-                      <li><strong>Relatório - Contas a Pagar</strong>: Controle de despesas (condomínio, energia, manutenção, faxina, fornecedores).</li>
-                      <li><strong>Fluxo de Caixa Diário</strong>: Demonstrativo de entradas vs saídas com saldo líquido em tempo real.</li>
-                    </ul>
                   </div>
                 </div>
               </div>
@@ -449,12 +412,37 @@ export default function AjudaPage() {
             {activeTopic === "passo9" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
+                  <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-600/20 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/30">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 9: Relatórios, Auditoria & Blockchain</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Extratos consolidados e imutabilidade jurídica dos documentos</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p>
+                    No menu <strong>RELATÓRIOS & CONFIGURAÇÃO</strong>, você tem acesso a relatórios completos:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 pl-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                    <li><strong>Contratos & Blockchain</strong>: Consulta o carimbo de tempo OpenTimestamps registrado na rede Bitcoin para prova incontestável da data e integridade do contrato.</li>
+                    <li><strong>Checklist (Em Branco)</strong>: Gera uma folha impressa de vistoria para preenchimento manual em campo quando não houver conexão de internet.</li>
+                    <li><strong>Relatórios Financeiros</strong>: Extratos de Contas a Receber, Contas a Pagar e Fluxo de Caixa Diário.</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {activeTopic === "passo10" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
                   <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30">
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 9: Teste Grátis & Planos SaaS</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Acompanhe seu período de teste e renove via PIX</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Passo 10: Teste Grátis & Planos SaaS</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Acompanhe seu período de teste e renove via PIX instantâneo</p>
                   </div>
                 </div>
 
@@ -477,3 +465,4 @@ export default function AjudaPage() {
     </Shell>
   );
 }
+
