@@ -31,18 +31,47 @@ export async function GET(request: NextRequest) {
       if (emp) empresaNome = emp.nomeFantasia;
     }
 
-    // Gerar identificador amigável de TxID (até 25 caracteres)
-    const txid = `IMOB${targetPlan.slug.substring(0, 3)}${Date.now().toString().slice(-8)}`;
+    let pixCopiaCola = "";
+    let pixQrCodeBase64 = "";
+    let txid = `IMOB${targetPlan.slug.substring(0, 3)}${Date.now().toString().slice(-8)}`;
+    let cobrancaId = "";
+    let linhaDigitavel = "";
+    let isBancoInter = false;
 
-    const pixCopiaCola = generatePixPayload({
-      chave: config.chavePix,
-      nomeBeneficiario: config.nomeBeneficiarioPix,
-      cidadeBeneficiario: config.cidadePix,
-      valor: valor,
-      identificador: txid,
-    });
+    // 1. Tenta emitir via Banco Inter se empresaId estiver presente
+    if (empresaId) {
+      try {
+        const { emitirCobrancaSaaSBancoInter } = await import("@/lib/bancoInterSaaS");
+        const resInter = await emitirCobrancaSaaSBancoInter({
+          empresaId,
+          planoSlug: targetPlan.slug,
+          ciclo: cicloParam as "MENSAL" | "ANUAL",
+        });
 
-    const pixQrCodeBase64 = await generatePixQRCode(pixCopiaCola);
+        if (resInter && resInter.pixCopiaECola) {
+          pixCopiaCola = resInter.pixCopiaECola;
+          pixQrCodeBase64 = resInter.qrCodeBase64;
+          txid = resInter.codigoSolicitacao || txid;
+          cobrancaId = resInter.cobrancaId;
+          linhaDigitavel = resInter.linhaDigitavel || "";
+          isBancoInter = true;
+        }
+      } catch (interErr: any) {
+        console.warn("Aviso: Falha ao emitir cobrança dinâmica no Banco Inter, usando PIX estático:", interErr.message);
+      }
+    }
+
+    // 2. Fallback para PIX estático padrão
+    if (!pixCopiaCola) {
+      pixCopiaCola = generatePixPayload({
+        chave: config.chavePix,
+        nomeBeneficiario: config.nomeBeneficiarioPix,
+        cidadeBeneficiario: config.cidadePix,
+        valor: valor,
+        identificador: txid,
+      });
+      pixQrCodeBase64 = await generatePixQRCode(pixCopiaCola);
+    }
 
     return NextResponse.json({
       config: {
@@ -67,6 +96,9 @@ export async function GET(request: NextRequest) {
         copiaCola: pixCopiaCola,
         qrCodeBase64: pixQrCodeBase64,
         txid,
+        cobrancaId,
+        linhaDigitavel,
+        isBancoInter,
       },
       empresaNome,
     });

@@ -454,3 +454,30 @@ model FormaPagamento {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model CobrancaAssinaturaSaaS {
+  id                          String    @id @default(uuid())
+  empresaId                   String
+  plano                       String    // ESSENCIAL, PROFISSIONAL, GESTAO, EMPRESARIAL, ENTERPRISE
+  ciclo                       String    @default("MENSAL") // MENSAL, ANUAL
+  valor                       Float
+  status                      String    @default("PENDENTE") // PENDENTE, PAGO, CANCELADO, EXPIRADO
+  
+  // Dados de Cobrança Banco Inter (Boleto com Pix / Bolepix)
+  bancoInterCodigoSolicitacao String?   @unique
+  bancoInterNossoNumero       String?
+  bancoInterLinhaDigitavel    String?
+  bancoInterCodigoBarras      String?
+  bancoInterPixCopiaECola     String?
+  bancoInterPixQrCode         String?
+  bancoInterPdfUrl            String?
+  bancoInterStatus            String?   @default("EMABERTO") // EMABERTO, RECEBIDO, CANCELADO, EXPIRADO
+  
+  dataVencimento              DateTime
+  dataPagamento               DateTime?
+  valorPago                   Float?
+  
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+}
+

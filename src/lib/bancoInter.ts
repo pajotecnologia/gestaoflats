@@ -739,7 +739,7 @@ export async function processarWebhookNotificacaoInter(payload: any) {
 
     if (!codigoSolicitacao) continue;
 
-    // Localiza a parcela associada no banco de dados
+    // 1. Localiza se é uma parcela de aluguel (ContaReceber)
     const conta = await prisma.contaReceber.findFirst({
       where: {
         OR: [
@@ -749,37 +749,130 @@ export async function processarWebhookNotificacaoInter(payload: any) {
       },
     });
 
-    if (!conta) {
-      resultados.push({ codigoSolicitacao, status: "NAO_ENCONTRADO" });
+    if (conta) {
+      if (situacao === "RECEBIDO" || situacao === "PAGO" || situacao === "LIQUIDADO") {
+        const valorFinal = valorRecebido ? parseFloat(valorRecebido) : conta.valor;
+        const dataPagto = new Date(dataHoraSituacao);
+
+        await prisma.contaReceber.update({
+          where: { id: conta.id },
+          data: {
+            status: "PAGO",
+            formaPagamento: "BOLETO",
+            valorPago: valorFinal,
+            dataPagamento: isNaN(dataPagto.getTime()) ? new Date() : dataPagto,
+            bancoInterStatus: "RECEBIDO",
+          },
+        });
+
+        resultados.push({ codigoSolicitacao, tipo: "CONTA_RECEBER", status: "BAIXADO_COM_SUCESSO", contaId: conta.id });
+      } else if (situacao === "CANCELADO" || situacao === "EXPIRADO") {
+        await prisma.contaReceber.update({
+          where: { id: conta.id },
+          data: {
+            bancoInterStatus: situacao,
+          },
+        });
+        resultados.push({ codigoSolicitacao, tipo: "CONTA_RECEBER", status: `STATUS_ATUALIZADO_${situacao}` });
+      }
       continue;
     }
 
-    if (situacao === "RECEBIDO" || situacao === "PAGO" || situacao === "LIQUIDADO") {
-      const valorFinal = valorRecebido ? parseFloat(valorRecebido) : conta.valor;
-      const dataPagto = new Date(dataHoraSituacao);
+    // 2. Localiza se é uma assinatura / renovação de SaaS (CobrancaAssinaturaSaaS)
+    const cobrancaSaaS = await prisma.cobrancaAssinaturaSaaS.findFirst({
+      where: {
+        OR: [
+          { bancoInterCodigoSolicitacao: codigoSolicitacao },
+          { bancoInterNossoNumero: codigoSolicitacao },
+        ],
+      },
+    });
 
-      await prisma.contaReceber.update({
-        where: { id: conta.id },
-        data: {
-          status: "PAGO",
-          formaPagamento: "BOLETO",
-          valorPago: valorFinal,
-          dataPagamento: isNaN(dataPagto.getTime()) ? new Date() : dataPagto,
-          bancoInterStatus: "RECEBIDO",
-        },
-      });
+    if (cobrancaSaaS) {
+      if (situacao === "RECEBIDO" || situacao === "PAGO" || situacao === "LIQUIDADO") {
+        const valorFinal = valorRecebido ? parseFloat(valorRecebido) : cobrancaSaaS.valor;
+        const dataPagto = new Date(dataHoraSituacao);
 
-      resultados.push({ codigoSolicitacao, status: "BAIXADO_COM_SUCESSO", contaId: conta.id });
-    } else if (situacao === "CANCELADO" || situacao === "EXPIRADO") {
-      await prisma.contaReceber.update({
-        where: { id: conta.id },
-        data: {
-          bancoInterStatus: situacao,
-        },
-      });
-      resultados.push({ codigoSolicitacao, status: `STATUS_ATUALIZADO_${situacao}` });
+        // Atualiza a cobrança SaaS para PAGO
+        await prisma.cobrancaAssinaturaSaaS.update({
+          where: { id: cobrancaSaaS.id },
+          data: {
+            status: "PAGO",
+            valorPago: valorFinal,
+            dataPagamento: isNaN(dataPagto.getTime()) ? new Date() : dataPagto,
+            bancoInterStatus: "RECEBIDO",
+          },
+        });
+
+        // Atualiza a empresa e calcula a nova data de expiração
+        const empresa = await prisma.empresa.findUnique({
+          where: { id: cobrancaSaaS.empresaId },
+        });
+
+        if (empresa) {
+          const agora = new Date();
+          let baseDate = agora;
+
+          // Se a empresa já tinha acesso ativo no futuro, estende a partir da data futura
+          if (empresa.dataFimAcesso && empresa.dataFimAcesso.getTime() > agora.getTime()) {
+            baseDate = new Date(empresa.dataFimAcesso.getTime());
+          }
+
+          const diasAdicionar = cobrancaSaaS.ciclo === "ANUAL" ? 365 : 30;
+          const novaDataFimAcesso = new Date(baseDate.getTime() + diasAdicionar * 24 * 60 * 60 * 1000);
+
+          await prisma.empresa.update({
+            where: { id: empresa.id },
+            data: {
+              statusAssinatura: "ATIVO",
+              planoAtual: cobrancaSaaS.plano,
+              dataFimAcesso: novaDataFimAcesso,
+            },
+          });
+
+          // Envia notificação amigável via WhatsApp (se configurado)
+          try {
+            const { sendWhatsAppMessage } = await import("@/lib/evolutionApi");
+            const evolutionConfig = await prisma.configuracaoParametros.findFirst({
+              where: {
+                evolutionApiUrl: { not: null },
+                evolutionApiKey: { not: null },
+                evolutionInstance: { not: null },
+              },
+            });
+
+            if (evolutionConfig && empresa.telefone) {
+              const dataFimFormatada = novaDataFimAcesso.toLocaleDateString("pt-BR");
+              const msgWhatsApp = `🎉 *Pagamento Confirmado!*\n\nOlá, informamos que o pagamento da assinatura do *IMOB - Plano ${cobrancaSaaS.plano} (${cobrancaSaaS.ciclo})* foi processado com sucesso pelo Banco Inter.\n\n✅ *Acesso Liberado até:* ${dataFimFormatada}\n\nObrigado pela parceria! 🚀`;
+              await sendWhatsAppMessage(evolutionConfig, empresa.telefone, msgWhatsApp);
+            }
+          } catch (whatsErr) {
+            console.warn("Aviso: Falha ao enviar WhatsApp de confirmação de renovação:", whatsErr);
+          }
+        }
+
+        resultados.push({
+          codigoSolicitacao,
+          tipo: "ASSINATURA_SAAS",
+          status: "LIBERADO_COM_SUCESSO",
+          empresaId: cobrancaSaaS.empresaId,
+        });
+      } else if (situacao === "CANCELADO" || situacao === "EXPIRADO") {
+        await prisma.cobrancaAssinaturaSaaS.update({
+          where: { id: cobrancaSaaS.id },
+          data: {
+            bancoInterStatus: situacao,
+            status: situacao === "EXPIRADO" ? "EXPIRADO" : "CANCELADO",
+          },
+        });
+        resultados.push({ codigoSolicitacao, tipo: "ASSINATURA_SAAS", status: `STATUS_ATUALIZADO_${situacao}` });
+      }
+      continue;
     }
+
+    resultados.push({ codigoSolicitacao, status: "NAO_ENCONTRADO" });
   }
 
   return resultados;
 }
+

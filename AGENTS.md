@@ -230,6 +230,15 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
   - Rota de Webhook: `POST /api/webhooks/banco-inter`. Ao receber status `RECEBIDO` ou `PAGO`, aplica a liquidação imediata da `ContaReceber` (`status: "PAGO"`, `formaPagamento: "BOLETO"`, `valorPago`, `dataPagamento`).
   - Sincronização em Lote (`POST /api/banco-inter/consultar`): Botão **Sincronizar com Inter** na tela de Contas a Receber para consultar e conciliar todas as cobranças pendentes com 1 clique.
 
+- **Renovação Automática de Planos SaaS via Banco Inter (`/renovar` & `src/lib/bancoInterSaaS.ts`)**:
+  - Na tela de renovação (`/renovar`), o sistema gera automaticamente uma cobrança Pix oficial pelo Banco Inter com o valor do plano e ciclo selecionado (mensal ou anual).
+  - O registro é salvo na tabela `CobrancaAssinaturaSaaS`.
+  - Ao receber a notificação de pagamento no Webhook (`POST /api/webhooks/banco-inter`), o sistema:
+    1. Marca `CobrancaAssinaturaSaaS.status = "PAGO"`.
+    2. Atualiza a `Empresa`: `statusAssinatura: "ATIVO"`, `planoAtual: planoContratado`, e estende a `dataFimAcesso` (+30 dias para mensal ou +365 dias para anual).
+    3. Dispara notificação de confirmação pelo WhatsApp via Evolution API.
+    4. A tela `/renovar` detecta a liberação em tempo real (polling a cada 3s) e redireciona o cliente automaticamente para o `/dashboard`.
+
 ---
 
 ## 15. Armazenamento Permanente de Imagens em Base64 no PostgreSQL & Compressão Sharp

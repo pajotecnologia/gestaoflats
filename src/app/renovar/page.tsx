@@ -51,6 +51,9 @@ interface PlanoPixData {
     copiaCola: string;
     qrCodeBase64: string;
     txid: string;
+    cobrancaId?: string;
+    linhaDigitavel?: string;
+    isBancoInter?: boolean;
   };
   empresaNome: string;
 }
@@ -67,16 +70,29 @@ function RenovarContent() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [userStatus, setUserStatus] = useState<any>(null);
+  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
+  const [dadosLiberacao, setDadosLiberacao] = useState<{ dataExpiracao?: string; plano?: string } | null>(null);
 
-  useEffect(() => {
+  const fetchAuthStatus = () => {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((d) => {
         if (d.user) {
           setUserStatus(d.user.statusAcesso);
+          if (d.user.statusAcesso?.status === "ATIVO" && !d.user.statusAcesso?.isTrial) {
+            setPagamentoConfirmado(true);
+            setDadosLiberacao({
+              dataExpiracao: d.user.statusAcesso?.dataExpiracao,
+              plano: d.user.statusAcesso?.planoAtual,
+            });
+          }
         }
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchAuthStatus();
   }, []);
 
   const carregarPlanoPix = async (plano: string, ciclo: string) => {
@@ -97,6 +113,36 @@ function RenovarContent() {
   useEffect(() => {
     carregarPlanoPix(selectedPlano, billingCycle);
   }, [selectedPlano, billingCycle, empresaIdParam]);
+
+  // Polling em tempo real a cada 3 segundos para detecção automática do pagamento via Webhook do Banco Inter
+  useEffect(() => {
+    if (pagamentoConfirmado) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const cobrancaId = data?.pix?.cobrancaId || "";
+        const url = `/api/saas/status-cobranca?${cobrancaId ? `cobrancaId=${cobrancaId}&` : ""}empresaId=${empresaIdParam}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        if (json.pago || json.statusCobranca === "PAGO" || (json.statusAcesso?.status === "ATIVO" && !json.statusAcesso?.isTrial)) {
+          setPagamentoConfirmado(true);
+          setDadosLiberacao({
+            dataExpiracao: json.statusAcesso?.dataExpiracao,
+            plano: json.statusAcesso?.planoAtual || selectedPlano,
+          });
+          clearInterval(interval);
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 3500);
+        }
+      } catch (err) {
+        // Silencioso
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [data, empresaIdParam, pagamentoConfirmado, selectedPlano, router]);
 
   const handleCopyPix = () => {
     if (data?.pix?.copiaCola) {
@@ -350,114 +396,198 @@ function RenovarContent() {
 
         {/* SEÇÃO DE CHECKOUT PIX INSTANTÂNEO */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-            <div>
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                Etapa de Pagamento Instantâneo
-              </span>
-              <h3 className="text-xl font-black text-white mt-1">
-                Ativação Imediata via PIX Oficial
-              </h3>
-              <p className="text-xs text-slate-400">
-                Pague pelo QR Code abaixo para liberar seu acesso instantaneamente.
-              </p>
-            </div>
-
-            {data && (
-              <div className="text-left sm:text-right bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
-                <span className="text-[11px] text-slate-400 block">Total do Pedido:</span>
-                <span className="text-2xl font-black text-emerald-400">
-                  {formatBRL(data.planoSelecionado.valor)}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {data.planoSelecionado.nome}
-                </span>
+          {pagamentoConfirmado ? (
+            <div className="py-12 px-4 text-center space-y-5 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/30">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 animate-bounce" />
               </div>
-            )}
-          </div>
 
-          {loading ? (
-            <div className="py-12 text-center text-xs text-slate-500">
-              Gerando cobrança PIX oficial para {selectedPlano}...
-            </div>
-          ) : data ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              {/* Lado Esquerdo: QR Code */}
-              <div className="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
-                {data.pix.qrCodeBase64 ? (
-                  <div className="bg-white p-3.5 rounded-2xl shadow-lg">
-                    <img
-                      src={data.pix.qrCodeBase64}
-                      alt="QR Code PIX"
-                      className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-48 h-48 bg-slate-800 rounded-2xl flex items-center justify-center text-xs text-slate-400">
-                    QR Code Indisponível
-                  </div>
+              <div className="space-y-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-black border border-emerald-500/30 uppercase tracking-wider">
+                  ✅ Pagamento Confirmado pelo Banco Inter!
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-white">
+                  Seu Acesso foi Liberado com Sucesso!
+                </h3>
+                <p className="text-sm text-slate-300 max-w-md mx-auto">
+                  Identificamos o seu pagamento via Pix no Banco Inter. Todos os recursos do{" "}
+                  <strong className="text-emerald-400">Plano {dadosLiberacao?.plano || selectedPlano}</strong>{" "}
+                  já estão liberados.
+                </p>
+                {dadosLiberacao?.dataExpiracao && (
+                  <p className="text-xs text-slate-400">
+                    Acesso válido até:{" "}
+                    <strong className="text-white">
+                      {new Date(dadosLiberacao.dataExpiracao).toLocaleDateString("pt-BR")}
+                    </strong>
+                  </p>
                 )}
-
-                <div className="text-center">
-                  <span className="text-xs font-bold text-white block">
-                    Beneficiário: {data.config.nomeBeneficiarioPix}
-                  </span>
-                  <span className="text-[10px] text-slate-500">
-                    Chave: {data.config.chavePix} ({data.config.tipoChavePix})
-                  </span>
-                </div>
               </div>
 
-              {/* Lado Direito: Copia e Cola & Confirmação */}
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-300">
-                    PIX Copia e Cola
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={data.pix.copiaCola}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-400 font-mono focus:outline-none select-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCopyPix}
-                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 shadow-md transition"
-                    >
-                      {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                      <span>{copied ? "Copiado!" : "Copiar"}</span>
-                    </button>
-                  </div>
-                </div>
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="px-8 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 transition flex items-center gap-2"
+                >
+                  <span>Acessar o Painel Agora</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
 
-                <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 text-xs text-slate-300 space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-emerald-400">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Garantia de Preservação de Dados (Sem Perda de Histórico)</span>
+              <span className="text-[11px] text-slate-500 block">
+                Redirecionando automaticamente em instantes...
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                      Etapa de Pagamento Instantâneo
+                    </span>
+                    {data?.pix?.isBancoInter && (
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Banco Inter Oficial
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Mesmo ao trocar de plano ou realizar downgrade, <strong>nenhum imóvel, reserva, contrato, foto ou vistoria é apagado</strong>. Seus dados históricos permanecem 100% seguros e intactos.
+                  <h3 className="text-xl font-black text-white mt-1">
+                    Ativação Imediata via PIX Oficial
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Pague pelo QR Code abaixo para liberar seu acesso instantaneamente.
                   </p>
                 </div>
 
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleEnviarComprovanteWhatsApp}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-600/30 transition hover:scale-[1.01]"
-                  >
-                    <MessageSquare className="w-5 h-5 text-white" />
-                    <span>Enviar Comprovante via WhatsApp para Liberação</span>
-                  </button>
-                  <span className="text-[10px] text-slate-500 text-center block mt-2">
-                    Suporte e Atendimento: {data.config.telefoneSuporteWhatsApp}
-                  </span>
-                </div>
+                {data && (
+                  <div className="text-left sm:text-right bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                    <span className="text-[11px] text-slate-400 block">Total do Pedido:</span>
+                    <span className="text-2xl font-black text-emerald-400">
+                      {formatBRL(data.planoSelecionado.valor)}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      {data.planoSelecionado.nome}
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
-          ) : null}
+
+              {/* Status de Escuta em Tempo Real */}
+              <div className="bg-slate-950 p-3 rounded-xl border border-emerald-500/20 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 text-emerald-400 font-semibold">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span>Aguardando pagamento Pix (Identificação e baixa automática em tempo real)</span>
+                </div>
+                <span className="text-[10px] text-slate-500 hidden sm:inline">
+                  Verificação a cada 3s
+                </span>
+              </div>
+
+              {loading ? (
+                <div className="py-12 text-center text-xs text-slate-500">
+                  Gerando cobrança PIX oficial no Banco Inter para {selectedPlano}...
+                </div>
+              ) : data ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                  {/* Lado Esquerdo: QR Code */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
+                    {data.pix.qrCodeBase64 ? (
+                      <div className="bg-white p-3.5 rounded-2xl shadow-lg">
+                        <img
+                          src={data.pix.qrCodeBase64}
+                          alt="QR Code PIX"
+                          className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-48 h-48 bg-slate-800 rounded-2xl flex items-center justify-center text-xs text-slate-400">
+                        QR Code Indisponível
+                      </div>
+                    )}
+
+                    <div className="text-center">
+                      <span className="text-xs font-bold text-white block">
+                        Beneficiário: {data.config.nomeBeneficiarioPix}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {data.pix.isBancoInter
+                          ? "Pix Cobrança Oficial Banco Inter • Baixa Automática"
+                          : `Chave: ${data.config.chavePix} (${data.config.tipoChavePix})`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Lado Direito: Copia e Cola & Confirmação */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-300">
+                        PIX Copia e Cola
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={data.pix.copiaCola}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-400 font-mono focus:outline-none select-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCopyPix}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 shadow-md transition"
+                        >
+                          {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                          <span>{copied ? "Copiado!" : "Copiar"}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {data.pix.linhaDigitavel && (
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-300">
+                          Linha Digitável do Bolepix (Opcional)
+                        </label>
+                        <input
+                          type="text"
+                          readOnly
+                          value={data.pix.linhaDigitavel}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-400 font-mono focus:outline-none select-all"
+                        />
+                      </div>
+                    )}
+
+                    <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 text-xs text-slate-300 space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-emerald-400">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Liberação Instantânea & Sem Perda de Dados</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Assim que o pagamento for realizado no seu aplicativo bancário, nosso sistema reconhece a baixa via Webhook e libera seu acesso automaticamente em até 5 segundos.
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handleEnviarComprovanteWhatsApp}
+                        className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition"
+                      >
+                        <MessageSquare className="w-4 h-4 text-emerald-400" />
+                        <span>Notificar Suporte / Enviar Comprovante via WhatsApp</span>
+                      </button>
+                      <span className="text-[10px] text-slate-500 text-center block mt-2">
+                        Suporte e Atendimento: {data.config.telefoneSuporteWhatsApp}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
       </main>
 
