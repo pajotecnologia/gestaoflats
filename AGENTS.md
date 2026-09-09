@@ -232,7 +232,46 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 
 ---
 
-## 15. Sincronização Automática com o GitHub
+## 15. Armazenamento Permanente de Imagens em Base64 no PostgreSQL & Compressão Sharp
+
+- **Permanência Total Contra Resets e Deploys**:
+  - Todas as imagens do sistema (**Logomarcas da Empresa**, **Fotos dos Flats**, **Fotos de Itens de Vistoria** e **Assinaturas Digitais**) são convertidas para **Data URIs Base64** e armazenadas diretamente nas colunas de texto do banco de dados PostgreSQL (`Empresa.logomarcaUrl`, `Flat.fotosUrl`, `VistoriaChecklist.itensJson`, `Empresa.assinaturaUrl`, `Usuario.assinaturaUrl`).
+  - Dessa forma, nenhum deploy, atualização de VPS via Coolify, reset de container ou rebuild perde imagens cadastradas.
+
+- **Compressão Inteligente com Sharp (`src/lib/imageOptimizer.ts`)**:
+  - Antes de salvar no banco de dados, todo upload passa obrigatoriamente pela função `optimizeImageToDataUri`.
+  - **Fotos dos Flats e Vistorias**: Redimensionadas para no máximo 1280px e comprimidas para WebP (qualidade 75%), reduzindo o tamanho de ~5 MB para ~30-70 KB por foto.
+  - **Logomarca da Empresa**: Redimensionada para no máximo 800px e comprimida para WebP/PNG (qualidade 85%), reduzindo de ~1.5 MB para ~15-30 KB.
+  - **Assinaturas**: Redimensionadas para no máximo 600px em formato PNG nítido (~10-20 KB).
+  - Esta compressão reduz em mais de 95% o tráfego de rede e consumo de memória do servidor, garantindo carregamento instantâneo das telas.
+
+---
+
+## 16. Otimização de Consultas e Reconciliação em Lote (Batch Queries)
+
+- **Proibição de Consultas N+1 em Loops de Listagem**:
+  - Na rota de flats (`GET /api/flats`) e outras rotas de listagem, as consultas de contratos ativos e dados relacionados devem ser realizadas em **1 única busca em lote** (ex: `prisma.contrato.findMany(...)` com `Set(activeContracts.map(c => c.flatId))`), evitando loops com dezenas de `await` sequenciais ao banco remoto.
+
+---
+
+## 17. Hierarquia de Camadas e Modais Sobrepostos (z-index)
+
+- **Padrão de Empilhamento de Modais**:
+  - Quando um modal abre outro modal filho sobreposto (ex: Cadastro Rápido de Hóspede/Locatário a partir da tela de Reserva da Agenda, ou visualizador de fotos ampliadas sobre a vistoria):
+    - Modal de Fundo / Principal: `z-50` ou `z-[90]`
+    - Modal Sobreposto / Filho (Cadastro Rápido / Ampliação): `z-[100]` ou `z-[110]`
+  - Isso impede que janelas filhas fiquem ocultas atrás do modal pai.
+
+---
+
+## 18. Padrão de Formatação de Referência Mensal (`Ref: MM-AAAA`)
+
+- **Convenção Oficial de Referência**:
+  - Todas as referências de competência e cobrança no sistema utilizam o formato **`Ref: MM-AAAA`** (ex: `Ref: 09-2026`).
+
+---
+
+## 19. Sincronização Automática com o GitHub
 
 - **Envio Automático Obrigatório**: Toda e qualquer alteração realizada no código, configurações ou documentação DEVE ser imediatamente adicionada (`git add .`), comitada e enviada (`git push origin master`) para o GitHub ao final de cada alteração, garantindo que o repositório remoto e os webhooks do Coolify/CI estejam sempre 100% atualizados.
 
