@@ -159,8 +159,9 @@ function ShellContent({ children }: ShellProps) {
     {
       title: "IMÓVEIS & CADASTROS",
       items: [
-        { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
-        { label: "Locatários", href: "/locatarios", icon: Users },
+        { label: "Flats & Imóveis", href: "/flats", icon: Building2 },
+        { label: "Locatários", href: "/locatarios", icon: UserCheck },
+        { label: "Proprietários", href: "/proprietarios", icon: Users },
         { label: "Fornecedores", href: "/fornecedores", icon: Truck },
       ],
     },
@@ -177,6 +178,7 @@ function ShellContent({ children }: ShellProps) {
       items: [
         { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
         { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
+        { label: "Repasses a Proprietários", href: "/financeiro/repasses", icon: CreditCard },
       ],
     },
   ];
@@ -210,11 +212,13 @@ function ShellContent({ children }: ShellProps) {
     if (pathname === "/flats") return { section: "Imóveis", page: "Flats & Condomínios" };
     if (pathname === "/checklists") return { section: "Contratos & Vistorias", page: "Modelos de Checklist" };
     if (pathname === "/locatarios") return { section: "Cadastros", page: "Gestão de Locatários" };
+    if (pathname === "/proprietarios") return { section: "Cadastros", page: "Gestão de Proprietários (Locadores)" };
     if (pathname === "/fornecedores") return { section: "Cadastros", page: "Gestão de Fornecedores" };
     if (pathname === "/contratos/modelos") return { section: "Contratos", page: "Modelos de Contrato" };
     if (pathname === "/contratos") return { section: "Contratos", page: "Gestão de Contratos e Aluguéis" };
     if (pathname === "/financeiro/receber") return { section: "Financeiro", page: "Contas a Receber" };
     if (pathname === "/financeiro/pagar") return { section: "Financeiro", page: "Contas a Pagar" };
+    if (pathname === "/financeiro/repasses") return { section: "Financeiro", page: "Repasses a Proprietários" };
     if (pathname.startsWith("/relatorios")) return { section: "Auditoria", page: "Relatórios do Sistema" };
     if (pathname.startsWith("/parametros")) return { section: "Sistema", page: "Parâmetros e Integrações" };
     if (pathname === "/ajuda") return { section: "Suporte", page: "Manual do Usuário" };

@@ -28,7 +28,7 @@ model Empresa {
   dataInicioTrial       DateTime?
   dataFimTrial          DateTime?
   dataFimAcesso         DateTime?
-  planoAtual            String?                @default("TRIAL") // TRIAL, MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL
+  planoAtual            String?                @default("TRIAL") // TRIAL, ESSENCIAL, PROFISSIONAL, GESTAO, EMPRESARIAL, ENTERPRISE
   ultimoAvisoWhatsAppEm DateTime?
 
   // Dados de Recebimento PIX da Empresa (para cobrança de locatários)
@@ -46,12 +46,14 @@ model Empresa {
   usuarios              Usuario[]
   locatarios            Locatario[]
   fornecedores          Fornecedor[]
+  proprietarios         Proprietario[]
   locais                Local[]
   flats                 Flat[]
   modelosContrato       ModeloContrato[]
   contratos             Contrato[]
   contasReceber         ContaReceber[]
   contasPagar           ContaPagar[]
+  repassesProprietario  RepasseProprietario[]
   vistoriasChecklist    VistoriaChecklist[]
   modelosChecklist      ModeloChecklist[]
   formasPagamento       FormaPagamento[]
@@ -71,7 +73,7 @@ model ConfiguracaoSaaS {
   valorAnual              Float    @default(890.0)
   diasAvisoAntesExpirar   Int      @default(3)
   telefoneSuporteWhatsApp String?  @default("(87) 99654-0551")
-  mensagemAvisoWhatsApp   String?  @default("Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}")
+  mensagemAvisoWhatsApp   String?  @default("Olá, {{nome}}! Informamos que o período de teste do IMOB para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }
@@ -147,6 +149,40 @@ model Locatario {
   vistoriasChecklist VistoriaChecklist[]
 }
 
+model Proprietario {
+  id                      String                @id @default(uuid())
+  empresaId               String
+  empresa                 Empresa               @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  nome                    String
+  cpfCnpj                 String
+  rgIe                    String?
+  email                   String?
+  telefone                String
+  endereco                String?
+  bairro                  String?
+  cidade                  String?
+  estado                  String?
+  cep                     String?
+  
+  // Dados de Recebimento / PIX para Repasses
+  chavePix                String?
+  tipoChavePix            String?               @default("CPF") // CPF, CNPJ, EMAIL, TELEFONE, CHAVE_ALEATORIA
+  banco                   String?
+  agencia                 String?
+  conta                   String?
+  
+  // Taxa Padrão de Administração da Imobiliária (%)
+  taxaAdministracaoPadrao Float?                @default(10.0) // Ex: 10.0 (%)
+  
+  observacoes             String?
+  status                  String                @default("ATIVO") // ATIVO, INATIVO
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+
+  flats                   Flat[]
+  repasses                RepasseProprietario[]
+}
+
 model Fornecedor {
   id          String       @id @default(uuid())
   empresaId   String
@@ -182,6 +218,12 @@ model Flat {
   empresa           Empresa             @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   localId           String
   local             Local               @relation(fields: [localId], references: [id], onDelete: Cascade)
+  
+  // Vínculo com Proprietário (Locador Terceiro)
+  proprietarioId    String?
+  proprietario      Proprietario?       @relation(fields: [proprietarioId], references: [id], onDelete: SetNull)
+  taxaAdministracao Float?              @default(10.0) // % de comissão/administração deste flat
+
   numero            String
   tipoImovel        String?             @default("FLAT") // FLAT, SALAO, CHACARA, CASA, APARTAMENTO, OUTRO
   modalidadeLocacao String              @default("MENSAL") // MENSAL, DIARIA, AMBOS
@@ -189,12 +231,15 @@ model Flat {
   descricao         String?
   valorPadrao       Float               @default(0) // Valor mensal padrão
   valorDiaria       Float?              @default(0) // Valor da diária
+  valorCondominio   Float?              @default(0) // Valor do condomínio
+  valorIptu         Float?              @default(0) // Valor do IPTU
   fotosUrl          String?             // JSON String array de URLs das fotos do flat
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
   contratos          Contrato[]
   contasPagar        ContaPagar[]
+  repasses           RepasseProprietario[]
   vistoriasChecklist VistoriaChecklist[]
 }
 
@@ -240,7 +285,7 @@ model Contrato {
   dataFinal               DateTime
   valorMensal             Float
 
-  // Novos Campos de Condições Financeiras e Regras do Contrato
+  // Campos de Condições Financeiras e Regras do Contrato
   diaVencimento           Int?            @default(5)
   formaPagamento          String?         @default("PIX")
   bancoNome               String?
@@ -273,6 +318,7 @@ model Contrato {
   updatedAt               DateTime        @updatedAt
 
   contasReceber           ContaReceber[]
+  repasses                RepasseProprietario[]
   vistoriasChecklist      VistoriaChecklist[]
 }
 
@@ -342,6 +388,39 @@ model ContaReceber {
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  repasses       RepasseProprietario[]
+}
+
+model RepasseProprietario {
+  id                  String        @id @default(uuid())
+  empresaId           String
+  empresa             Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  proprietarioId      String
+  proprietario        Proprietario  @relation(fields: [proprietarioId], references: [id], onDelete: Cascade)
+  flatId              String?
+  flat                Flat?         @relation(fields: [flatId], references: [id], onDelete: SetNull)
+  contratoId          String?
+  contrato            Contrato?     @relation(fields: [contratoId], references: [id], onDelete: SetNull)
+  contaReceberId      String?
+  contaReceber        ContaReceber? @relation(fields: [contaReceberId], references: [id], onDelete: SetNull)
+  
+  mesReferencia       String        // Ex: "2026-09"
+  valorBrutoAluguel   Float         // Ex: R$ 2500.00
+  taxaAdminPercentual Float         // Ex: 10.0 (%)
+  valorTaxaAdmin      Float         // Ex: R$ 250.00
+  valorDescontos      Float?        @default(0.0) // Descontos extras (manutenção, taxas)
+  valorLiquidoRepasse Float         // Ex: R$ 2250.00
+  
+  dataVencimento      DateTime
+  dataPagamento       DateTime?
+  status              String        @default("PENDENTE") // PENDENTE, PAGO, CANCELADO
+  formaPagamento      String?       @default("PIX") // PIX, TRANSFERENCIA, TED, DINHEIRO
+  comprovanteUrl      String?
+  observacoes         String?
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 model ContaPagar {
@@ -373,4 +452,3 @@ model FormaPagamento {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-

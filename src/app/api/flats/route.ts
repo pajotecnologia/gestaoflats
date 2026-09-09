@@ -24,6 +24,7 @@ export async function GET() {
       where: { empresaId: session.empresaId },
       include: {
         local: true,
+        proprietario: true,
       },
       orderBy: { numero: "asc" },
     });
@@ -72,7 +73,19 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const { localId, numero, status, descricao, valorPadrao, valorDiaria, modalidadeLocacao, tipoImovel, fotosUrl } = body;
+      const {
+        localId,
+        numero,
+        status,
+        descricao,
+        valorPadrao,
+        valorDiaria,
+        modalidadeLocacao,
+        tipoImovel,
+        fotosUrl,
+        proprietarioId,
+        taxaAdministracao,
+      } = body;
       
       const localValido = await prisma.local.findFirst({
         where: { id: localId, empresaId: session.empresaId },
@@ -86,6 +99,11 @@ export async function POST(request: NextRequest) {
         data: {
           empresaId: session.empresaId,
           localId,
+          proprietarioId: proprietarioId || null,
+          taxaAdministracao:
+            taxaAdministracao !== undefined && taxaAdministracao !== null
+              ? parseFloat(String(taxaAdministracao))
+              : 10.0,
           numero,
           tipoImovel: tipoImovel || "FLAT",
           modalidadeLocacao: modalidadeLocacao || "MENSAL",
@@ -94,6 +112,10 @@ export async function POST(request: NextRequest) {
           valorPadrao: valorPadrao !== undefined && valorPadrao !== null ? parseFloat(String(valorPadrao)) : 2500,
           valorDiaria: valorDiaria !== undefined && valorDiaria !== null ? parseFloat(String(valorDiaria)) : 0,
           fotosUrl: fotosUrl ? (typeof fotosUrl === "string" ? fotosUrl : JSON.stringify(fotosUrl)) : null,
+        },
+        include: {
+          local: true,
+          proprietario: true,
         },
       });
       return NextResponse.json({ flat: newFlat });
@@ -130,11 +152,28 @@ export async function PUT(request: NextRequest) {
       });
       return NextResponse.json({ local: updatedLocal });
     } else if (type === "flat") {
-      const { localId, numero, status, descricao, valorPadrao, valorDiaria, modalidadeLocacao, tipoImovel, fotosUrl } = body;
+      const {
+        localId,
+        numero,
+        status,
+        descricao,
+        valorPadrao,
+        valorDiaria,
+        modalidadeLocacao,
+        tipoImovel,
+        fotosUrl,
+        proprietarioId,
+        taxaAdministracao,
+      } = body;
       const updatedFlat = await prisma.flat.update({
         where: { id, empresaId: session.empresaId },
         data: {
           localId,
+          proprietarioId: proprietarioId !== undefined ? (proprietarioId || null) : undefined,
+          taxaAdministracao:
+            taxaAdministracao !== undefined && taxaAdministracao !== null
+              ? parseFloat(String(taxaAdministracao))
+              : undefined,
           numero,
           tipoImovel: tipoImovel !== undefined ? tipoImovel : undefined,
           modalidadeLocacao: modalidadeLocacao !== undefined ? modalidadeLocacao : undefined,
@@ -143,6 +182,10 @@ export async function PUT(request: NextRequest) {
           valorPadrao: valorPadrao !== undefined && valorPadrao !== null ? parseFloat(String(valorPadrao)) : undefined,
           valorDiaria: valorDiaria !== undefined && valorDiaria !== null ? parseFloat(String(valorDiaria)) : undefined,
           fotosUrl: fotosUrl !== undefined ? (typeof fotosUrl === "string" ? fotosUrl : JSON.stringify(fotosUrl)) : undefined,
+        },
+        include: {
+          local: true,
+          proprietario: true,
         },
       });
       return NextResponse.json({ flat: updatedFlat });
