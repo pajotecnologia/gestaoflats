@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Building2,
   Lock,
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { SYSTEM_VERSION } from "@/lib/version";
 import { formatPhone, formatCNPJ, formatCPF } from "@/lib/validation";
+import ImobLogo from "@/components/brand/ImobLogo";
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -147,18 +149,10 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-4 py-8 max-w-5xl mx-auto w-full">
         {/* Topo do Header / Marca */}
         <div className="text-center space-y-3 mb-6">
-          <div className="inline-flex items-center space-x-2.5 px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-cyan-500/20 border border-blue-500/30 backdrop-blur-md shadow-lg shadow-blue-500/10">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div className="text-left">
-              <span className="font-extrabold text-white text-base tracking-tight block leading-tight">
-                Gestão de Imóveis para Locação
-              </span>
-              <span className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider block">
-                Plataforma SaaS Imobiliária
-              </span>
-            </div>
+          <div className="flex justify-center mb-2">
+            <Link href="/" className="hover:opacity-90 transition">
+              <ImobLogo size="lg" showSubtitle={true} showTagline={true} />
+            </Link>
           </div>
 
           <p className="text-xs text-slate-400 max-w-md mx-auto">
@@ -166,12 +160,12 @@ export default function LoginPage() {
           </p>
 
           <div className="flex justify-center items-center space-x-2 pt-1">
-            <a
+            <Link
               href="/"
               className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-blue-300 hover:text-white hover:border-blue-500 text-[11px] font-bold shadow-sm transition"
             >
               <span>← Conhecer o Sistema / Início</span>
-            </a>
+            </Link>
             <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-[11px] font-bold">
               <Layers className="w-3 h-3" />
               <span>Multi-Tenant Isolado</span>
