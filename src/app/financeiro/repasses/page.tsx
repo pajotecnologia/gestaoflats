@@ -426,7 +426,7 @@ export default function RepassesPage() {
               title="Gerar e sincronizar repasses a proprietários automaticamente com base nos contratos ativos e parcelas do mês selecionado"
             >
               <Zap className={`w-4 h-4 text-amber-600 dark:text-amber-400 ${generatingRepasses ? "animate-spin" : ""}`} />
-              <span>{generatingRepasses ? "Gerando..." : `Gerar Repasses de ${selectedMes}`}</span>
+              <span>{generatingRepasses ? "Gerando..." : `Gerar Repasses de ${formatMesReferencia(selectedMes)}`}</span>
             </button>
 
             <Link
@@ -464,7 +464,7 @@ export default function RepassesPage() {
               R$ {totais.totalBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </div>
             <span className="text-[10px] text-slate-500 block">
-              {totais.quantidade} repasse(s) no mês de {selectedMes}
+              {totais.quantidade} repasse(s) no mês de {formatMesReferencia(selectedMes)}
             </span>
           </div>
 
