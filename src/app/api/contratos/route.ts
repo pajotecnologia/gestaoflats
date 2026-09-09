@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       valorCaucao = 0.0,
       caucaoParcelas = 0,
       multaRescisaoMeses = 3,
+      vistoriaEntradaId,
     } = await request.json();
 
     const dtEmissao = new Date(dataEmissao);
@@ -139,21 +140,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tokenAssinatura = crypto.randomBytes(16).toString("hex");
+    // 1. Buscar Vistoria de Entrada Disponível ou Específica
+    let vistoriaExistente: any = null;
 
-    // 1. Buscar se já existe Vistoria de Entrada para este Flat
-    const vistoriaExistente = await prisma.vistoriaChecklist.findFirst({
-      where: {
-        empresaId: session.empresaId,
-        flatId: flatId,
-        tipoVistoria: "ENTRADA",
-      },
-      orderBy: [
-        { statusAssinatura: "desc" },
-        { updatedAt: "desc" },
-        { createdAt: "desc" },
-      ],
-    });
+    if (vistoriaEntradaId && vistoriaEntradaId !== "none") {
+      vistoriaExistente = await prisma.vistoriaChecklist.findFirst({
+        where: {
+          id: vistoriaEntradaId,
+          empresaId: session.empresaId,
+          flatId: flatId,
+        },
+      });
+
+      if (!vistoriaExistente) {
+        return NextResponse.json(
+          { error: "A vistoria de entrada selecionada não foi encontrada ou não pertence a este imóvel." },
+          { status: 400 }
+        );
+      }
+
+      if (vistoriaExistente.contratoId) {
+        return NextResponse.json(
+          { error: "A vistoria de entrada selecionada já está vinculada a outro contrato e não pode ser reutilizada para outro imóvel/contrato." },
+          { status: 400 }
+        );
+      }
+    } else if (vistoriaEntradaId !== "none") {
+      // Se não especificou ID e não marcou "none", busca vistoria disponível sem contrato vinculado
+      vistoriaExistente = await prisma.vistoriaChecklist.findFirst({
+        where: {
+          empresaId: session.empresaId,
+          flatId: flatId,
+          tipoVistoria: "ENTRADA",
+          contratoId: null,
+        },
+        orderBy: [
+          { statusAssinatura: "desc" },
+          { updatedAt: "desc" },
+          { createdAt: "desc" },
+        ],
+      });
+    }
+
+    const tokenAssinatura = crypto.randomBytes(16).toString("hex");
 
     const newContrato = await prisma.contrato.create({
       data: {
@@ -176,7 +205,7 @@ export async function POST(request: NextRequest) {
         valorCaucao: caucaoNum,
         caucaoParcelas: caucaoParcNum,
         multaRescisaoMeses: multaRescisaoNum,
-        fotosAnexadasUrl: null, // As fotos devem vir exclusivamente da vistoria de entrada
+        fotosAnexadasUrl: null, // As fotos vêm da vistoria de entrada
         anexoChecklistEntrada: vistoriaExistente?.itensJson || null,
         tokenAssinatura,
         statusAssinatura: "PENDENTE",
@@ -184,7 +213,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 2. Vincular Vistoria de Entrada ao novo Contrato
+    // 2. Vincular Vistoria de Entrada ao novo Contrato de forma exclusiva
     if (vistoriaExistente) {
       await prisma.vistoriaChecklist.update({
         where: { id: vistoriaExistente.id },

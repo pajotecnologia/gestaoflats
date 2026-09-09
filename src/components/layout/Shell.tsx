@@ -168,8 +168,9 @@ function ShellContent({ children }: ShellProps) {
     {
       title: "CONTRATOS & VISTORIAS",
       items: [
+        { label: "Vistorias & Checklists", href: "/vistorias", icon: ClipboardCheck },
         { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
-        { label: "Modelos de Checklist", href: "/checklists", icon: ClipboardCheck },
+        { label: "Modelos de Checklist", href: "/checklists", icon: SlidersHorizontal },
         { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
       ],
     },
@@ -210,6 +211,7 @@ function ShellContent({ children }: ShellProps) {
     if (pathname === "/dashboard") return { section: "Visão Geral", page: "Dashboard de Indicadores" };
     if (pathname === "/agenda") return { section: "Locações", page: "Agenda de Reservas por Diária" };
     if (pathname === "/flats") return { section: "Imóveis", page: "Flats & Condomínios" };
+    if (pathname === "/vistorias") return { section: "Vistorias", page: "Vistorias & Checklists de Imóveis" };
     if (pathname === "/checklists") return { section: "Contratos & Vistorias", page: "Modelos de Checklist" };
     if (pathname === "/locatarios") return { section: "Cadastros", page: "Gestão de Locatários" };
     if (pathname === "/proprietarios") return { section: "Cadastros", page: "Gestão de Proprietários (Locadores)" };

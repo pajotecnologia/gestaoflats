@@ -9,11 +9,20 @@ export interface SmtpConfig {
   smtpFromEmail?: string | null;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content?: string | Buffer;
+  path?: string;
+  encoding?: string;
+  contentType?: string;
+}
+
 export async function sendEmailViaSmtp(
   config: SmtpConfig,
   to: string,
   subject: string,
-  htmlContent: string
+  htmlContent: string,
+  attachments?: EmailAttachment[]
 ): Promise<{ success: boolean; message: string }> {
   const {
     smtpHost = "smtp.gmail.com",
@@ -27,7 +36,7 @@ export async function sendEmailViaSmtp(
   if (!smtpUser || !smtpPass) {
     return {
       success: false,
-      message: "Credenciais de e-mail SMTP (Usuário e Senha de App) não configuradas.",
+      message: "Credenciais de e-mail SMTP (Usuário e Senha de App) não configuradas nos Parâmetros.",
     };
   }
 
@@ -44,12 +53,18 @@ export async function sendEmailViaSmtp(
 
     const fromAddress = smtpFromEmail || smtpUser;
 
-    const info = await transporter.sendMail({
-      from: `"Gestão de Imóveis para Locação" <${fromAddress}>`,
+    const mailOptions: any = {
+      from: `"Gestão de Locações" <${fromAddress}>`,
       to,
       subject,
       html: htmlContent,
-    });
+    };
+
+    if (attachments && attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
+
+    const info = await transporter.sendMail(mailOptions);
 
     return {
       success: true,

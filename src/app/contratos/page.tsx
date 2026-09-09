@@ -41,6 +41,8 @@ export default function ContratosPage() {
   const [multaRescisaoMeses, setMultaRescisaoMeses] = useState("3");
 
   // Informações da Vistoria de Entrada Vinculada
+  const [availableVistorias, setAvailableVistorias] = useState<any[]>([]);
+  const [selectedVistoriaId, setSelectedVistoriaId] = useState<string>("");
   const [vistoriaStatusInfo, setVistoriaStatusInfo] = useState<{
     checking: boolean;
     existe: boolean;
@@ -84,41 +86,59 @@ export default function ContratosPage() {
     loadData();
   }, []);
 
+  const updateVistoriaInfoFromObject = (vistoria: any) => {
+    if (!vistoria) {
+      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+      return;
+    }
+    let itens = [];
+    let totalFotos = 0;
+    try {
+      const parsed = JSON.parse(vistoria.itensJson || "[]");
+      itens = Array.isArray(parsed) ? parsed : (parsed.itens || []);
+      itens.forEach((it: any) => {
+        if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
+          totalFotos += it.fotosUrl.length;
+        }
+      });
+    } catch (e) {}
+
+    setVistoriaStatusInfo({
+      checking: false,
+      existe: true,
+      itensCount: itens.length,
+      fotosCount: totalFotos,
+      statusAssinatura: vistoria.statusAssinatura || "PENDENTE",
+    });
+  };
+
   const checkVistoriaForFlat = async (selectedFlatId: string) => {
     if (!selectedFlatId) {
+      setAvailableVistorias([]);
+      setSelectedVistoriaId("");
       setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
       return;
     }
 
     setVistoriaStatusInfo((prev) => ({ ...prev, checking: true }));
     try {
-      const res = await fetch(`/api/assinar/vistoria?flatId=${selectedFlatId}&tipoVistoria=ENTRADA`);
+      const res = await fetch(`/api/vistorias?flatId=${selectedFlatId}&tipoVistoria=ENTRADA&apenasDisponiveis=true`);
       const data = await res.json();
 
-      if (res.ok && data.vistoria) {
-        let itens = [];
-        let totalFotos = 0;
-        try {
-          const parsed = JSON.parse(data.vistoria.itensJson);
-          itens = Array.isArray(parsed) ? parsed : (parsed.itens || []);
-          itens.forEach((it: any) => {
-            if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
-              totalFotos += it.fotosUrl.length;
-            }
-          });
-        } catch (e) {}
-
-        setVistoriaStatusInfo({
-          checking: false,
-          existe: true,
-          itensCount: itens.length,
-          fotosCount: totalFotos,
-          statusAssinatura: data.vistoria.statusAssinatura || "CONCLUÍDO",
-        });
+      if (res.ok && data.vistorias && data.vistorias.length > 0) {
+        setAvailableVistorias(data.vistorias);
+        // Priorizar vistoria assinada ou a mais recente
+        const preferred = data.vistorias.find((v: any) => v.statusAssinatura?.includes("ASSINADO")) || data.vistorias[0];
+        setSelectedVistoriaId(preferred.id);
+        updateVistoriaInfoFromObject(preferred);
       } else {
+        setAvailableVistorias([]);
+        setSelectedVistoriaId("");
         setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
       }
     } catch (e) {
+      setAvailableVistorias([]);
+      setSelectedVistoriaId("");
       setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
     }
   };
@@ -205,6 +225,7 @@ export default function ContratosPage() {
           valorCaucao: parseFloat(valorCaucao),
           caucaoParcelas: parseInt(caucaoParcelas, 10),
           multaRescisaoMeses: parseInt(multaRescisaoMeses, 10),
+          vistoriaEntradaId: selectedVistoriaId || null,
         }),
       });
 
@@ -369,50 +390,89 @@ export default function ContratosPage() {
 
                 {/* ETAPA 1: Vistoria de Entrada Vinculada ao Flat */}
                 {flatId && (
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
-                      1º Passo: Vistoria de Entrada (Laudo & Fotos)
-                    </label>
+                  <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span>1º Passo: Vistoria de Entrada do Imóvel</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAbrirVistoria}
+                        className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition flex items-center space-x-1 shadow-xs"
+                      >
+                        <Camera className="w-3 h-3" />
+                        <span>Nova Vistoria</span>
+                      </button>
+                    </div>
+
                     {vistoriaStatusInfo.checking ? (
-                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
+                      <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
                         <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        <span>Verificando laudo de vistoria de entrada do flat...</span>
+                        <span>Buscando vistorias de entrada disponíveis para este imóvel...</span>
                       </div>
-                    ) : vistoriaStatusInfo.existe ? (
-                      <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                        <div className="flex items-center space-x-2.5">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <div>
-                            <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
-                              <span>✓ 1º Vistoria de Entrada Localizada</span>
-                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
-                                {vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos
-                              </span>
-                            </span>
-                            <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
-                              O laudo com as fotos reais da vistoria será <strong>anexado ao contrato</strong> para assinatura do locatário.
-                            </p>
-                          </div>
+                    ) : availableVistorias.length > 0 ? (
+                      <div className="space-y-2.5">
+                        <div>
+                          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            Selecionar Vistoria de Entrada Disponível:
+                          </label>
+                          <select
+                            value={selectedVistoriaId}
+                            onChange={(e) => {
+                              const vId = e.target.value;
+                              setSelectedVistoriaId(vId);
+                              const found = availableVistorias.find((v) => v.id === vId);
+                              updateVistoriaInfoFromObject(found);
+                            }}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                          >
+                            {availableVistorias.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} | Vistoriador: {v.vistoriadorNome || "N/I"} {v.locatario?.nome ? `• Locatário: ${v.locatario.nome}` : ""}
+                              </option>
+                            ))}
+                            <option value="none">-- Não vincular nenhuma vistoria agora --</option>
+                          </select>
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleAbrirVistoria}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1.5 shadow-xs self-start sm:self-center"
-                        >
-                          <FileCheck className="w-3.5 h-3.5" />
-                          <span>Revisar Vistoria</span>
-                        </button>
+
+                        {selectedVistoriaId && selectedVistoriaId !== "none" && (
+                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center space-x-2.5">
+                              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <div>
+                                <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
+                                  <span>✓ Vistoria Pronta para Vinculação Exclusiva</span>
+                                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
+                                    {vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos
+                                  </span>
+                                </span>
+                                <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
+                                  Status: <strong>{vistoriaStatusInfo.statusAssinatura}</strong>. O laudo com as fotos será anexado permanentemente a este contrato.
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleAbrirVistoria}
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1 shadow-xs"
+                            >
+                              <FileCheck className="w-3.5 h-3.5" />
+                              <span>Revisar</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                         <div className="flex items-center space-x-2.5">
                           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
                           <div>
                             <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase">
-                              ⚠️ 1º Vistoria de Entrada Pendente
+                              ⚠️ Nenhuma Vistoria Disponível
                             </span>
                             <p className="text-[11px] text-amber-700/90 dark:text-amber-400 mt-0.5">
-                              Recomendado: Faça a vistoria e tire as fotos do imóvel antes para que o locatário assine o contrato com o laudo já anexado.
+                              Nenhuma vistoria de entrada livre encontrada para este imóvel. Você pode criar uma agora ou no menu <strong>Vistorias & Checklists</strong>.
                             </p>
                           </div>
                         </div>
