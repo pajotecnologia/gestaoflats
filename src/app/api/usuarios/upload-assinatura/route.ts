@@ -67,19 +67,29 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "assinaturas");
-    await mkdir(uploadsDir, { recursive: true });
+    const ext = path.extname(file.name).toLowerCase() || ".png";
+    let mimeType = "image/png";
+    if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+    else if (ext === ".webp") mimeType = "image/webp";
+    else if (ext === ".svg") mimeType = "image/svg+xml";
 
-    const ext = path.extname(file.name) || ".png";
-    const filename = `usuario-assinatura-${targetUserId}-${Date.now()}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
+    const base64Data = buffer.toString("base64");
+    const assinaturaDataUri = `data:${mimeType};base64,${base64Data}`;
 
-    await writeFile(filePath, buffer);
-    const assinaturaUrl = `/uploads/assinaturas/${filename}`;
+    // Redundância local opcional
+    try {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads", "assinaturas");
+      await mkdir(uploadsDir, { recursive: true });
+      const filename = `usuario-assinatura-${targetUserId}-${Date.now()}${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      await writeFile(filePath, buffer);
+    } catch (fsErr) {
+      // Fallback silencioso
+    }
 
     const updatedUser = await prisma.usuario.update({
       where: { id: targetUserId },
-      data: { assinaturaUrl },
+      data: { assinaturaUrl: assinaturaDataUri },
       select: {
         id: true,
         nome: true,
@@ -91,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      assinaturaUrl,
+      assinaturaUrl: assinaturaDataUri,
       usuario: updatedUser,
     });
   } catch (error: any) {

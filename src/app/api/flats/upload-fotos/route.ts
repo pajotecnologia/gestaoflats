@@ -26,22 +26,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "flats");
-    await mkdir(uploadsDir, { recursive: true });
-
     const newFotoUrls: string[] = [];
 
     for (const file of files) {
       if (file && file.size > 0) {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const ext = path.extname(file.name) || ".jpg";
-        const filename = `flat-${flatId || "upload"}-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-        const filePath = path.join(uploadsDir, filename);
+        const ext = path.extname(file.name).toLowerCase() || ".jpg";
+        let mimeType = "image/jpeg";
+        if (ext === ".png") mimeType = "image/png";
+        else if (ext === ".webp") mimeType = "image/webp";
+        else if (ext === ".svg") mimeType = "image/svg+xml";
 
-        await writeFile(filePath, buffer);
-        await chmod(filePath, 0o755).catch(() => {});
+        const base64Data = buffer.toString("base64");
+        const fotoDataUri = `data:${mimeType};base64,${base64Data}`;
 
-        newFotoUrls.push(`/uploads/flats/${filename}`);
+        // Redundância local opcional
+        try {
+          const uploadsDir = path.join(process.cwd(), "public", "uploads", "flats");
+          await mkdir(uploadsDir, { recursive: true });
+          const filename = `flat-${flatId || "upload"}-${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+          const filePath = path.join(uploadsDir, filename);
+          await writeFile(filePath, buffer);
+          await chmod(filePath, 0o755).catch(() => {});
+        } catch (fsErr) {
+          // Fallback silencioso: a imagem já está 100% segura no Base64
+        }
+
+        newFotoUrls.push(fotoDataUri);
       }
     }
 
