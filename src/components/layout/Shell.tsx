@@ -35,8 +35,10 @@ import {
   Clock,
   ShieldCheck,
   Calendar,
+  Bell,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import FloatingAlertsHub from "@/components/alertas/FloatingAlertsHub";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -51,6 +53,7 @@ function ShellContent({ children }: ShellProps) {
   const [currentAba, setCurrentAba] = useState("checklist");
   const [currentParametrosAba, setCurrentParametrosAba] = useState("empresa");
 
+  const [alertasOpen, setAlertasOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [relatoriosExpanded, setRelatoriosExpanded] = useState(false);
@@ -488,6 +491,16 @@ function ShellContent({ children }: ShellProps) {
               <span>Manual</span>
             </Link>
 
+            {/* Central de Alertas e Notificações (Topbar Bell) */}
+            <button
+              onClick={() => setAlertasOpen(true)}
+              className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              title="Abrir Central de Alertas e Notificações"
+            >
+              <Bell className="w-4 h-4 text-amber-500" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            </button>
+
             {/* Alternar Tema Escuro / Claro */}
             <button
               onClick={toggleDarkMode}
@@ -641,6 +654,13 @@ function ShellContent({ children }: ShellProps) {
           </footer>
         </main>
       </div>
+
+      {/* Central Flutuante de Alertas e Notificações */}
+      <FloatingAlertsHub
+        isExternalOpen={alertasOpen}
+        onExternalToggle={() => setAlertasOpen((prev) => !prev)}
+        showFloatingButton={true}
+      />
     </div>
   );
 }
