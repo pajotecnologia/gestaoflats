@@ -28,31 +28,42 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "assinaturas");
-    await mkdir(uploadsDir, { recursive: true });
+    const ext = path.extname(file.name).toLowerCase() || ".png";
+    let mimeType = "image/png";
+    if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+    else if (ext === ".webp") mimeType = "image/webp";
+    else if (ext === ".svg") mimeType = "image/svg+xml";
 
-    const ext = path.extname(file.name) || ".png";
-    const filename = `empresa-assinatura-${session.empresaId}-${Date.now()}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
+    const base64Data = buffer.toString("base64");
+    const assinaturaDataUri = `data:${mimeType};base64,${base64Data}`;
 
-    await writeFile(filePath, buffer);
-    const assinaturaUrl = `/uploads/assinaturas/${filename}`;
+    // Gravação em disco como redundância local
+    try {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads", "assinaturas");
+      await mkdir(uploadsDir, { recursive: true });
+      const filename = `empresa-assinatura-${session.empresaId}-${Date.now()}${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      await writeFile(filePath, buffer);
+    } catch (fsErr) {
+      console.warn("Aviso: Falha ao gravar assinatura em disco, mantida no banco de dados:", fsErr);
+    }
 
+    // Grava o Base64 Data URI diretamente no banco de dados (100% permanente contra git resets)
     const updatedEmpresa = await prisma.empresa.update({
       where: { id: session.empresaId },
-      data: { assinaturaUrl },
+      data: { assinaturaUrl: assinaturaDataUri },
     });
 
     if (session.userId) {
       await prisma.usuario.updateMany({
         where: { id: session.userId },
-        data: { assinaturaUrl },
+        data: { assinaturaUrl: assinaturaDataUri },
       });
     }
 
     return NextResponse.json({
       success: true,
-      assinaturaUrl,
+      assinaturaUrl: assinaturaDataUri,
       empresa: updatedEmpresa,
     });
   } catch (error: any) {
