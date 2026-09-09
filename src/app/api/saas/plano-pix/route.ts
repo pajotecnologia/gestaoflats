@@ -2,32 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSaasConfig } from "@/lib/saasConfig";
 import { generatePixPayload, generatePixQRCode } from "@/lib/pix";
 import { prisma } from "@/lib/prisma";
+import { SAAS_PLANS } from "@/lib/plans/planDefinitions";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const plano = searchParams.get("plano") || "MENSAL";
+    const planoParam = (searchParams.get("plano") || "PROFISSIONAL").toUpperCase();
+    const cicloParam = (searchParams.get("ciclo") || "MENSAL").toUpperCase();
     const empresaId = searchParams.get("empresaId");
 
     const config = await getSaasConfig();
 
-    let valor = config.valorMensal;
-    let nomePlano = "Plano Mensal";
-    let periodoTexto = "1 mês de acesso completo";
+    // Mapeamento dos planos oficiais
+    let targetPlan = SAAS_PLANS[planoParam] || SAAS_PLANS.PROFISSIONAL;
 
-    if (plano === "TRIMESTRAL") {
-      valor = config.valorTrimestral;
-      nomePlano = "Plano Trimestral";
-      periodoTexto = "3 meses de acesso (Economize 10%)";
-    } else if (plano === "SEMESTRAL") {
-      valor = config.valorSemestral;
-      nomePlano = "Plano Semestral";
-      periodoTexto = "6 meses de acesso (Economize 15%)";
-    } else if (plano === "ANUAL") {
-      valor = config.valorAnual;
-      nomePlano = "Plano Anual";
-      periodoTexto = "12 meses de acesso (Melhor Custo-Benefício - Economize 25%)";
-    }
+    let valor = cicloParam === "ANUAL" ? targetPlan.priceYearlyTotal : targetPlan.priceMonthly;
+    let nomePlano = `${targetPlan.name} (${cicloParam === "ANUAL" ? "Anual com Desconto" : "Mensal"})`;
+    let periodoTexto = cicloParam === "ANUAL" 
+      ? `12 meses de acesso (Economia de até 20% • R$ ${targetPlan.priceYearlyMonthlyEquivalent.toFixed(2)}/mês equivalente)`
+      : `1 mês de acesso completo • Até ${targetPlan.limits.maxProperties} imóveis`;
 
     let empresaNome = "Minha Empresa";
     if (empresaId) {
@@ -39,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Gerar identificador amigável de TxID (até 25 caracteres)
-    const txid = `SAAS${plano.substring(0, 3)}${Date.now().toString().slice(-8)}`;
+    const txid = `IMOB${targetPlan.slug.substring(0, 3)}${Date.now().toString().slice(-8)}`;
 
     const pixCopiaCola = generatePixPayload({
       chave: config.chavePix,
@@ -58,18 +51,17 @@ export async function GET(request: NextRequest) {
         nomeBeneficiarioPix: config.nomeBeneficiarioPix,
         cidadePix: config.cidadePix,
         telefoneSuporteWhatsApp: config.telefoneSuporteWhatsApp,
-        valores: {
-          MENSAL: config.valorMensal,
-          TRIMESTRAL: config.valorTrimestral,
-          SEMESTRAL: config.valorSemestral,
-          ANUAL: config.valorAnual,
-        },
       },
       planoSelecionado: {
-        tipo: plano,
+        tipo: targetPlan.slug,
         nome: nomePlano,
+        ciclo: cicloParam,
         periodoTexto,
         valor,
+        limiteImoveis: targetPlan.limits.maxProperties,
+        limiteUsuarios: targetPlan.limits.maxUsers,
+        limiteAssinaturas: targetPlan.limits.maxSignaturesPerMonth,
+        limiteStorageGB: targetPlan.limits.maxStorageGB,
       },
       pix: {
         copiaCola: pixCopiaCola,
@@ -79,7 +71,7 @@ export async function GET(request: NextRequest) {
       empresaNome,
     });
   } catch (error: any) {
-    console.error("Erro ao gerar PIX para plano:", error);
+    console.error("Erro ao gerar PIX para plano IMOB:", error);
     return NextResponse.json({ error: error.message || "Erro ao gerar PIX" }, { status: 500 });
   }
 }

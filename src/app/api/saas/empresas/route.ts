@@ -95,12 +95,13 @@ export async function GET() {
         // Determinar valor estimado da mensalidade SaaS da empresa
         let mensalidadeSaaS = 0;
         if (!emp.isMestre) {
-          const plano = (emp.planoAtual || "MENSAL").toUpperCase();
-          if (plano === "MENSAL" || plano === "TRIAL") mensalidadeSaaS = saasConfig.valorMensal;
-          else if (plano === "TRIMESTRAL") mensalidadeSaaS = Math.round(saasConfig.valorTrimestral / 3);
-          else if (plano === "SEMESTRAL") mensalidadeSaaS = Math.round(saasConfig.valorSemestral / 6);
-          else if (plano === "ANUAL") mensalidadeSaaS = Math.round(saasConfig.valorAnual / 12);
-          else mensalidadeSaaS = saasConfig.valorMensal;
+          const plano = (emp.planoAtual || "PROFISSIONAL").toUpperCase();
+          if (plano === "ESSENCIAL") mensalidadeSaaS = 79;
+          else if (plano === "PROFISSIONAL" || plano === "MENSAL" || plano === "TRIAL") mensalidadeSaaS = 149;
+          else if (plano === "GESTAO" || plano === "SEMESTRAL") mensalidadeSaaS = 279;
+          else if (plano === "EMPRESARIAL" || plano === "ANUAL") mensalidadeSaaS = 449;
+          else if (plano === "ENTERPRISE") mensalidadeSaaS = 599;
+          else mensalidadeSaaS = 149;
         }
 
         // Estatísticas Globais

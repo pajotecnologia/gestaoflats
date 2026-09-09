@@ -28,6 +28,8 @@ import {
   FileText,
 } from "lucide-react";
 import Link from "next/link";
+import UpgradeModal from "@/components/plans/UpgradeModal";
+import PlanUsageWidget from "@/components/plans/PlanUsageWidget";
 
 export default function FlatsPage() {
   const [locais, setLocais] = useState<any[]>([]);
@@ -49,6 +51,10 @@ export default function FlatsPage() {
 
   const [editingLocal, setEditingLocal] = useState<any>(null);
   const [editingFlat, setEditingFlat] = useState<any>(null);
+
+  // Modal Comercial de Upgrade ao Atingir Quota
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
 
   const handleOpenVistoriaFlat = async (flat: any) => {
     setSelectedChecklistFlat(flat);
@@ -239,7 +245,7 @@ export default function FlatsPage() {
 
     try {
       const method = editingFlat ? "PUT" : "POST";
-      await fetch("/api/flats", {
+      const res = await fetch("/api/flats", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -256,6 +262,21 @@ export default function FlatsPage() {
           fotosUrl: fotosPreview,
         }),
       });
+
+      const data = await res.json();
+
+      if (res.status === 403 && data.code === "LIMIT_REACHED") {
+        setShowFlatModal(false);
+        setUpgradeModalData(data);
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      if (!res.ok) {
+        alert(data.error || "Erro ao salvar imóvel.");
+        return;
+      }
+
       setShowFlatModal(false);
       loadData();
     } catch (err) {
@@ -300,6 +321,9 @@ export default function FlatsPage() {
             </button>
           </div>
         </div>
+
+        {/* Indicador de Capacidade e Quotas do Plano */}
+        <PlanUsageWidget />
 
         {/* Lista de Condomínios e Flats */}
         {loading ? (
@@ -1000,6 +1024,16 @@ export default function FlatsPage() {
             }}
           />
         )}
+
+        {/* Modal Comercial de Upgrade */}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          message={upgradeModalData?.error}
+          limitKey="properties"
+          currentPlan={upgradeModalData?.currentPlan}
+          nextPlan={upgradeModalData?.nextPlan}
+        />
       </div>
     </Shell>
   );

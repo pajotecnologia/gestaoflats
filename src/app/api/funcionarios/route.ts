@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { checkLimit } from "@/lib/plans/planService";
 
 export async function GET() {
   const session = await getAuthSessionOrFallback();
@@ -36,6 +37,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Verificação de Limite de Usuários do Plano
+    const limitCheck = await checkLimit(session.empresaId, "users", 1);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: limitCheck.message,
+          code: "LIMIT_REACHED",
+          limitKey: "users",
+          current: limitCheck.current,
+          limit: limitCheck.limit,
+          currentPlan: limitCheck.currentPlan,
+          nextPlan: limitCheck.nextPlan,
+        },
+        { status: 403 }
+      );
+    }
+
     const { nome, email, senha, cargo } = await request.json();
 
     const existingUser = await prisma.usuario.findUnique({

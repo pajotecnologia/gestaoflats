@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkLimit } from "@/lib/plans/planService";
 
 export async function GET() {
   const session = await getAuthSessionOrFallback();
@@ -54,6 +55,23 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ local: newLocal });
     } else if (type === "flat") {
+      // Verificação Estrita de Limite de Plano
+      const limitCheck = await checkLimit(session.empresaId, "properties", 1);
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: limitCheck.message,
+            code: "LIMIT_REACHED",
+            limitKey: "properties",
+            current: limitCheck.current,
+            limit: limitCheck.limit,
+            currentPlan: limitCheck.currentPlan,
+            nextPlan: limitCheck.nextPlan,
+          },
+          { status: 403 }
+        );
+      }
+
       const { localId, numero, status, descricao, valorPadrao, valorDiaria, modalidadeLocacao, tipoImovel, fotosUrl } = body;
       
       const localValido = await prisma.local.findFirst({

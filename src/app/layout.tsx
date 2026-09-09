@@ -12,10 +12,34 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
-    default: "Gestão de Imóveis para Locação SaaS",
-    template: "%s | Gestão de Imóveis para Locação",
+    default: "IMOB by PAJO Tecnologia | Gestão Inteligente de Imóveis para Locação",
+    template: "%s | IMOB by PAJO Tecnologia",
   },
-  description: "Sistema completo de gestão de imóveis para locação, contratos, vistorias com fotos e financeiro.",
+  description: "Administre seus imóveis sem planilhas, papelada e confusão no WhatsApp. Reservas, locatários, contratos, assinatura digital, vistorias com fotos e financeiro completo em uma única plataforma.",
+  keywords: [
+    "IMOB",
+    "PAJO Tecnologia",
+    "sistema de gestão de imóveis",
+    "gestão de imóveis para locação",
+    "sistema para aluguel por temporada",
+    "sistema para administradores de imóveis",
+    "sistema para flats",
+    "sistema para chácaras",
+    "gestão de locações",
+    "controle de reservas",
+    "gestão de contratos de aluguel",
+    "vistoria com fotos",
+    "assinatura digital imobiliária"
+  ],
+  authors: [{ name: "PAJO Tecnologia", url: "https://pajotecnologia.com.br" }],
+  openGraph: {
+    title: "IMOB by PAJO Tecnologia | Gestão Inteligente de Imóveis para Locação",
+    description: "Administre seus imóveis sem planilhas, papelada e confusão no WhatsApp. Plataforma completa para administradores, investidores e imobiliárias.",
+    url: "https://app.imob.pajotech.com.br",
+    siteName: "IMOB by PAJO Tecnologia",
+    locale: "pt_BR",
+    type: "website",
+  },
   icons: {
     icon: "/icon.svg",
   },
