@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "IMOB by PAJO Tecnologia | Gestão Inteligente de Imóveis para Locação",
     description: "Administre seus imóveis sem planilhas, papelada e confusão no WhatsApp. Plataforma completa para administradores, investidores e imobiliárias.",
-    url: "https://app.imob.pajotech.com.br",
+    url: "https://imob.pajotech.com.br",
     siteName: "IMOB by PAJO Tecnologia",
     locale: "pt_BR",
     type: "website",

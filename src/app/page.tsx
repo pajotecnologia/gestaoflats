@@ -316,7 +316,7 @@ export default function LandingPage() {
                   <div className="w-3 h-3 rounded-full bg-rose-500/80" />
                   <div className="w-3 h-3 rounded-full bg-amber-500/80" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="ml-2 font-mono text-[11px] text-slate-500">app.imob.pajotech.com.br</span>
+                  <span className="ml-2 font-mono text-[11px] text-slate-500">imob.pajotech.com.br</span>
                 </div>
                 <div className="hidden sm:flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 text-[10px] font-black border border-emerald-800">
@@ -611,7 +611,7 @@ export default function LandingPage() {
                   Olá, Carlos! Segue em anexo a cópia do seu contrato de locação assinado digitalmente.
                 </p>
                 <div className="p-2 rounded-xl bg-slate-950 text-[10px] text-blue-400 font-mono">
-                  https://app.imob.pajotech.com.br/assinar/contrato/...
+                  https://imob.pajotech.com.br/assinar/contrato/...
                 </div>
               </div>
 
