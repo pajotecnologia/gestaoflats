@@ -372,6 +372,7 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
   if (vencimentoIso < hojeStr) {
     vencimentoIso = hojeStr;
   }
+  const valorNominal = Number(conta.valor);
   if (valorNominal < 2.50) {
     throw new Error("O Banco Inter exige um valor mínimo de R$ 2,50 para emitir boletos bancários com Pix (Bolepix). Para testes, crie uma cobrança de R$ 2,50 ou superior.");
   }
@@ -448,10 +449,15 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
   const endpointCobranca = `${baseUrl}/cobranca/v3/cobrancas`;
   const res = await makeInterRequest<{
     codigoSolicitacao?: string;
+    nossoNumero?: string;
+    linhaDigitavel?: string;
+    codigoBarras?: string;
+    pixCopiaECola?: string;
     title?: string;
     detail?: string;
     message?: string;
     violacoes?: Array<{ razao: string; propriedade: string; valor?: string }>;
+    [key: string]: any;
   }>({
     url: endpointCobranca,
     method: "POST",
@@ -477,16 +483,17 @@ export async function emitirBolepixInter(contaReceberId: string, empresaId: stri
     throw new Error(`Erro ao emitir cobrança no Banco Inter (${res.status}): ${errMsg}`);
   }
 
-  const codigoSolicitacao = res.data.codigoSolicitacao || res.data.nossoNumero;
+  const resData: any = res.data || {};
+  const codigoSolicitacao = resData.codigoSolicitacao || resData.nossoNumero;
   if (!codigoSolicitacao) {
     throw new Error("Banco Inter não retornou o código de solicitação da cobrança.");
   }
 
   // Agora consulta os dados completos da cobrança gerada para extrair linha digitável, pix e detalhes
-  let linhaDigitavel = res.data.linhaDigitavel || "";
-  let codigoBarras = res.data.codigoBarras || "";
-  let pixCopiaECola = res.data.pixCopiaECola || "";
-  let nossoNumero = res.data.nossoNumero || "";
+  let linhaDigitavel = resData.linhaDigitavel || "";
+  let codigoBarras = resData.codigoBarras || "";
+  let pixCopiaECola = resData.pixCopiaECola || "";
+  let nossoNumero = resData.nossoNumero || "";
 
   try {
     const detalheRes = await consultarBolepixInter(codigoSolicitacao, empresaId);
