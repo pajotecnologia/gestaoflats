@@ -17,6 +17,7 @@ import {
   ChevronRight,
   RotateCcw,
   Filter,
+  Layers,
 } from "lucide-react";
 
 export default function ContasPagarPage() {
@@ -43,11 +44,12 @@ export default function ContasPagarPage() {
   const [dataPagamento, setDataPagamento] = useState(new Date().toISOString().split("T")[0]);
   const [status, setStatus] = useState("PENDENTE");
 
-  // Filtros Dinâmicos
+  // Filtros Dinâmicos e Quebras
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("TODOS");
   const [filterDateInicio, setFilterDateInicio] = useState("");
   const [filterDateFim, setFilterDateFim] = useState("");
+  const [quebraPor, setQuebraPor] = useState<"NENHUM" | "MES_VENCIMENTO" | "FORNECEDOR" | "IMOVEL">("NENHUM");
 
   // Paginação Dinâmica
   const [currentPage, setCurrentPage] = useState(1);
@@ -176,6 +178,24 @@ export default function ContasPagarPage() {
     }
   };
 
+  // Helper para formatar Mês de Vencimento
+  const formatMesVencimento = (dateStr?: string) => {
+    if (!dateStr) return "Sem Vencimento";
+    const meses = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    const parts = dateStr.split("T")[0].split("-");
+    if (parts.length >= 2) {
+      const ano = parts[0];
+      const mesIdx = parseInt(parts[1], 10) - 1;
+      if (mesIdx >= 0 && mesIdx < 12) {
+        return `${meses[mesIdx]} de ${ano}`;
+      }
+    }
+    return dateStr;
+  };
+
   // Filtragem Dinâmica Avançada
   const contasFiltradas = contas.filter((c) => {
     if (filterStatus !== "TODOS" && c.status !== filterStatus) return false;
@@ -203,7 +223,95 @@ export default function ContasPagarPage() {
     return true;
   });
 
-  // Cálculo da Paginação Dinâmica
+  // Agrupamento / Quebras Dinâmicas
+  const gruposContas = React.useMemo(() => {
+    if (quebraPor === "NENHUM") return [];
+
+    const map = new Map<string, {
+      titulo: string;
+      subtitulo?: string;
+      icone: string;
+      itens: any[];
+      totalPrevisto: number;
+      totalPago: number;
+      totalPendente: number;
+    }>();
+
+    contasFiltradas.forEach((c) => {
+      let key = "";
+      let titulo = "";
+      let subtitulo = "";
+      let icone = "📁";
+
+      if (quebraPor === "MES_VENCIMENTO") {
+        const dataVenc = c.dataVencimento ? c.dataVencimento.split("T")[0] : "";
+        const anoMes = dataVenc ? dataVenc.slice(0, 7) : "SEM_DATA";
+        key = anoMes;
+        titulo = anoMes !== "SEM_DATA" ? formatMesVencimento(c.dataVencimento) : "Sem Vencimento Definido";
+        icone = "📅";
+      } else if (quebraPor === "FORNECEDOR") {
+        key = c.fornecedorId || "SEM_FORNECEDOR";
+        titulo = c.fornecedor?.razaoSocial || c.fornecedor?.nome || "Despesa Direta / Sem Fornecedor";
+        subtitulo = c.fornecedor?.cnpj ? `CNPJ: ${c.fornecedor.cnpj}` : (c.fornecedor?.telefone ? `Tel: ${c.fornecedor.telefone}` : "");
+        icone = "🏢";
+      } else if (quebraPor === "IMOVEL") {
+        if (c.local) {
+          key = `local-${c.local.id}`;
+          titulo = `${c.local.nome} (Prédio / Condomínio)`;
+          subtitulo = c.local.endereco || "";
+          icone = "🏢";
+        } else if (c.flat) {
+          key = `flat-${c.flat.id}`;
+          titulo = `${c.flat.local?.nome ? `${c.flat.local.nome} • ` : ""}Flat ${c.flat.numero}`;
+          subtitulo = c.flat.local?.endereco || "";
+          icone = "🏠";
+        } else {
+          key = "GERAL";
+          titulo = "Geral / Empresa";
+          subtitulo = "Despesas Administrativas da Imobiliária";
+          icone = "💼";
+        }
+      }
+
+      if (!map.has(key)) {
+        map.set(key, {
+          titulo,
+          subtitulo,
+          icone,
+          itens: [],
+          totalPrevisto: 0,
+          totalPago: 0,
+          totalPendente: 0,
+        });
+      }
+
+      const grp = map.get(key)!;
+      grp.itens.push(c);
+      const val = Number(c.valor || 0);
+      grp.totalPrevisto += val;
+      if (c.status === "PAGO") {
+        grp.totalPago += val;
+      } else {
+        grp.totalPendente += val;
+      }
+    });
+
+    // Ordenação dos grupos
+    const result = Array.from(map.entries()).map(([key, data]) => ({
+      key,
+      ...data,
+    }));
+
+    if (quebraPor === "MES_VENCIMENTO") {
+      result.sort((a, b) => a.key.localeCompare(b.key));
+    } else {
+      result.sort((a, b) => a.titulo.localeCompare(b.titulo));
+    }
+
+    return result;
+  }, [contasFiltradas, quebraPor]);
+
+  // Cálculo da Paginação Dinâmica (apenas para modo sem quebra)
   const totalPages = Math.max(1, Math.ceil(contasFiltradas.length / itemsPerPage));
   const pageValid = Math.min(currentPage, totalPages);
   const startIndex = (pageValid - 1) * itemsPerPage;
@@ -214,7 +322,87 @@ export default function ContasPagarPage() {
     setFilterStatus("TODOS");
     setFilterDateInicio("");
     setFilterDateFim("");
+    setQuebraPor("NENHUM");
     setCurrentPage(1);
+  };
+
+  // Renderizador de Linha de Despesa
+  const renderTableRow = (c: any) => {
+    const isPago = c.status === "PAGO";
+
+    return (
+      <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+        <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-200">{c.descricao}</td>
+        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+          {c.fornecedor?.razaoSocial || "Despesa Direta"}
+        </td>
+        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+          {c.local ? (
+            <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800 text-[11px] inline-flex items-center space-x-1">
+              <Building className="w-3 h-3" />
+              <span>{c.local.nome} (Prédio)</span>
+            </span>
+          ) : c.flat ? (
+            <span className="px-2 py-0.5 rounded-lg bg-cyan-50 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 font-semibold border border-cyan-200 dark:border-cyan-800 text-[11px] inline-flex items-center space-x-1">
+              <Building2 className="w-3 h-3" />
+              <span>Flat {c.flat.numero}</span>
+            </span>
+          ) : (
+            <span className="text-slate-500 text-[11px]">Geral / Empresa</span>
+          )}
+        </td>
+        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+          {new Date(c.dataVencimento).toLocaleDateString("pt-BR")}
+        </td>
+        <td className="py-3.5 px-4 font-bold text-rose-600 dark:text-rose-400">
+          {formatCurrency(c.valor)}
+        </td>
+        <td className="py-3.5 px-4">
+          {isPago ? (
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 text-[10px] font-bold inline-block">
+                PAGO
+              </span>
+              <span className="block text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
+                Baixa: {c.dataPagamento ? new Date(c.dataPagamento).toLocaleDateString("pt-BR") : "-"}
+              </span>
+            </div>
+          ) : (
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                c.status === "ATRASADO"
+                  ? "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50"
+                  : "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50"
+              }`}
+            >
+              {c.status || "PENDENTE"}
+            </span>
+          )}
+        </td>
+        <td className="py-3.5 px-4 text-right">
+          <div className="flex items-center justify-end space-x-1.5">
+            {!isPago && (
+              <button
+                onClick={() => handleOpenBaixaModal(c)}
+                className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center space-x-1 shadow-sm transition"
+                title="Registrar Baixa do Pagamento"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Dar Baixa</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => handleOpenEditModal(c)}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title="Editar Despesa"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -245,7 +433,7 @@ export default function ContasPagarPage() {
 
         {/* BARRA DE FILTROS E BUSCA DINÂMICA */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
             {/* Busca por Texto */}
             <div className="relative">
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Buscar Despesa</label>
@@ -282,6 +470,27 @@ export default function ContasPagarPage() {
               </select>
             </div>
 
+            {/* Agrupamento / Quebra */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1">
+                <Layers className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                <span>Quebra / Agrupar Por</span>
+              </label>
+              <select
+                value={quebraPor}
+                onChange={(e) => {
+                  setQuebraPor(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 focus:outline-none"
+              >
+                <option value="NENHUM">Sem Quebra (Lista Geral)</option>
+                <option value="MES_VENCIMENTO">📅 Mês de Vencimento</option>
+                <option value="FORNECEDOR">🏢 Fornecedor</option>
+                <option value="IMOVEL">🏠 Imóvel / Prédio / Flat</option>
+              </select>
+            </div>
+
             {/* Período de Vencimento (Início) */}
             <div>
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento De</label>
@@ -299,200 +508,227 @@ export default function ContasPagarPage() {
             {/* Período de Vencimento (Fim) */}
             <div>
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Até</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="date"
-                  value={filterDateFim}
-                  onChange={(e) => {
-                    setFilterDateFim(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
-                />
-                <button
-                  onClick={resetFilters}
-                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
-                  title="Limpar Filtros"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <input
+                type="date"
+                value={filterDateFim}
+                onChange={(e) => {
+                  setFilterDateFim(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+              />
             </div>
           </div>
-        </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Descrição da Despesa</th>
-                  <th className="py-3.5 px-4">Fornecedor</th>
-                  <th className="py-3.5 px-4">Vínculo Imobiliário</th>
-                  <th className="py-3.5 px-4">Vencimento</th>
-                  <th className="py-3.5 px-4">Valor (R$)</th>
-                  <th className="py-3.5 px-4">Status & Data da Baixa</th>
-                  <th className="py-3.5 px-4 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-xs">
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-500">
-                      Carregando despesas...
-                    </td>
-                  </tr>
-                ) : paginatedContas.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-500">
-                      Nenhuma despesa encontrada para os filtros aplicados.
-                    </td>
-                  </tr>
+          {(searchTerm || filterStatus !== "TODOS" || filterDateInicio || filterDateFim || quebraPor !== "NENHUM") && (
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800/60">
+              <span className="text-[11px] text-slate-500 font-medium">
+                {quebraPor !== "NENHUM" ? (
+                  <span className="text-rose-600 dark:text-rose-400 font-bold">
+                    Organizado em {gruposContas.length} {gruposContas.length === 1 ? "grupo" : "grupos"} ({contasFiltradas.length} despesas no total)
+                  </span>
                 ) : (
-                  paginatedContas.map((c) => {
-                    const isPago = c.status === "PAGO";
-
-                    return (
-                      <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                        <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-200">{c.descricao}</td>
-                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                          {c.fornecedor?.razaoSocial || "Despesa Direta"}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                          {c.local ? (
-                            <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-800 text-[11px] inline-flex items-center space-x-1">
-                              <Building className="w-3 h-3" />
-                              <span>{c.local.nome} (Prédio)</span>
-                            </span>
-                          ) : c.flat ? (
-                            <span className="px-2 py-0.5 rounded-lg bg-cyan-50 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 font-semibold border border-cyan-200 dark:border-cyan-800 text-[11px] inline-flex items-center space-x-1">
-                              <Building2 className="w-3 h-3" />
-                              <span>Flat {c.flat.numero}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-500 text-[11px]">Geral / Empresa</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
-                          {new Date(c.dataVencimento).toLocaleDateString("pt-BR")}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-rose-600 dark:text-rose-400">
-                          {formatCurrency(c.valor)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {isPago ? (
-                            <div>
-                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 text-[10px] font-bold inline-block">
-                                PAGO
-                              </span>
-                              <span className="block text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                Baixa: {c.dataPagamento ? new Date(c.dataPagamento).toLocaleDateString("pt-BR") : "-"}
-                              </span>
-                            </div>
-                          ) : (
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                c.status === "ATRASADO"
-                                  ? "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50"
-                                  : "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50"
-                              }`}
-                            >
-                              {c.status || "PENDENTE"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-1.5">
-                            {!isPago && (
-                              <button
-                                onClick={() => handleOpenBaixaModal(c)}
-                                className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center space-x-1 shadow-sm transition"
-                                title="Registrar Baixa do Pagamento"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Dar Baixa</span>
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => handleOpenEditModal(c)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                              title="Editar Despesa"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  <span>Total de {contasFiltradas.length} despesas encontradas</span>
                 )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* BARRA DE PAGINAÇÃO DINÂMICA */}
-          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
-              <span>Exibindo</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                {contasFiltradas.length > 0 ? startIndex + 1 : 0}
               </span>
-              <span>até</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                {Math.min(startIndex + itemsPerPage, contasFiltradas.length)}
-              </span>
-              <span>de</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200">{contasFiltradas.length}</span>
-              <span>registros</span>
+              <button
+                onClick={resetFilters}
+                className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center space-x-1 font-semibold"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Limpar Filtros</span>
+              </button>
             </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Quantidade por Página */}
-              <div className="flex items-center space-x-1.5">
-                <span className="text-slate-500 dark:text-slate-400 text-[11px]">Exibir:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-semibold"
-                >
-                  <option value={10}>10 por pg</option>
-                  <option value={25}>25 por pg</option>
-                  <option value={50}>50 por pg</option>
-                  <option value={100}>100 por pg</option>
-                </select>
-              </div>
-
-              {/* Botões de Navegação */}
-              <div className="flex items-center space-x-1">
-                <button
-                  disabled={pageValid <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title="Página Anterior"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-
-                <span className="px-2 font-semibold text-slate-700 dark:text-slate-300 text-xs">
-                  {pageValid} / {totalPages}
-                </span>
-
-                <button
-                  disabled={pageValid >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title="Próxima Página"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
+
+        {/* EXIBIÇÃO: MODO SEM QUEBRA (TABELA GERAL) */}
+        {quebraPor === "NENHUM" ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="py-3.5 px-4">Descrição da Despesa</th>
+                    <th className="py-3.5 px-4">Fornecedor</th>
+                    <th className="py-3.5 px-4">Vínculo Imobiliário</th>
+                    <th className="py-3.5 px-4">Vencimento</th>
+                    <th className="py-3.5 px-4">Valor (R$)</th>
+                    <th className="py-3.5 px-4">Status & Data da Baixa</th>
+                    <th className="py-3.5 px-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-xs">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                        Carregando despesas...
+                      </td>
+                    </tr>
+                  ) : paginatedContas.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                        Nenhuma despesa encontrada para os filtros aplicados.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedContas.map((c) => renderTableRow(c))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* BARRA DE PAGINAÇÃO DINÂMICA */}
+            <div className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
+                <span>Exibindo</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {contasFiltradas.length > 0 ? startIndex + 1 : 0}
+                </span>
+                <span>até</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {Math.min(startIndex + itemsPerPage, contasFiltradas.length)}
+                </span>
+                <span>de</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{contasFiltradas.length}</span>
+                <span>registros</span>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {/* Quantidade por Página */}
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px]">Exibir:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 font-semibold"
+                  >
+                    <option value={10}>10 por pg</option>
+                    <option value={25}>25 por pg</option>
+                    <option value={50}>50 por pg</option>
+                    <option value={100}>100 por pg</option>
+                  </select>
+                </div>
+
+                {/* Botões de Navegação */}
+                <div className="flex items-center space-x-1">
+                  <button
+                    disabled={pageValid <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    title="Página Anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <span className="px-2 font-semibold text-slate-700 dark:text-slate-300 text-xs">
+                    {pageValid} / {totalPages}
+                  </span>
+
+                  <button
+                    disabled={pageValid >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    title="Próxima Página"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* MODO AGRUPADO / QUEBRAS */
+          <div className="space-y-6">
+            {loading ? (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-500">
+                Carregando despesas...
+              </div>
+            ) : gruposContas.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-500">
+                Nenhuma despesa encontrada para os filtros aplicados.
+              </div>
+            ) : (
+              gruposContas.map((grp) => (
+                <div
+                  key={grp.key}
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden"
+                >
+                  {/* Cabeçalho do Grupo com Subtotais */}
+                  <div className="bg-slate-50 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 flex items-center justify-center text-base font-bold shadow-xs">
+                        {grp.icone}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                            {grp.titulo}
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            {grp.itens.length} {grp.itens.length === 1 ? "despesa" : "despesas"}
+                          </span>
+                        </div>
+                        {grp.subtitulo && (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            {grp.subtitulo}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subtotais do Grupo */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block leading-tight">Total Previsto</span>
+                        <span className="font-extrabold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(grp.totalPrevisto)}
+                        </span>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/50">
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block leading-tight">Total Pago</span>
+                        <span className="font-extrabold text-emerald-700 dark:text-emerald-400">
+                          {formatCurrency(grp.totalPago)}
+                        </span>
+                      </div>
+                      {grp.totalPendente > 0 && (
+                        <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/50">
+                          <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block leading-tight">Total Pendente</span>
+                          <span className="font-extrabold text-amber-700 dark:text-amber-400">
+                            {formatCurrency(grp.totalPendente)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Tabela dos Itens do Grupo */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/60 text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          <th className="py-2.5 px-4">Descrição da Despesa</th>
+                          <th className="py-2.5 px-4">Fornecedor</th>
+                          <th className="py-2.5 px-4">Vínculo Imobiliário</th>
+                          <th className="py-2.5 px-4">Vencimento</th>
+                          <th className="py-2.5 px-4">Valor (R$)</th>
+                          <th className="py-2.5 px-4">Status & Data da Baixa</th>
+                          <th className="py-2.5 px-4 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-xs">
+                        {grp.itens.map((c) => renderTableRow(c))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         {/* Modal de DAR BAIXA EM DESPESA */}
         {showBaixaModal && baixaConta && (
