@@ -195,42 +195,16 @@ Este arquivo reúne todas as regras de negócio, padrões de projeto, especifica
 
 ---
 
-## 12. Procedimento Padrão e Direto de Atualização / Deploy na VPS Linux
+## 12. Procedimento de Atualização / Deploy via Coolify
 
-- **COMANDO ÚNICO MANDATÓRIO DE DEPLOY NA VPS (PRESERVA DADOS NO BANCO)**:
-  - Para atualizar o sistema em produção na VPS (especificamente a aplicação na pasta `/www/wwwroot/dnyl.pajotech.com.br`), o procedimento **DEVE SER DIRETO** (em linha única encadeada no terminal) para garantir a execução síncrona de todas as etapas:
-  ```bash
-  cd /www/wwwroot/dnyl.pajotech.com.br && git fetch origin master && git reset --hard origin/master && fuser -k -9 3010/tcp 2>/dev/null || true && rm -rf .next && npx prisma db push && npx next build && chown -R www:www /www/wwwroot/dnyl.pajotech.com.br && pm2 startOrRestart ecosystem.config.js && pm2 save
-  ```
-  - **Após o build**, se o sistema for gerenciado pelo **aaPanel**, ir em **Website → Node project → Restart** no projeto `dnyl` ao invés de usar o PM2 diretamente.
-
-- **GERENCIAMENTO PELO AAPANEL**:
-  - O projeto `dnyl` é gerenciado pelo aaPanel como Node project.
-  - **Configuração do projeto no aaPanel**:
-    - **Path**: `/www/wwwroot/dnyl.pajotech.com.br`
-    - **Run opt**: `start [next start -p 3010]`
-    - **Port**: `3010`
-    - **User**: `www`
-  - Para iniciar pela primeira vez ou após matar o processo manualmente, usar o botão **Start** no aaPanel.
-  - O `ecosystem.config.js` na raiz do projeto garante que o PM2 e o aaPanel iniciem o sistema na porta **3010**.
-
-- **PROXY REVERSO NGINX (aaPanel)**:
-  - O arquivo de proxy do Nginx para o domínio `dnyl.pajotech.com.br` está em:
-    `/www/server/panel/vhost/nginx/proxy/dnyl.pajotech.com.br/proxy.conf`
-  - Deve conter `proxy_pass http://127.0.0.1:3010` com `proxy_cache_bypass 1` e `Cache-Control: no-cache` para evitar que o browser sirva chunks JS antigos.
-  - **NUNCA** modificar o arquivo principal `/www/server/panel/vhost/nginx/dnyl.pajotech.com.br.conf` diretamente — usar apenas o arquivo de proxy acima.
-
-- **PROIBIÇÃO ABSOLUTA DE `pm2 delete all` OU COMANDOS GERAIS**: A VPS hospeda outros projetos em portas distintas (3002, 3005, etc.). Qualquer comando PM2 deve afetar **EXCLUSIVAMENTE** o processo `dnyl` (ex: `pm2 restart dnyl` ou `pm2 delete dnyl`).
-
-- **Por que esta Ordem é Obrigatória e Imperativa**:
-  1. `git fetch origin master && git reset --hard origin/master`: Atualiza o código fonte do repositório no disco. (Obs: Os arquivos `.db` do SQLite foram removidos do Git e ignorados via `.gitignore`, o que impede que o `git reset` sobrescreva ou apague dados reais do banco de produção na VPS).
-  2. `rm -rf .next`: Apaga o cache de compilação antigo para forçar o Next.js a gerar todos os chunks estáticos e atualizados da nova versão.
-  3. `npx prisma db push`: Atualiza e adiciona novas tabelas ou colunas ao banco de dados SQLite existente **preservando 100% de todos os dados e cadastros criados**.
-  4. `npx next build`: Recompila síncronamente todos os arquivos do Next.js gerando o novo `BUILD_ID` e atualizando os pacotes estáticos. **JAMAIS** reiniciar o PM2 antes da conclusão do `next build` para evitar erros de 502 Bad Gateway e `production-start-no-build-id`.
-  5. `pm2 restart dnyl`: Recarrega o processo `dnyl` na porta 3010 com a build de produção totalmente pronta.
+- **Deploy Automático e Contínuo (Coolify / Webhook)**:
+  - O sistema é hospedado e gerenciado via **Coolify**.
+  - Todo `git push origin master` dispara automaticamente o webhook de build e deploy no Coolify.
+  - Caso seja necessário forçar uma atualização manual pela interface do Coolify, basta acessar o painel da aplicação e clicar em **Redeploy** ou **Deploy**.
+  - O Coolify executa automaticamente os passos de instalação de dependências, `prisma generate`, `prisma db push`, `next build` e inicia o container na porta configurada.
 
 - **Controle de Versão do Sistema (`src/lib/version.ts`)**:
-  - Em cada nova funcionalidade ou atualização enviada, a constante `SYSTEM_VERSION` em `src/lib/version.ts` e no `package.json` deve ser incrementada (ex: `v1.10`, `v1.11`, `v1.12`).
+  - Em cada nova funcionalidade ou atualização enviada, a constante `SYSTEM_VERSION` em `src/lib/version.ts` e no `package.json` deve ser incrementada (ex: `v1.71`, `v1.72`, `v1.73`).
   - O indicador de versão `🟢 Versão: X.XX` deve permanecer exibido tanto no cartão da tela de login (`src/app/login/page.tsx`) quanto no topo das páginas internas (`src/components/layout/Shell.tsx`), garantindo a confirmação visual imediata de deploy bem-sucedido.
 
 ---
