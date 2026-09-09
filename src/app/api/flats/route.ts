@@ -32,26 +32,29 @@ export async function GET() {
       orderBy: { numero: "asc" },
     });
 
-    // Reconciliação inteligente: se o flat está marcado como OCUPADO mas não possui contrato ativo, sincroniza para DISPONIVEL
+    // Reconciliação inteligente em lote (1 única query de contratos ativos)
     const now = new Date();
+    const activeContracts = await prisma.contrato.findMany({
+      where: {
+        flat: { empresaId: session.empresaId },
+        status: "ATIVO",
+        dataEmissao: { lte: now },
+        dataFinal: { gte: now },
+      },
+      select: { flatId: true },
+    });
+    const occupiedFlatIds = new Set(activeContracts.map((c) => c.flatId));
+
     for (const flat of flats) {
       if (flat.status !== "MANUTENCAO") {
-        const activeContract = await prisma.contrato.findFirst({
-          where: {
-            flatId: flat.id,
-            status: "ATIVO",
-            dataEmissao: { lte: now },
-            dataFinal: { gte: now },
-          },
-        });
-
-        if (!activeContract && flat.status === "OCUPADO") {
+        const hasActiveContract = occupiedFlatIds.has(flat.id);
+        if (!hasActiveContract && flat.status === "OCUPADO") {
           await prisma.flat.update({
             where: { id: flat.id },
             data: { status: "DISPONIVEL" },
           });
           flat.status = "DISPONIVEL";
-        } else if (activeContract && flat.status === "DISPONIVEL") {
+        } else if (hasActiveContract && flat.status === "DISPONIVEL") {
           await prisma.flat.update({
             where: { id: flat.id },
             data: { status: "OCUPADO" },

@@ -52,14 +52,14 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileExtension = path.extname(file.name).toLowerCase() || ".png";
-    let mimeType = "image/png";
-    if (fileExtension === ".jpg" || fileExtension === ".jpeg") mimeType = "image/jpeg";
-    else if (fileExtension === ".webp") mimeType = "image/webp";
-    else if (fileExtension === ".svg") mimeType = "image/svg+xml";
-    else if (fileExtension === ".gif") mimeType = "image/gif";
 
-    const base64Data = buffer.toString("base64");
-    const logomarcaDataUri = `data:${mimeType};base64,${base64Data}`;
+    // Otimiza e comprime para WebP de alta qualidade (reduz de megabytes para ~20KB)
+    const { optimizeImageToDataUri } = await import("@/lib/imageOptimizer");
+    const logomarcaDataUri = await optimizeImageToDataUri(buffer, {
+      maxWidth: 800,
+      quality: 85,
+      format: fileExtension === ".png" ? "png" : "webp",
+    });
 
     // Também gravamos o arquivo em disco como fallback / redundância
     try {

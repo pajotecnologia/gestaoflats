@@ -37,14 +37,12 @@ export async function POST(request: NextRequest) {
     for (const file of allFiles) {
       if (file && file.size > 0) {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const ext = path.extname(file.name).toLowerCase() || ".jpg";
-        let mimeType = "image/jpeg";
-        if (ext === ".png") mimeType = "image/png";
-        else if (ext === ".webp") mimeType = "image/webp";
-        else if (ext === ".svg") mimeType = "image/svg+xml";
-
-        const base64Data = buffer.toString("base64");
-        const fotoDataUri = `data:${mimeType};base64,${base64Data}`;
+        const { optimizeImageToDataUri } = await import("@/lib/imageOptimizer");
+        const fotoDataUri = await optimizeImageToDataUri(buffer, {
+          maxWidth: 1280,
+          quality: 75,
+          format: "webp",
+        });
 
         // Redundância local opcional
         try {

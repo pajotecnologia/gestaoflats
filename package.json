@@ -1,6 +1,6 @@
 {
   "name": "gestao-imoveis-locacao-saas",
-  "version": "1.72.0",
+  "version": "1.73.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3010",
@@ -32,6 +32,7 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.35.4",
     "tailwind-merge": "^2.5.4",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3"
