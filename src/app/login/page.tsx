@@ -153,7 +153,7 @@ export default function LoginPage() {
             </div>
             <div className="text-left">
               <span className="font-extrabold text-white text-base tracking-tight block leading-tight">
-                Gestão de Flats
+                Gestão de Imóveis para Locação
               </span>
               <span className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider block">
                 Plataforma SaaS Imobiliária
@@ -496,7 +496,7 @@ export default function LoginPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8 w-full max-w-4xl">
           <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/60 backdrop-blur-sm flex flex-col items-center text-center space-y-1.5 hover:border-slate-700 transition">
             <Building2 className="w-5 h-5 text-blue-400" />
-            <span className="text-xs font-bold text-slate-200">Gestão de Flats</span>
+            <span className="text-xs font-bold text-slate-200">Gestão de Imóveis</span>
             <span className="text-[10px] text-slate-400">Controle total de unidades, status e ocupação</span>
           </div>
 

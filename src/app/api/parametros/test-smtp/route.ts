@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; borderRadius: 12px;">
         <h2 style="color: #38bdf8;">🎉 Teste de Envio de E-mail via SMTP Gmail</h2>
-        <p>Este e-mail confirma que as configurações de SMTP do seu sistema de <strong>Gestão de Flats & Aluguéis</strong> estão ativas e funcionando perfeitamente!</p>
+        <p>Este e-mail confirma que as configurações de SMTP do seu sistema de <strong>Gestão de Imóveis para Locação</strong> estão ativas e funcionando perfeitamente!</p>
         <hr style="border: 1px solid #334155;" />
         <p style="font-size: 12px; color: #94a3b8;">Enviado em: ${new Date().toLocaleString("pt-BR")}</p>
       </div>
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const result = await sendEmailViaSmtp(
       config,
       testEmail,
-      "Teste de Configuração SMTP Gmail - Gestão de Flats",
+      "Teste de Configuração SMTP Gmail - Gestão de Imóveis para Locação",
       html
     );
 

@@ -149,4 +149,4 @@ export async function POST(request: NextRequest) {
 }
 
 const DEFAULT_MENSAGEM =
-  "Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}";
+  "Olá, {{nome}}! Informamos que o período de teste do Gestão de Imóveis para Locação para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}";

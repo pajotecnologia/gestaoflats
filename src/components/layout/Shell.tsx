@@ -500,7 +500,7 @@ function ShellContent({ children }: ShellProps) {
             {/* Badge de Versão Atual do Sistema */}
             <div
               className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-extrabold text-xs shadow-xs select-none"
-              title="Versão Oficial do Sistema Gestão Flats"
+              title="Versão Oficial do Sistema Gestão de Imóveis para Locação"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="hidden sm:inline">Versão: {SYSTEM_VERSION}</span>

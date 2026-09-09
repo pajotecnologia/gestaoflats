@@ -104,7 +104,7 @@ export async function notifyAdminNovoCadastro(data: NovoCadastroData): Promise<b
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
           <div style="background-color: #1e3a8a; padding: 20px; text-align: center;">
             <h2 style="color: #ffffff; margin: 0; font-size: 20px;">🚀 Novo Cadastro de Cliente (Trial)</h2>
-            <p style="color: #93c5fd; margin: 4px 0 0 0; font-size: 13px;">Gestão de Flats SaaS</p>
+            <p style="color: #93c5fd; margin: 4px 0 0 0; font-size: 13px;">Gestão de Imóveis para Locação SaaS</p>
           </div>
 
           <div style="padding: 24px; color: #1e293b;">
@@ -155,14 +155,14 @@ export async function notifyAdminNovoCadastro(data: NovoCadastroData): Promise<b
           </div>
 
           <div style="background-color: #f8fafc; padding: 12px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;">
-            Sistema de Gestão de Flats SaaS • Notificação Automática ao Super Admin
+            Sistema de Gestão de Imóveis para Locação SaaS • Notificação Automática ao Super Admin
           </div>
         </div>
       </div>
     `;
 
     await transporter.sendMail({
-      from: `"Gestão de Flats" <${config.smtpFrom}>`,
+      from: `"Gestão de Imóveis para Locação" <${config.smtpFrom}>`,
       to: config.emailDestino,
       subject: `🚀 Novo Cadastro: ${data.nomeEmpresa} (Teste de ${data.diasTrial} dias)`,
       html,
@@ -212,7 +212,7 @@ export async function notifyAdminNovaContratacao(data: NovaContratacaoData): Pro
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
           <div style="background-color: #059669; padding: 20px; text-align: center;">
             <h2 style="color: #ffffff; margin: 0; font-size: 20px;">💰 Nova Contratação / Renovação Confirmada!</h2>
-            <p style="color: #a7f3d0; margin: 4px 0 0 0; font-size: 13px;">Gestão de Flats SaaS</p>
+            <p style="color: #a7f3d0; margin: 4px 0 0 0; font-size: 13px;">Gestão de Imóveis para Locação SaaS</p>
           </div>
 
           <div style="padding: 24px; color: #1e293b;">
@@ -259,14 +259,14 @@ export async function notifyAdminNovaContratacao(data: NovaContratacaoData): Pro
           </div>
 
           <div style="background-color: #f8fafc; padding: 12px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;">
-            Sistema de Gestão de Flats SaaS • Notificação Automática ao Super Admin
+            Sistema de Gestão de Imóveis para Locação SaaS • Notificação Automática ao Super Admin
           </div>
         </div>
       </div>
     `;
 
     await transporter.sendMail({
-      from: `"Gestão de Flats" <${config.smtpFrom}>`,
+      from: `"Gestão de Imóveis para Locação" <${config.smtpFrom}>`,
       to: config.emailDestino,
       subject: `💰 Nova Contratação: ${data.nomeEmpresa} (Plano ${data.plano} - ${valorFormatado})`,
       html,

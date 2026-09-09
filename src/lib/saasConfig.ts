@@ -32,7 +32,7 @@ export const DEFAULT_SAAS_CONFIG: SaasConfigData = {
   telefoneSuporteWhatsApp: "(87) 99654-0551",
   emailNotificacaoAdmin: "pajotecnologia@gmail.com",
   mensagemAvisoWhatsApp:
-    "Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}",
+    "Olá, {{nome}}! Informamos que o período de teste do Gestão de Imóveis para Locação para a empresa {{empresa}} irá expirar em {{dias_restantes}} dia(s) (Data: {{data_expiracao}}). Para continuar utilizando todos os recursos sem interrupções, renove seu acesso no link: {{link_renovacao}}",
 };
 
 /**

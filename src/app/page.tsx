@@ -248,7 +248,7 @@ export default function LandingPage() {
             </div>
             <div>
               <span className="font-black text-white text-lg tracking-tight block leading-tight">
-                Gestão de Flats
+                Gestão de Imóveis para Locação
               </span>
               <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block">
                 Plataforma SaaS de Locações
@@ -1110,9 +1110,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <div className="w-7 h-7 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
-              GF
+              GI
             </div>
-            <span className="font-bold text-slate-200">Gestão de Flats SaaS</span>
+            <span className="font-bold text-slate-200">Gestão de Imóveis para Locação SaaS</span>
             <span className="text-slate-600">|</span>
             <span className="inline-flex items-center space-x-1 text-[11px] text-blue-400 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

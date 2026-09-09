@@ -124,10 +124,10 @@ function RenovarContent() {
     // 2. Abre a conversa no WhatsApp para enviar o comprovante
     const tel = data?.config?.telefoneSuporteWhatsApp?.replace(/\D/g, "") || "5587996540551";
     const empresaNome = data?.empresaNome || "Minha Empresa";
-    const planoNome = data?.planoSelecionado?.nome || "Plano Gestão de Flats";
+    const planoNome = data?.planoSelecionado?.nome || "Plano Gestão de Imóveis";
     const valor = data?.planoSelecionado?.valor ? formatBRL(data.planoSelecionado.valor) : "";
     const texto = encodeURIComponent(
-      `Olá, suporte! 👋\n\nAcabei de realizar o pagamento do *${planoNome}* (${valor}) para o sistema *Gestão de Flats*.\n\n🏢 *Empresa:* ${empresaNome}\n🧾 *TxID PIX:* ${data?.pix?.txid || ""}\n\nEstou enviando o comprovante em anexo para liberação/renovação do acesso. Obrigado!`
+      `Olá, suporte! 👋\n\nAcabei de realizar o pagamento do *${planoNome}* (${valor}) para o sistema *Gestão de Imóveis para Locação*.\n\n🏢 *Empresa:* ${empresaNome}\n🧾 *TxID PIX:* ${data?.pix?.txid || ""}\n\nEstou enviando o comprovante em anexo para liberação/renovação do acesso. Obrigado!`
     );
     window.open(`https://wa.me/${tel}?text=${texto}`, "_blank");
   };
@@ -139,11 +139,11 @@ function RenovarContent() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-black text-xl">
-              GF
+              GI
             </div>
             <div>
               <h1 className="font-bold text-lg text-white leading-tight flex items-center gap-2">
-                Gestão de Flats <span className="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full">SaaS</span>
+                Gestão de Imóveis para Locação <span className="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full">SaaS</span>
               </h1>
               <p className="text-xs text-slate-400">Assinatura & Renovação de Acesso</p>
             </div>
@@ -463,7 +463,7 @@ function RenovarContent() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950/60 py-4 text-center text-xs text-slate-400">
-        <p>Gestão de Flats SaaS — {SYSTEM_VERSION} | Desenvolvimento: pajotecnologia.com.br (87) 99654-0551</p>
+        <p>Gestão de Imóveis para Locação SaaS — {SYSTEM_VERSION} | Desenvolvimento: pajotecnologia.com.br (87) 99654-0551</p>
       </footer>
     </div>
   );

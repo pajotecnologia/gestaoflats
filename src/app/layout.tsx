@@ -12,10 +12,10 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
-    default: "Gestão de Flats, Contratos & Aluguéis SaaS",
-    template: "%s | Gestão de Flats SaaS",
+    default: "Gestão de Imóveis para Locação SaaS",
+    template: "%s | Gestão de Imóveis para Locação",
   },
-  description: "Sistema completo de gestão imobiliária, aluguéis de flats, recibos em PDF, vistorias e contratos.",
+  description: "Sistema completo de gestão de imóveis para locação, contratos, vistorias com fotos e financeiro.",
   icons: {
     icon: "/icon.svg",
   },
@@ -46,8 +46,8 @@ export default function RootLayout({
             `,
           }}
         />
-        <title>Gestão de Flats, Contratos & Aluguéis SaaS</title>
-        <meta name="title" content="Gestão de Flats, Contratos & Aluguéis SaaS" />
+        <title>Gestão de Imóveis para Locação SaaS</title>
+        <meta name="title" content="Gestão de Imóveis para Locação SaaS" />
       </head>
       <body className={`${inter.className} ${inter.variable} antialiased min-h-screen selection:bg-blue-600 selection:text-white transition-colors duration-200`}>
         {children}

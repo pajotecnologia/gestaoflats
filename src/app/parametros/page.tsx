@@ -2565,7 +2565,7 @@ function ParametrosContent() {
                         rows={3}
                         value={saasMsgAviso}
                         onChange={(e) => setSaasMsgAviso(e.target.value)}
-                        placeholder="Olá, {{nome}}! Informamos que o período de teste do Gestão de Flats..."
+                        placeholder="Olá, {{nome}}! Informamos que o período de teste do Gestão de Imóveis para Locação..."
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-slate-100 font-mono text-xs"
                       />
                       <span className="text-[11px] text-slate-500 mt-1 block">

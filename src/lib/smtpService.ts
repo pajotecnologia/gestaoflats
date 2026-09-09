@@ -45,7 +45,7 @@ export async function sendEmailViaSmtp(
     const fromAddress = smtpFromEmail || smtpUser;
 
     const info = await transporter.sendMail({
-      from: `"Gestão de Flats" <${fromAddress}>`,
+      from: `"Gestão de Imóveis para Locação" <${fromAddress}>`,
       to,
       subject,
       html: htmlContent,

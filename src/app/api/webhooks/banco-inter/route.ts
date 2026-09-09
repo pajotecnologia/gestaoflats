@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: "online",
-    servico: "Webhook Banco Inter - Gestão de Flats / Sistema de Locações",
+    servico: "Webhook Banco Inter - Gestão de Imóveis para Locação",
     timestamp: new Date().toISOString(),
   });
 }

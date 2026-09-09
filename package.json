@@ -1,6 +1,6 @@
 {
-  "name": "gestao-flats-saas",
-  "version": "1.50.0",
+  "name": "gestao-imoveis-locacao-saas",
+  "version": "1.51.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3010",
