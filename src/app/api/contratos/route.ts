@@ -114,12 +114,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validação de Conflito de Datas (Anti-Overbooking)
+    // Validação de Conflito de Datas (Anti-Overbooking entre contratos ativos)
     const conflitoData = await prisma.contrato.findFirst({
       where: {
         empresaId: session.empresaId,
         flatId: flatId,
-        status: { not: "CANCELADO" },
+        status: "ATIVO",
         AND: [
           { dataEmissao: { lt: dtFinal } },
           { dataFinal: { gt: dtEmissao } },
@@ -133,15 +133,8 @@ export async function POST(request: NextRequest) {
       const dFim = conflitoData.dataFinal.toLocaleDateString("pt-BR");
       return NextResponse.json(
         {
-          error: `Conflito de Disponibilidade: O imóvel "${flatObj.numero}" já está reservado para o locatário ${conflitoData.locatario.nome} no período de ${dIni} até ${dFim}. Selecione outro imóvel ou altere as datas.`,
+          error: `Conflito de Disponibilidade: O imóvel "${flatObj.numero}" já possui um contrato ativo para ${conflitoData.locatario.nome} no período de ${dIni} até ${dFim}. Selecione outro imóvel ou altere as datas.`,
         },
-        { status: 400 }
-      );
-    }
-
-    if (!isDias && flatObj.status === "OCUPADO") {
-      return NextResponse.json(
-        { error: `O flat selecionado (${flatObj.numero}) encontra-se atualmente OCUPADO com contrato mensal ativo.` },
         { status: 400 }
       );
     }

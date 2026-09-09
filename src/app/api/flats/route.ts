@@ -29,6 +29,35 @@ export async function GET() {
       orderBy: { numero: "asc" },
     });
 
+    // Reconciliação inteligente: se o flat está marcado como OCUPADO mas não possui contrato ativo, sincroniza para DISPONIVEL
+    const now = new Date();
+    for (const flat of flats) {
+      if (flat.status !== "MANUTENCAO") {
+        const activeContract = await prisma.contrato.findFirst({
+          where: {
+            flatId: flat.id,
+            status: "ATIVO",
+            dataEmissao: { lte: now },
+            dataFinal: { gte: now },
+          },
+        });
+
+        if (!activeContract && flat.status === "OCUPADO") {
+          await prisma.flat.update({
+            where: { id: flat.id },
+            data: { status: "DISPONIVEL" },
+          });
+          flat.status = "DISPONIVEL";
+        } else if (activeContract && flat.status === "DISPONIVEL") {
+          await prisma.flat.update({
+            where: { id: flat.id },
+            data: { status: "OCUPADO" },
+          });
+          flat.status = "OCUPADO";
+        }
+      }
+    }
+
     return NextResponse.json({ locais, flats });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

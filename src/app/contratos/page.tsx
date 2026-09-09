@@ -132,14 +132,30 @@ export default function ContratosPage() {
 
     const flatSelected = flats.find((f) => f.id === selectedFlatId);
     if (flatSelected) {
-      if (flatSelected.status !== "DISPONIVEL") {
-        const statusText = flatSelected.status === "OCUPADO" ? "OCUPADO" : "EM MANUTENÇÃO";
+      if (flatSelected.status === "MANUTENCAO") {
         alert(
-          `⚠️ NÃO É POSSÍVEL EMITIR CONTRATO\n\nO flat "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente ${statusText}.\n\nApenas imóveis com status DISPONÍVEL podem ser selecionados para a emissão de novos contratos.`
+          `⚠️ NÃO É POSSÍVEL EMITIR CONTRATO\n\nO imóvel "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente em MANUTENÇÃO.\n\nAltere o status do imóvel para DISPONÍVEL no cadastro de imóveis antes de emitir o contrato.`
         );
         setFlatId("");
         setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
         return;
+      }
+
+      const activeContract = contratos.find(
+        (c) => c.flatId === flatSelected.id && c.status === "ATIVO"
+      );
+
+      if (activeContract) {
+        const dFim = new Date(activeContract.dataFinal).toLocaleDateString("pt-BR");
+        const locNome = activeContract.locatario?.nome || "outro locatário";
+        const continuar = window.confirm(
+          `ℹ️ AVISO DE CONTRATO ATIVO\n\nO flat "${flatSelected.numero}" possui um contrato ativo com ${locNome} até ${dFim}.\n\nDeseja continuar para cadastrar um novo contrato / reserva com data de início posterior a ${dFim}?`
+        );
+        if (!continuar) {
+          setFlatId("");
+          setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+          return;
+        }
       }
 
       setFlatId(selectedFlatId);
