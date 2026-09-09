@@ -5,9 +5,21 @@ const globalForPrisma = global as unknown as {
   dbSchemaEnsured?: boolean;
 };
 
+// Garantir que a DATABASE_URL para SQLite sempre tenha o protocolo file: válido
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith("postgres://") || process.env.DATABASE_URL.startsWith("postgresql://") || process.env.DATABASE_URL.startsWith("mysql://")) {
+  process.env.DATABASE_URL = "file:./dev.db";
+} else if (!process.env.DATABASE_URL.startsWith("file:")) {
+  process.env.DATABASE_URL = `file:${process.env.DATABASE_URL}`;
+}
+
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 
