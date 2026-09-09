@@ -693,8 +693,36 @@ export default function ChecklistVistoriaModal({
               type="text"
               value={responsavel}
               onChange={(e) => setResponsavel(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold"
+              placeholder="Nome do Vistoriador"
             />
+          </div>
+        </div>
+
+        {/* Resumo de Locatário, Vistoriador e Assinatura Digital */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-xs">
+          <div className="flex items-center space-x-2">
+            <span className="p-1.5 rounded-lg bg-blue-600 text-white font-bold text-[10px]">LOC</span>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Locatário(a) Vinculado:</span>
+              <strong className="text-slate-800 dark:text-slate-200">
+                {currentLocatarioNome || locatarioNome || "Locatário Não Informado"}
+              </strong>
+              <span className="text-slate-500 block text-[11px]">
+                CPF: {currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado no cadastro"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="p-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[10px]">VIST</span>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Vistoriador / Assinatura Empresa:</span>
+              <strong className="text-slate-800 dark:text-slate-200">{responsavel}</strong>
+              <span className="text-emerald-600 dark:text-emerald-400 block text-[11px] font-medium">
+                {empresaData?.assinaturaUrl ? "✓ Assinatura Digital Cadastrada" : "ℹ️ Assinatura em Parâmetros do Sistema"}
+              </span>
+            </div>
           </div>
         </div>
 
