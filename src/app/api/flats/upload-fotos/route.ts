@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
 
     for (const file of files) {
       if (file && file.size > 0) {
+        const ext = path.extname(file.name).toLowerCase() || ".webp";
         const buffer = Buffer.from(await file.arrayBuffer());
         const { optimizeImageToDataUri } = await import("@/lib/imageOptimizer");
         const fotoDataUri = await optimizeImageToDataUri(buffer, {
