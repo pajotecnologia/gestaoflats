@@ -410,7 +410,8 @@ export default function ChecklistVistoriaViewModal({
       {/* Modal de Foto Ampliada */}
       {selectedFullImage && (
         <div
-          className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+          style={{ zIndex: 100 }}
           onClick={() => setSelectedFullImage(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-black border border-slate-800 shadow-2xl">
