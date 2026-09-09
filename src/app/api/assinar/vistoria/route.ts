@@ -32,6 +32,9 @@ export async function GET(request: NextRequest) {
       include: {
         empresa: true,
         locatario: true,
+        contrato: {
+          include: { locatario: true },
+        },
         flat: {
           include: { local: true },
         },
@@ -42,6 +45,30 @@ export async function GET(request: NextRequest) {
         { createdAt: "desc" },
       ],
     });
+
+    if (vistoria) {
+      // Se não possui locatário vinculado diretamente, busca pelo contrato vinculado ou mais recente
+      if (!vistoria.locatario && vistoria.contrato?.locatario) {
+        (vistoria as any).locatario = vistoria.contrato.locatario;
+        (vistoria as any).locatarioId = vistoria.contrato.locatarioId;
+      }
+      if (!vistoria.locatario && vistoria.flatId) {
+        const lastContract = await prisma.contrato.findFirst({
+          where: { flatId: vistoria.flatId },
+          include: { locatario: true },
+          orderBy: [{ createdAt: "desc" }],
+        });
+        if (lastContract?.locatario) {
+          (vistoria as any).locatario = lastContract.locatario;
+          (vistoria as any).locatarioId = lastContract.locatarioId;
+          // Atualiza em background para persistir o vínculo
+          await prisma.vistoriaChecklist.update({
+            where: { id: vistoria.id },
+            data: { locatarioId: lastContract.locatarioId, contratoId: vistoria.contratoId || lastContract.id },
+          }).catch(() => {});
+        }
+      }
+    }
 
     return NextResponse.json({ vistoria });
   } catch (error: any) {
@@ -117,12 +144,25 @@ export async function POST(request: NextRequest) {
 
     const newToken = isResetLink ? crypto.randomBytes(16).toString("hex") : (token || vistoria?.tokenAssinatura || crypto.randomBytes(16).toString("hex"));
 
+    let resolvedLocatarioId = locatarioId || null;
+    if (!resolvedLocatarioId && contratoId) {
+      const c = await prisma.contrato.findUnique({ where: { id: contratoId } });
+      if (c?.locatarioId) resolvedLocatarioId = c.locatarioId;
+    }
+    if (!resolvedLocatarioId && flatId && flatId !== "flat-geral") {
+      const lastC = await prisma.contrato.findFirst({
+        where: { flatId },
+        orderBy: { createdAt: "desc" },
+      });
+      if (lastC?.locatarioId) resolvedLocatarioId = lastC.locatarioId;
+    }
+
     if (vistoria) {
       vistoria = await prisma.vistoriaChecklist.update({
         where: { id: vistoria.id },
         data: {
           contratoId: contratoId || vistoria.contratoId,
-          locatarioId: locatarioId || vistoria.locatarioId,
+          locatarioId: resolvedLocatarioId || vistoria.locatarioId,
           itensJson: itensJsonString,
           responsavelVistoria: responsavelVistoria || vistoria.responsavelVistoria,
           tokenAssinatura: newToken,
@@ -155,7 +195,7 @@ export async function POST(request: NextRequest) {
           empresaId: flat.empresaId,
           contratoId: contratoId || null,
           flatId: flat.id,
-          locatarioId: locatarioId || null,
+          locatarioId: resolvedLocatarioId || null,
           tipoVistoria: tipoVistoria || "ENTRADA",
           responsavelVistoria: responsavelVistoria || "Vistoriador Responsável",
           itensJson: itensJsonString,

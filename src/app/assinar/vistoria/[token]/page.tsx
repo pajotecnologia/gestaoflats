@@ -319,8 +319,8 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       empresaTelefone: v.empresa?.telefone,
       empresaEmail: v.empresa?.email,
       empresaLogomarcaUrl: v.empresa?.logomarcaUrl,
-      locatarioNome: v.locatario?.nome || "Locatário",
-      locatarioCpf: v.locatario?.cpf || "000.000.000-00",
+      locatarioNome: v.locatario?.nome || v.contrato?.locatario?.nome || "Locatário",
+      locatarioCpf: v.locatario?.cpf || v.contrato?.locatario?.cpf || "Não informado",
       flatNumero: v.flat?.numero || "Unidade",
       dataVistoria: new Date(v.dataVistoria || v.createdAt || Date.now()).toLocaleDateString("pt-BR"),
       responsavelVistoria: v.responsavelVistoria || "Vistoriador Responsável",
@@ -337,7 +337,8 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
   };
 
   const handleEnviarWhatsAppCopia = async () => {
-    if (!vistoria || !vistoria.locatario?.telefone) return;
+    const locTel = vistoria?.locatario?.telefone || vistoria?.contrato?.locatario?.telefone;
+    if (!vistoria || !locTel) return;
 
     const locSignature = vistoria.assinaturaLocatarioUrl || assinaturaBase64;
     const ipAssinatura = vistoria.ipAssinaturaLocatario || "127.0.0.1";
@@ -351,8 +352,8 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       empresaTelefone: vistoria.empresa?.telefone,
       empresaEmail: vistoria.empresa?.email,
       empresaLogomarcaUrl: vistoria.empresa?.logomarcaUrl,
-      locatarioNome: vistoria.locatario?.nome || "Locatário",
-      locatarioCpf: vistoria.locatario?.cpf || "000.000.000-00",
+      locatarioNome: vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário",
+      locatarioCpf: vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "Não informado",
       flatNumero: vistoria.flat?.numero || "Flat",
       dataVistoria: new Date(vistoria.dataVistoria || vistoria.createdAt || Date.now()).toLocaleDateString("pt-BR"),
       responsavelVistoria: vistoria.responsavelVistoria || "Vistoriador Responsável",

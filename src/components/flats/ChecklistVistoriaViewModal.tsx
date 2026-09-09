@@ -55,8 +55,9 @@ export default function ChecklistVistoriaViewModal({
 
   const tipoVistoria = vistoria.tipoVistoria || "ENTRADA";
   const flatNumero = vistoria.flat?.numero || "Flat";
-  const locatarioNome = vistoria.locatario?.nome || "Locatário Não Informado";
-  const locatarioCpf = vistoria.locatario?.cpf || "000.000.000-00";
+  const locatarioNome = vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário Não Informado";
+  const locatarioCpf = vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "Não informado";
+  const locatarioTelefone = vistoria.locatario?.telefone || vistoria.contrato?.locatario?.telefone || "";
   const responsavel = vistoria.responsavelVistoria || "Vistoriador Responsável";
   const dataFormatada = vistoria.dataVistoria || vistoria.createdAt
     ? new Date(vistoria.dataVistoria || vistoria.createdAt).toLocaleDateString("pt-BR")
@@ -86,7 +87,7 @@ export default function ChecklistVistoriaViewModal({
   };
 
   const handleSendWhatsApp = async () => {
-    if (!vistoria.locatario?.telefone) {
+    if (!locatarioTelefone) {
       alert("Locatário não possui telefone/WhatsApp cadastrado.");
       return;
     }

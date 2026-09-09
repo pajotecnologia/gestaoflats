@@ -81,6 +81,12 @@ export default function ChecklistVistoriaModal({
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [whatsAppFeedback, setWhatsAppFeedback] = useState<string | null>(null);
 
+  // Estados Dinâmicos do Locatário
+  const [currentLocatarioNome, setCurrentLocatarioNome] = useState(locatarioNome && locatarioNome !== "Locatário Não Informado" ? locatarioNome : "");
+  const [currentLocatarioCpf, setCurrentLocatarioCpf] = useState(locatarioCpf && locatarioCpf !== "000.000.000-00" ? locatarioCpf : "");
+  const [currentLocatarioTelefone, setCurrentLocatarioTelefone] = useState(locatarioTelefone || "");
+  const [currentLocatarioId, setCurrentLocatarioId] = useState(locatarioId || "");
+
   const [modelosChecklist, setModelosChecklist] = useState<any[]>([]);
   const [selectedModeloId, setSelectedModeloId] = useState<string>("");
 
@@ -163,6 +169,18 @@ export default function ChecklistVistoriaModal({
           if (v.statusAssinatura) setStatusAssinatura(v.statusAssinatura);
           if (v.laudoImpressoUrl) {
             setLaudoImpressoUrl(v.laudoImpressoUrl);
+          }
+
+          if (v.locatario) {
+            if (v.locatario.nome) setCurrentLocatarioNome(v.locatario.nome);
+            if (v.locatario.cpf) setCurrentLocatarioCpf(v.locatario.cpf);
+            if (v.locatario.telefone) setCurrentLocatarioTelefone(v.locatario.telefone);
+            if (v.locatario.id) setCurrentLocatarioId(v.locatario.id);
+          } else if (v.contrato?.locatario) {
+            if (v.contrato.locatario.nome) setCurrentLocatarioNome(v.contrato.locatario.nome);
+            if (v.contrato.locatario.cpf) setCurrentLocatarioCpf(v.contrato.locatario.cpf);
+            if (v.contrato.locatario.telefone) setCurrentLocatarioTelefone(v.contrato.locatario.telefone);
+            if (v.contrato.locatario.id) setCurrentLocatarioId(v.contrato.locatario.id);
           }
 
           if (v.itensJson) {
@@ -459,7 +477,8 @@ export default function ChecklistVistoriaModal({
   };
 
   const handleEnviarWhatsAppLink = async () => {
-    if (!locatarioTelefone) {
+    const targetTelefone = currentLocatarioTelefone || locatarioTelefone;
+    if (!targetTelefone) {
       alert("Locatário não possui número de telefone/WhatsApp cadastrado.");
       return;
     }
@@ -476,8 +495,8 @@ export default function ChecklistVistoriaModal({
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-      locatarioNome: locatarioNome || "Locatário",
-      locatarioCpf: locatarioCpf || "000.000.000-00",
+      locatarioNome: currentLocatarioNome || locatarioNome || "Locatário",
+      locatarioCpf: currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado",
       flatNumero,
       dataVistoria: new Date(dataVistoria).toLocaleDateString("pt-BR"),
       responsavelVistoria: responsavel,
@@ -486,14 +505,14 @@ export default function ChecklistVistoriaModal({
       empresaAssinaturaUrl: empresaData?.assinaturaUrl || undefined,
     });
 
-    const text = `*LAUDO DE VISTORIA DE ${tipoVistoria} DO FLAT (${flatNumero})*\n\nOlá *${locatarioNome || "Locatário"}*,\nSegue em anexo o laudo de vistoria em PDF.\n\n👉 *Clique no link abaixo para conferir e assinar digitalmente:*\n${linkAssinatura}`;
+    const text = `*LAUDO DE VISTORIA DE ${tipoVistoria} DO FLAT (${flatNumero})*\n\nOlá *${currentLocatarioNome || locatarioNome || "Locatário"}*,\nSegue em anexo o laudo de vistoria em PDF.\n\n👉 *Clique no link abaixo para conferir e assinar digitalmente:*\n${linkAssinatura}`;
 
     try {
       const res = await fetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: locatarioTelefone,
+          phone: targetTelefone,
           message: text,
           pdfBase64,
           fileName: `Laudo_Vistoria_${tipoVistoria}_Flat_${flatNumero.replace(/\s+/g, "_")}.pdf`,
@@ -525,7 +544,7 @@ export default function ChecklistVistoriaModal({
         body: JSON.stringify({
           contratoId,
           flatId: flatId || "flat-geral",
-          locatarioId,
+          locatarioId: currentLocatarioId || locatarioId || undefined,
           tipoVistoria,
           responsavelVistoria: responsavel,
           itens: items,
@@ -560,8 +579,8 @@ export default function ChecklistVistoriaModal({
       empresaTelefone: empresaData?.telefone || undefined,
       empresaEmail: empresaData?.email || undefined,
       empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
-      locatarioNome,
-      locatarioCpf,
+      locatarioNome: currentLocatarioNome || locatarioNome || "Locatário",
+      locatarioCpf: currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado",
       flatNumero,
       dataVistoria: new Date(dataVistoria).toLocaleDateString("pt-BR"),
       responsavelVistoria: responsavel,
