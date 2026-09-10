@@ -10,17 +10,35 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
-  const user = await prisma.usuario.findFirst({
-    where: { OR: [{ id: session.userId }, { empresaId: session.empresaId }] },
-    include: { empresa: true },
-  });
+  let user = null;
+
+  if (session.userId) {
+    user = await prisma.usuario.findUnique({
+      where: { id: session.userId },
+      include: { empresa: true },
+    });
+  }
+
+  if (!user && session.email) {
+    user = await prisma.usuario.findUnique({
+      where: { email: session.email.trim().toLowerCase() },
+      include: { empresa: true },
+    });
+  }
+
+  if (!user && session.empresaId) {
+    user = await prisma.usuario.findFirst({
+      where: { empresaId: session.empresaId },
+      include: { empresa: true },
+    });
+  }
 
   if (!user) {
     return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
 
   const statusAcesso = await verificarStatusAcesso(user.empresaId);
-  const isSuperAdmin = isUserSuperAdmin(user.email, user.cargo);
+  const isSuperAdmin = isUserSuperAdmin(user.email, user.cargo) || isUserSuperAdmin(session.email, session.cargo) || Boolean(session.isSuperAdmin);
 
   return NextResponse.json({
     user: {
