@@ -457,7 +457,7 @@ function ShellContent({ children }: ShellProps) {
               ) : (
                 <Link
                   href="/renovar"
-                  className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                  className={`flex items-center space-x-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
                     statusAcesso.isExpirado
                       ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
                       : statusAcesso.isTrial
@@ -468,21 +468,30 @@ function ShellContent({ children }: ShellProps) {
                   }`}
                   title="Clique para gerenciar sua assinatura e ver planos"
                 >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">
-                    {statusAcesso.isExpirado
-                      ? "⚠️ Expirado - Renovar"
-                      : statusAcesso.isTrial
-                      ? `Teste: ${statusAcesso.diasRestantes} dia(s)`
-                      : `Plano Ativo`}
-                  </span>
-                  <span className="sm:hidden">
-                    {statusAcesso.isExpirado
-                      ? "Renovar"
-                      : statusAcesso.isTrial
-                      ? `${statusAcesso.diasRestantes}d`
-                      : "Ativo"}
-                  </span>
+                  <Zap className="w-3.5 h-3.5 shrink-0" />
+                  <div className="flex flex-col text-left leading-tight">
+                    <span className="hidden sm:inline font-bold">
+                      {statusAcesso.isExpirado
+                        ? "⚠️ Expirado - Renovar"
+                        : statusAcesso.isTrial
+                        ? "Teste Grátis"
+                        : "Plano Ativo"}
+                    </span>
+                    <span className="sm:hidden font-bold">
+                      {statusAcesso.isExpirado
+                        ? "Renovar"
+                        : statusAcesso.isTrial
+                        ? "Teste"
+                        : "Ativo"}
+                    </span>
+                    <span className="text-[9px] font-medium opacity-75 leading-none mt-0.5">
+                      {statusAcesso.isExpirado
+                        ? "Reativar agora"
+                        : statusAcesso.diasRestantes !== undefined && statusAcesso.diasRestantes !== null
+                        ? `${statusAcesso.diasRestantes} dia${statusAcesso.diasRestantes === 1 ? "" : "s"}`
+                        : "Ativo"}
+                    </span>
+                  </div>
                 </Link>
               )
             )}
