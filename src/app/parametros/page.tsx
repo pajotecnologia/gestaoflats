@@ -1116,97 +1116,97 @@ function ParametrosContent() {
         )}
 
         {/* CONTROLE DE ABAS INTERATIVAS */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-2 overflow-x-auto pb-1 whitespace-nowrap scrollbar-none">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
           <button
             type="button"
             onClick={() => setActiveTab("empresa")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
               activeTab === "empresa"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-slate-900"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>🏢 Dados da Empresa</span>
+            <span>Dados da Empresa</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("evolution")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
               activeTab === "evolution"
                 ? "border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-slate-900"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
             }`}
           >
             <MessageSquare className="w-4 h-4" />
-            <span>💬 Evolution API (WhatsApp)</span>
+            <span>WhatsApp (Evolution API)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("email")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
               activeTab === "email"
                 ? "border-rose-500 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-slate-900"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
             }`}
           >
             <Mail className="w-4 h-4" />
-            <span>📧 Servidor E-mail (SMTP)</span>
+            <span>Servidor E-mail (SMTP)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("funcionarios")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
               activeTab === "funcionarios"
                 ? "border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-slate-900"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>👥 Usuários & Assinaturas Digitais</span>
+            <span>Usuários & Assinaturas</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("formas")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
               activeTab === "formas"
                 ? "border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-50/50 dark:bg-slate-900"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
             }`}
           >
             <CreditCard className="w-4 h-4" />
-            <span>💳 Formas de Pagamento</span>
+            <span>Formas de Pagamento</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("inter")}
-            className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
               activeTab === "inter"
                 ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50/50 dark:bg-slate-900"
                 : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
             }`}
           >
             <Zap className="w-4 h-4 text-orange-500" />
-            <span>🏦 Banco Inter (Bolepix)</span>
+            <span>Banco Inter (Bolepix)</span>
           </button>
 
           {isSuperAdmin && (
             <button
               type="button"
               onClick={() => setActiveTab("saas")}
-              className={`px-5 py-3 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 ${
+              className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
                 activeTab === "saas"
                   ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-slate-900"
                   : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
               }`}
             >
               <Zap className="w-4 h-4 text-amber-500" />
-              <span>⚡ Gestão SaaS & Assinaturas</span>
+              <span>Gestão SaaS</span>
             </button>
           )}
         </div>
