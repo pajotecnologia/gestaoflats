@@ -85,9 +85,8 @@ export function createInterHttpsAgent(certCrt: string, certKey: string): https.A
     key,
     minVersion: "TLSv1.2",
     maxVersion: "TLSv1.3",
-    ciphers: "DEFAULT:@SECLEVEL=1:ALL",
     rejectUnauthorized: true,
-    keepAlive: true,
+    keepAlive: false,
   });
 }
 
@@ -176,9 +175,9 @@ export async function makeInterRequest<T = any>({
       });
 
       req.on("error", (err: any) => {
-        const rawMsg = err.message || "";
-        const code = err.code || "";
-        let msg = rawMsg;
+        const rawMsg = err?.message || "";
+        const code = err?.code || "";
+        let msg = rawMsg || code || "Erro desconhecido durante o handshake TLS.";
 
         if (
           rawMsg.includes("unknown ca") ||
@@ -187,14 +186,15 @@ export async function makeInterRequest<T = any>({
           rawMsg.includes("alert number 46") ||
           code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
         ) {
-          msg = "O Banco Inter rejeitou o certificado digital (SSL Alert: Unknown CA). Isso acontece principalmente quando o certificado enviado foi gerado para PRODUÇÃO (Internet Banking PJ real) mas o Ambiente selecionado nos Parâmetros está marcado como SANDBOX (ou vice-versa). Por favor, altere o Ambiente para PRODUÇÃO e clique em Salvar / Testar novamente.";
+          msg = "O Banco Inter rejeitou o certificado digital (SSL Alert: Unknown CA / Certificate Unknown). Verifique se o certificado foi gerado para PRODUÇÃO (Internet Banking PJ real) e o Ambiente selecionado nos Parâmetros está marcado como PRODUÇÃO.";
         } else if (
           rawMsg.includes("bad certificate") ||
           rawMsg.includes("alert number 42") ||
           rawMsg.includes("handshake failure") ||
-          rawMsg.includes("alert number 40")
+          rawMsg.includes("alert number 40") ||
+          code === "ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE"
         ) {
-          msg = "Falha no Handshake TLS: o certificado (.crt) e a chave privada (.key) enviados não formam um par criptográfico válido ou foram rejeitados pelo Banco Inter. Verifique se os arquivos .crt e .key foram extraídos do mesmo arquivo .zip baixado do Internet Banking PJ.";
+          msg = "Falha no Handshake TLS: o certificado (.crt) e a chave privada (.key) enviados não formam um par criptográfico válido correspondente a esta aplicação ou foram rejeitados pelo Banco Inter. Verifique se os arquivos .crt e .key foram extraídos do mesmo arquivo .zip baixado juntamente com o Client ID gerado no Internet Banking PJ.";
         } else if (rawMsg.includes("decrypt error") || rawMsg.includes("alert number 51")) {
           msg = "Erro ao ler a chave privada (.key). Verifique se o arquivo .key possui senha ou está corrompido.";
         } else if (code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT") {

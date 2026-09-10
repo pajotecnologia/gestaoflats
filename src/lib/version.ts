@@ -1,4 +1,4 @@
-export const SYSTEM_VERSION = "v1.83";
+export const SYSTEM_VERSION = "v1.84";
 export const SYSTEM_BUILD_DATE = "2026-09-10";
-export const SYSTEM_CHANGELOG = "Versão 1.83: Aprimoramento na sanitização de certificados PEM e mensagens explicativas de diagnóstico para autenticação mTLS do Banco Inter.";
+export const SYSTEM_CHANGELOG = "Versão 1.84: Aprimoramento no agente mTLS, remoção de restrições de ciphers TLSv1.3 e diagnóstico inteligente de paridade de chaves/Client ID do Banco Inter.";
 
