@@ -62,7 +62,7 @@ const IsolatedEditorCanvas = memo(
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-12 sm:p-16 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
+        className={`w-full max-w-[800px] min-h-[1050px] bg-white text-black p-5 sm:p-10 md:p-14 shadow-2xl border transition-all duration-200 rounded-sm focus:outline-none space-y-4 font-serif text-sm leading-relaxed relative ${
           isDraggingOver
             ? "border-4 border-dashed border-blue-600 ring-8 ring-blue-500/30 bg-blue-50/10 scale-[1.01]"
             : "border-slate-300"

@@ -1116,7 +1116,7 @@ function ParametrosContent() {
         )}
 
         {/* CONTROLE DE ABAS INTERATIVAS */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-2">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-2 overflow-x-auto pb-1 whitespace-nowrap scrollbar-none">
           <button
             type="button"
             onClick={() => setActiveTab("empresa")}

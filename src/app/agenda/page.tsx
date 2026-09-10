@@ -603,105 +603,106 @@ export default function AgendaPage() {
         {/* GRADE MENSAL DE DIÁRIAS */}
         {viewMode === "CALENDARIO" && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-            {/* Cabeçalho dos dias da semana */}
-            <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-center text-xs font-bold text-slate-600 dark:text-slate-400 py-3">
-              <span className="text-red-500">Dom</span>
-              <span>Seg</span>
-              <span>Ter</span>
-              <span>Qua</span>
-              <span>Qui</span>
-              <span>Sex</span>
-              <span className="text-blue-500">Sáb</span>
-            </div>
+            <div className="overflow-x-auto">
+              <div className="min-w-[650px]">
+                {/* Cabeçalho dos dias da semana */}
+                <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-center text-xs font-bold text-slate-600 dark:text-slate-400 py-3">
+                  <span className="text-red-500">Dom</span>
+                  <span>Seg</span>
+                  <span>Ter</span>
+                  <span>Qua</span>
+                  <span>Qui</span>
+                  <span>Sex</span>
+                  <span className="text-blue-500">Sáb</span>
+                </div>
 
-            {/* Células dos Dias */}
-            <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/60">
-              {calendarDays.map((calDay, idx) => {
-                const isToday =
-                  calDay.dateStr === new Date().toISOString().split("T")[0];
+                {/* Células dos Dias */}
+                <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {calendarDays.map((calDay, idx) => {
+                    const isToday =
+                      calDay.dateStr === new Date().toISOString().split("T")[0];
 
-                const reservasDoDia = reservas.filter((r) => {
-                  return r.dataInicio <= calDay.dateStr && r.dataFim >= calDay.dateStr;
-                });
+                    const reservasDoDia = reservas.filter((r) => {
+                      return r.dataInicio <= calDay.dateStr && r.dataFim >= calDay.dateStr;
+                    });
 
-                return (
-                  <div
-                    key={idx}
-                    className={`min-h-[125px] p-2 flex flex-col justify-between transition group relative ${
-                      !calDay.isCurrentMonth
-                        ? "bg-slate-50/50 dark:bg-slate-950/20 opacity-40"
-                        : isToday
-                        ? "bg-amber-50/40 dark:bg-amber-950/20"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    }`}
-                  >
-                    {/* Topo da Célula com Dia e Botão de Adicionar Reserva */}
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center ${
-                          isToday
-                            ? "bg-amber-600 text-white shadow-sm"
-                            : "text-slate-700 dark:text-slate-300"
+                    return (
+                      <div
+                        key={idx}
+                        className={`min-h-[125px] p-2 flex flex-col justify-between transition group relative ${
+                          !calDay.isCurrentMonth
+                            ? "bg-slate-50/50 dark:bg-slate-950/20 opacity-40"
+                            : isToday
+                            ? "bg-amber-50/40 dark:bg-amber-950/20"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                         }`}
                       >
-                        {calDay.day}
-                      </span>
-
-                      {calDay.isCurrentMonth && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenNovaReserva(filtroFlatId, calDay.dateStr)}
-                          className="py-0.5 px-1.5 rounded bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/70 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                          title="Acrescentar Reserva neste dia"
-                        >
-                          + Reservar
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Lista de Reservas do Dia */}
-                    <div className="space-y-1 my-1 overflow-y-auto max-h-[85px] pr-0.5">
-                      {reservasDoDia.map((res, rIdx) => {
-                        const isCheckIn = res.dataInicio === calDay.dateStr;
-                        const isCheckOut = res.dataFim === calDay.dateStr;
-
-                        return (
-                          <div
-                            key={rIdx}
-                            onClick={() => setSelectedReserva(res)}
-                            className={`p-1 rounded-md text-[10px] leading-tight truncate border cursor-pointer transition shadow-xs ${
-                              isCheckIn
-                                ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 font-bold"
-                                : isCheckOut
-                                ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold"
-                                : "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800 font-medium"
+                        {/* Topo da Célula com Dia e Botão de Adicionar Reserva */}
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center ${
+                              isToday
+                                ? "bg-amber-600 text-white shadow-sm"
+                                : "text-slate-700 dark:text-slate-300"
                             }`}
-                            title={`${res.flatNumero}: ${res.locatarioNome} (${res.dataInicio} a ${res.dataFim})`}
                           >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="truncate">{res.flatNumero}</span>
-                              <span className="text-[9px] opacity-80 truncate">{res.locatarioNome.split(" ")[0]}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            {calDay.day}
+                          </span>
 
-                    {/* Rodapé da Célula: Botão explícito se estiver vazio */}
-                    <div className="text-right">
-                      {reservasDoDia.length === 0 && calDay.isCurrentMonth && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenNovaReserva(filtroFlatId, calDay.dateStr)}
-                          className="text-[10px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 font-medium transition cursor-pointer"
-                        >
-                          + Diária
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                          {calDay.isCurrentMonth && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenNovaReserva(filtroFlatId, calDay.dateStr)}
+                              className="py-0.5 px-1.5 rounded bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/70 dark:hover:bg-amber-900 text-amber-800 dark:text-amber-300 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                              title="Acrescentar Reserva neste dia"
+                            >
+                              + Reservar
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Lista de Reservas do Dia */}
+                        <div className="space-y-1 my-1 overflow-y-auto max-h-[85px] pr-0.5">
+                          {reservasDoDia.map((res, rIdx) => {
+                            const isCheckIn = res.dataInicio === calDay.dateStr;
+                            const isCheckOut = res.dataFim === calDay.dateStr;
+
+                            return (
+                              <div
+                                key={rIdx}
+                                onClick={() => setSelectedReserva(res)}
+                                className={`p-1 rounded-md text-[10px] leading-tight truncate border cursor-pointer transition shadow-xs ${
+                                  isCheckIn
+                                    ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 font-bold"
+                                  : isCheckOut
+                                    ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold"
+                                    : "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800 font-medium"
+                                }`}
+                                title={`${res.flatNumero}: ${res.locatarioNome} (${res.dataInicio} a ${res.dataFim})`}
+                              >
+                                {res.flatNumero}: {res.locatarioNome}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Rodapé da Célula: Botão explícito se estiver vazio */}
+                        <div className="text-right">
+                          {reservasDoDia.length === 0 && calDay.isCurrentMonth && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenNovaReserva(filtroFlatId, calDay.dateStr)}
+                              className="text-[10px] text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 font-medium transition cursor-pointer"
+                            >
+                              + Diária
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         )}

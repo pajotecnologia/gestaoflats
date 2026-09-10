@@ -536,7 +536,7 @@ function ShellContent({ children }: ShellProps) {
             </div>
 
             {/* Perfil do Usuário */}
-            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50">
+            <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50">
               <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
                 {user?.nome ? user.nome.charAt(0).toUpperCase() : "U"}
               </div>
@@ -547,7 +547,7 @@ function ShellContent({ children }: ShellProps) {
 
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-300 text-xs font-semibold transition"
+              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-300 text-xs font-semibold transition shrink-0"
               title="Encerrar Sessão"
             >
               <LogOut className="w-4 h-4" />

@@ -1,6 +1,6 @@
 {
-  "name": "gestao-imoveis-locacao-saas",
-  "version": "1.86.0",
+  "name": "gestaoflats",
+  "version": "1.8.7",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3010",
