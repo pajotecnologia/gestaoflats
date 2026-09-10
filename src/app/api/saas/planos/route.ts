@@ -161,30 +161,47 @@ async function handleSavePlanos(request: NextRequest) {
     }
 
     // 3. Excluir Plano Customizado
-    if (action === "delete_plano" && (planoId || body.slug)) {
-      const targetSlug = body.slug || Object.keys(currentPlans).find((k) => currentPlans[k].id === planoId);
-      if (targetSlug && currentPlans[targetSlug]) {
-        // Não permite excluir planos base obrigatórios (Essencial, Profissional, Gestão, Empresarial)
-        const isCore = ["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL", "TRIAL", "MESTRE"].includes(targetSlug);
-        if (isCore) {
-          return NextResponse.json({ error: "Os 4 planos base do sistema não podem ser excluídos, apenas editados." }, { status: 400 });
-        }
-
-        delete currentPlans[targetSlug];
-        const jsonString = JSON.stringify(currentPlans);
-
-        await prisma.configuracaoSaaS.upsert({
-          where: { id: "saas-global-config" },
-          update: { planosConfigJson: jsonString },
-          create: { id: "saas-global-config", planosConfigJson: jsonString },
-        });
-
-        return NextResponse.json({
-          success: true,
-          message: "Plano personalizado excluído com sucesso!",
-          planos: currentPlans,
-        });
+    if (action === "delete_plano" || request.method === "DELETE") {
+      const rawIdentifier = body.slug || planoId || body.id;
+      if (!rawIdentifier) {
+        return NextResponse.json({ error: "Identificador do plano a ser excluído não informado." }, { status: 400 });
       }
+
+      // Procura pela chave direta no dicionário ou pelo campo slug/id
+      let targetSlug: string | null = currentPlans[rawIdentifier] ? rawIdentifier : null;
+      if (!targetSlug) {
+        targetSlug = Object.keys(currentPlans).find(
+          (k) =>
+            k.toUpperCase() === String(rawIdentifier).toUpperCase() ||
+            currentPlans[k].id === rawIdentifier ||
+            currentPlans[k].slug === rawIdentifier
+        ) || null;
+      }
+
+      if (!targetSlug || !currentPlans[targetSlug]) {
+        return NextResponse.json({ error: `Plano personalizado "${rawIdentifier}" não encontrado ou já excluído.` }, { status: 404 });
+      }
+
+      // Não permite excluir planos base obrigatórios
+      const isCore = ["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL", "TRIAL", "MESTRE"].includes(targetSlug);
+      if (isCore) {
+        return NextResponse.json({ error: "Os 4 planos base do sistema não podem ser excluídos, apenas editados." }, { status: 400 });
+      }
+
+      delete currentPlans[targetSlug];
+      const jsonString = JSON.stringify(currentPlans);
+
+      await prisma.configuracaoSaaS.upsert({
+        where: { id: "saas-global-config" },
+        update: { planosConfigJson: jsonString },
+        create: { id: "saas-global-config", planosConfigJson: jsonString },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Plano personalizado "${targetSlug}" excluído com sucesso!`,
+        planos: currentPlans,
+      });
     }
 
     // 4. Salvar Todos os Planos em Lote

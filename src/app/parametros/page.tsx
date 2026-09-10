@@ -368,6 +368,7 @@ function ParametrosContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "delete_plano",
+          slug,
           planoId: slug,
         }),
       });
