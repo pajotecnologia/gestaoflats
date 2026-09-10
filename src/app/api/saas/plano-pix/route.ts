@@ -4,13 +4,27 @@ import { generatePixPayload, generatePixQRCode } from "@/lib/pix";
 import { prisma } from "@/lib/prisma";
 import { SAAS_PLANS } from "@/lib/plans/planDefinitions";
 import { getActiveSaasPlans } from "@/lib/plans/planService";
+import { getAuthSessionOrFallback } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const planoParam = (searchParams.get("plano") || "PROFISSIONAL").toUpperCase();
     const cicloParam = (searchParams.get("ciclo") || "MENSAL").toUpperCase();
-    const empresaId = searchParams.get("empresaId");
+    
+    // Resolve empresaId via query param, sessão autenticada ou empresa padrão
+    const session = await getAuthSessionOrFallback().catch(() => null);
+    let empresaId = searchParams.get("empresaId") || session?.empresaId || "";
+
+    if (!empresaId) {
+      const primeiraEmpresa = await prisma.empresa.findFirst({
+        where: { isMestre: false },
+        orderBy: { createdAt: "asc" },
+      });
+      if (primeiraEmpresa) {
+        empresaId = primeiraEmpresa.id;
+      }
+    }
 
     const [config, activePlans] = await Promise.all([
       getSaasConfig(),

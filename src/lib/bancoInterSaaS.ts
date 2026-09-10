@@ -219,10 +219,23 @@ export async function emitirCobrancaSaaSBancoInter({
       });
 
       if (resDetalhe.status === 200 && resDetalhe.data) {
-        pixCopiaECola = resDetalhe.data.pixCopiaECola || resDetalhe.data.cobranca?.pixCopiaECola;
-        linhaDigitavel = resDetalhe.data.linhaDigitavel || resDetalhe.data.boleto?.linhaDigitavel;
-        codigoBarras = resDetalhe.data.codigoBarras || resDetalhe.data.boleto?.codigoBarras;
-        nossoNumero = resDetalhe.data.nossoNumero || resDetalhe.data.boleto?.nossoNumero;
+        pixCopiaECola =
+          resDetalhe.data.pix?.pixCopiaECola ||
+          resDetalhe.data.pixCopiaECola ||
+          resDetalhe.data.cobranca?.pixCopiaECola ||
+          "";
+        linhaDigitavel =
+          resDetalhe.data.boleto?.linhaDigitavel ||
+          resDetalhe.data.linhaDigitavel ||
+          "";
+        codigoBarras =
+          resDetalhe.data.boleto?.codigoBarras ||
+          resDetalhe.data.codigoBarras ||
+          "";
+        nossoNumero =
+          resDetalhe.data.boleto?.nossoNumero ||
+          resDetalhe.data.nossoNumero ||
+          "";
       }
     } catch (e) {
       console.warn("Aviso ao buscar detalhes do Pix no Inter:", e);
