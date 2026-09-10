@@ -30,11 +30,38 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  return handleSavePlanos(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleSavePlanos(request);
+}
+
+async function handleSavePlanos(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
-  const isSuper = session && (isUserSuperAdmin(session.email, session.cargo) || Boolean(session.isSuperAdmin) || Boolean(session.isMestre));
+  let isSuper = false;
+
+  if (session) {
+    isSuper = isUserSuperAdmin(session.email, session.cargo) || Boolean(session.isSuperAdmin) || Boolean(session.isMestre);
+    
+    // Verificação de segurança adicional consultando o usuário no banco
+    if (!isSuper && session.userId) {
+      try {
+        const u = await prisma.usuario.findUnique({ where: { id: session.userId } });
+        if (u && isUserSuperAdmin(u.email, u.cargo)) {
+          isSuper = true;
+        }
+      } catch (e) {
+        console.error("Erro ao verificar usuario admin no banco:", e);
+      }
+    }
+  }
 
   if (!isSuper) {
-    return NextResponse.json({ error: "Acesso restrito ao Super Administrador." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Acesso restrito ao Super Administrador (pajotecnologia@gmail.com)." },
+      { status: 403 }
+    );
   }
 
   try {
@@ -47,7 +74,11 @@ export async function PUT(request: NextRequest) {
         update: { planosConfigJson: null },
         create: { id: "saas-global-config", planosConfigJson: null },
       });
-      return NextResponse.json({ success: true, message: "Planos restaurados para o padrão com sucesso!", planos: SAAS_PLANS });
+      return NextResponse.json({
+        success: true,
+        message: "Planos restaurados para o padrão com sucesso!",
+        planos: SAAS_PLANS,
+      });
     }
 
     if (!planos || typeof planos !== "object") {
@@ -62,8 +93,13 @@ export async function PUT(request: NextRequest) {
       create: { id: "saas-global-config", planosConfigJson: jsonString },
     });
 
-    return NextResponse.json({ success: true, message: "Limites e preços dos planos salvos com sucesso!", planos });
+    return NextResponse.json({
+      success: true,
+      message: "Limites e preços dos planos salvos com sucesso!",
+      planos,
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Erro ao salvar planos SaaS:", error);
+    return NextResponse.json({ error: error.message || "Erro ao salvar planos" }, { status: 500 });
   }
 }

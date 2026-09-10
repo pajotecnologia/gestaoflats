@@ -217,19 +217,28 @@ function ParametrosContent() {
     setSalvandoPlanos(true);
     try {
       const res = await fetch("/api/saas/planos", {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planos: saasPlanos }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = { error: `Resposta inválida do servidor (HTTP ${res.status})` };
+      }
+
+      if (res.ok && data.success) {
         alert("✅ Limites e preços dos planos salvos com sucesso no sistema!");
         setHasCustomPlanos(true);
+        setFeedback({ type: "success", message: "✅ Limites e preços dos planos salvos com sucesso!" });
       } else {
-        alert(data.error || "Erro ao salvar planos.");
+        alert(data.error || `Erro ao salvar planos (HTTP ${res.status}).`);
+        setFeedback({ type: "error", message: `❌ ${data.error || "Erro ao salvar planos."}` });
       }
-    } catch (err) {
-      alert("Erro ao conectar com o servidor.");
+    } catch (err: any) {
+      alert(`Erro de rede ao conectar com o servidor: ${err?.message || err}`);
+      setFeedback({ type: "error", message: `❌ Erro de rede: ${err?.message || err}` });
     } finally {
       setSalvandoPlanos(false);
     }
@@ -240,20 +249,29 @@ function ParametrosContent() {
     setSalvandoPlanos(true);
     try {
       const res = await fetch("/api/saas/planos", {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reset" }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = { error: `Resposta inválida do servidor (HTTP ${res.status})` };
+      }
+
+      if (res.ok && data.planos) {
         alert("✅ Planos restaurados para a configuração padrão de fábrica!");
         setSaasPlanos(data.planos);
         setHasCustomPlanos(false);
+        setFeedback({ type: "success", message: "✅ Planos restaurados para os padrões de fábrica!" });
       } else {
-        alert(data.error || "Erro ao restaurar.");
+        alert(data.error || `Erro ao restaurar planos (HTTP ${res.status}).`);
+        setFeedback({ type: "error", message: `❌ ${data.error || "Erro ao restaurar."}` });
       }
-    } catch (err) {
-      alert("Erro ao conectar com o servidor.");
+    } catch (err: any) {
+      alert(`Erro de rede ao conectar com o servidor: ${err?.message || err}`);
+      setFeedback({ type: "error", message: `❌ Erro de rede: ${err?.message || err}` });
     } finally {
       setSalvandoPlanos(false);
     }
