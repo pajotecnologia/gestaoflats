@@ -1,287 +1,228 @@
-# Diretrizes e Instruções do Sistema de Locações
+# Diretrizes, Regras e Manual Completo de Funcionalidades do Sistema IMOB
 
-Este arquivo reúne todas as regras de negócio, padrões de projeto, especificações técnicas e convenções implementadas no sistema. **DEVE SER CONSULTADO E SEGUIDO EM TODA E QUALQUER ALTERAÇÃO DE CÓDIGO.**
-
----
-
-## 1. Integração com Evolution API (WhatsApp)
-
-- **Envio Direto de Documentos (.PDF)**:
-  - As mensagens de cobrança, recibos de pagamento, laudos de vistoria/checklist e cópias de contratos devem ser enviados **diretamente com os arquivos .PDF anexados** via Evolution API (endpoint `/message/sendMedia/{instance}`).
-  - Rota centralizada no servidor: `src/app/api/whatsapp/send/route.ts`.
-  - Função auxiliar cliente: `sendWhatsAppDocument` e `sendWhatsAppMessage` em `src/lib/evolutionApi.ts`.
-
-- **Mensagens Amigáveis ao Usuário (Sem Termos Técnicos)**:
-  - **NÃO** fazer fallback silencioso para links do WhatsApp Web (`wa.me`) quando a API falhar ou estiver desconectada.
-  - Nas confirmações e alertas exibidos ao usuário na interface, utilizar linguagem clara e amigável (ex: `✅ Documento enviado com sucesso pelo WhatsApp!`), evitando expor termos técnicos ou nomes de APIs internas (como "Evolution API") nos popups do usuário.
+Este documento reúne todas as especificações técnicas, regras de negócio, convenções de código e o **guia completo de funcionalidades do sistema IMOB (Gestão de Imóveis & Flats SaaS)**.
+Serve como memória operacional para a inteligência artificial, desenvolvedores e como roteiro oficial para gravação de vídeos tutoriais e demonstrações comerciais.
 
 ---
 
-## 2. Padronização Visual de Documentos PDF
-
-- **Módulo Único de Cabeçalho**:
-  - Todos os relatórios PDF gerados no sistema (**Recibos**, **Contratos**, **Laudos de Vistoria/Checklist** e **Relatórios Financeiros**) devem obrigatoriamente utilizar o construtor `drawStandardPDFHeader` localizado em `src/lib/pdfHeaderBuilder.ts`.
-
-- **Proibição Estrita de Fundo Azul (White Clean Universal)**:
-  - **NENHUM relatório ou documento PDF deve conter fundo azul (blue background)**.
-  - O topo de todos os documentos utiliza **fundo 100% Branco Clean (`#ffffff`)** com o nome fantasia em azul marinho escuro (`#1e3a8a`), CNPJ, telefone, e-mail e endereço físico completo.
-  - Cabeçalhos de tabelas e categorias utilizam tom cinza claro de acabamento (`#f1f5f9`) com texto em azul marinho escuro.
-  - **Logomarca**: Exibe a imagem da logomarca da empresa (`empresaLogomarcaUrl`). Caso não haja logomarca cadastrada, gera automaticamente um emblema com a inicial do nome da empresa.
-  - **Faixa de Título**: Faixa cinza clara com o título oficial do documento (ex: *RECIBO DE PAGAMENTO DE ALUGUEL*, *CONTRATO DE LOCAÇÃO RESIDENCIAL*, *LAUDO DE VISTORIA DE ENTRADA*, *RELATÓRIO FINANCEIRO*) e subtítulo explicativo.
-  - **Rodapé de Desenvolvimento**: Todos os documentos PDF devem conter a linha de créditos no rodapé: `Desenvolvimento: pajotecnologia.com.br (87)996540551`.
-
-- **Arquivos dos Geradores PDF**:
-  - Recibos de Pagamento: `src/lib/pdfGenerator.ts`
-  - Contratos de Locação: `src/lib/contractPdfGenerator.ts`
-  - Laudos de Vistoria / Checklist: `src/lib/checklistPdfGenerator.ts`
-  - Relatórios Financeiros: `src/lib/reportsPdfGenerator.ts`
-  - Ficha de Vistoria em Branco: `src/lib/blankChecklistPdfGenerator.ts`
-
----
-
-## 3. Variáveis Dinâmicas nos Modelos de Contrato
-
-- **Mecanismo de Substituição (`replaceContractVariables`)**:
-  - Localizado em `src/lib/validation.ts`.
-  - Suporta tanto a **notação de ponto** (`{{locatario.nome}}`) quanto a **notação de underscore** (`{{locatario_nome}}`).
-
-- **Mapeamento Obrigatório de Campos**:
-  - **Locatário**: `nome`, `cpf`, `rg`, `dataNascimento`, `email`, `telefone`, `endereco`.
-  - **Contrato**: `id`, `valorMensal` (R$), `valorExtenso` (por extenso em BRL via `numberToWordsBRL`), `validadeMeses`, `dataEmissao`, `dataFinal`, `status`, `statusAssinatura`, `dataAssinatura`, `ipAssinatura`.
-  - **Imóvel / Flat**: `numero`, `status`, `descricao`, `valorPadrao`, `local.nome` (condomínio), `local.endereco`.
-- **Opção de Vigência do Contrato (Meses ou Dias)**:
-  - Na emissão de contratos (`src/app/contratos/page.tsx` e `POST /api/contratos`), o usuário pode selecionar o `tipoValidade` entre **`MESES`** (padrão) e **`DIAS`** (para locações por temporada/diárias).
-  - Quando a opção **`DIAS`** for selecionada, o prazo final (`dataFinal`) é calculated somando o número de dias à `dataEmissao` (`setDate`), e é gerada 1 única parcela no Contas a Receber com o valor total do período.
-  - As variáveis de substituição de modelo (`replaceContractVariables`) disponibilizam `{{duracao}}`, `{{vigencia}}` e `{{validade_dias}}` exibindo dinamicamente a duração formatada (ex: `15 dias` ou `12 meses`).
+## 📑 ÍNDICE GERAL
+1. [Visão Geral do Sistema e Arquitetura](#1-visão-geral-do-sistema-e-arquitetura)
+2. [Guia de Funcionalidades e Roteiro para Gravação de Vídeos](#2-guia-de-funcionalidades-e-roteiro-para-gravação-de-vídeos)
+   - [2.1 Painel Principal / Dashboard](#21-painel-principal--dashboard)
+   - [2.2 Gestão de Imóveis e Flats](#22-gestão-de-imóveis-e-flats)
+   - [2.3 Gestão de Condomínios e Locais](#23-gestão-de-condomínios-e-locais)
+   - [2.4 Cadastro de Locatários e Hóspedes](#24-cadastro-de-locatários-e-hóspedes)
+   - [2.5 Emissão e Gestão de Contratos de Locação](#25-emissão-e-gestão-de-contratos-de-locação)
+   - [2.6 Editor Visual de Modelos de Contrato (A4 com Tags Dinâmicas)](#26-editor-visual-de-modelos-de-contrato)
+   - [2.7 Assinatura Digital de Contratos](#27-assinatura-digital-de-contratos)
+   - [2.8 Vistorias e Checklists Digitais com Fotos](#28-vistorias-e-checklists-digitais-com-fotos)
+   - [2.9 Link Público e Interativo de Vistoria para o Locatário](#29-link-público-e-interativo-de-vistoria-para-o-locatário)
+   - [2.10 Agenda de Ocupação e Reservas por Temporada](#210-agenda-de-ocupação-e-reservas-por-temporada)
+   - [2.11 Módulo Financeiro: Contas a Receber, Contas a Pagar e Caixa](#211-módulo-financeiro-contas-a-receber-contas-a-pagar-e-caixa)
+   - [2.12 Integração com Banco Inter (API Cobrança v3 - Boleto com Pix / Bolepix)](#212-integração-com-banco-inter)
+   - [2.13 Integração com WhatsApp via Evolution API](#213-integração-com-whatsapp-via-evolution-api)
+   - [2.14 Painel de Parâmetros e Configurações](#214-painel-de-parâmetros-e-configurações)
+   - [2.15 Módulo SaaS, Planos Dinâmicos e Renovação Automática](#215-módulo-saas-planos-dinâmicos-e-renovação-automática)
+3. [Padrões de Projeto e Regras Técnicas Estritas](#3-padrões-de-projeto-e-regras-técnicas-estritas)
 
 ---
 
-## 4. Checklists de Vistoria e Upload de Fotos
+## 1. Visão Geral do Sistema e Arquitetura
 
-- **Persistência de Vistorias e Carregamento de Itens**:
-  - A rota `POST /api/assinar/vistoria` localiza a vistoria existente por `tokenAssinatura`, `vistoriaId`, ou condição `OR: [{ contratoId, tipoVistoria }, { flatId, tipoVistoria }]` e atualiza sempre o JSON completo `itensJson` (itens, status, observações e array `fotosUrl`).
-  - O componente `ChecklistVistoriaModal` declara os estados (`useState`) no topo antes do `useEffect` de carregamento para recuperar e exibir imediatamente dados salvos ao abrir o modal.
+O **IMOB** é uma plataforma SaaS completa de gestão imobiliária e locação de flats/imóveis residenciais, comerciais e por temporada (diárias).
 
-- **Ocultação do Link de Assinatura ao Salvar Vistoria**:
-  - A ação de salvar a vistoria (`handleSalvarVistoria`) grava os dados diretamente no banco de dados com a mensagem de sucesso `✅ Vistoria salva com sucesso no banco de dados!`. O bloco verde de link para assinatura digital não é exibido automaticamente ao salvar, surgindo apenas quando o usuário clica intencionalmente no botão `Gerar Link Vistoria`.
-
-- **Acionamento da Câmera no Celular, Tablet e Webcam**:
-  - Cada item do checklist possui opções de captura de fotos:
-    1. **📷 Câmera Direta**: Utiliza `accept="image/*" capture="environment"` para abrir a câmera traseira nativa diretamente no celular ou tablet.
-    2. **📹 Câmera Ao Vivo / Webcam**: Abre o modal com preview em tempo real via HTML5 `getUserMedia`, permitindo alternar entre câmera frontal/traseira e capturar a foto ao vivo no navegador.
-    3. **📁 Galeria**: Permite selecionar fotos armazenadas na galeria do dispositivo.
-
-- **Ficha de Visualização e Impressão de Vistorias (Apenas Visualização / Read-Only)**:
-  - Nos detalhes e cadastro de flats e condomínios, o histórico de vistorias utiliza o componente `ChecklistVistoriaViewModal`.
-  - Exibe a ficha formatada idêntica ao laudo impresso (dados do flat, locatário, vistoriador, itens checados com badges OK/Atenção/Avaria, observações detalhadas e miniaturas de fotos com ampliação).
-  - Inclui botões para **🖨️ Imprimir / Baixar Laudo PDF** e **📱 Enviar por WhatsApp**.
-
-- **Página Pública do Link de Vistoria (`/assinar/vistoria/[token]`) Interativa**:
-  - A página gerada pelo link da vistoria é 100% editável e interativa no celular, tablet ou computador antes de assinar:
-    1. **Edição dos Itens**: Permite selecionar os status (OK, Atenção, Avaria) e escrever observações em cada item.
-    2. **Anexo de Fotos**: Inclui botões `📷 Câmera Direta`, `📹 Câmera Ao Vivo / Webcam` e `📁 Galeria` para capturar imagens da vistoria diretamente no dispositivo.
-    3. **Persistência Completa**: Ao assinar no quadro de assinatura, salva os itens atualizados, as observações e as fotos no banco de dados.
-
-- **Atualização Automática de Status da Vistoria e do Flat**:
-  - Quando a vistoria é assinada (digitalmente via tela/link ou por upload de laudo impresso), o status da vistoria (`statusAssinatura`) muda para `"ASSINADO"` ou `"ASSINADO (IMPRESSO)"`.
-  - Quando a vistoria assinada for do tipo **`SAIDA`**, o status do Flat no banco de dados é atualizado automaticamente para **`DISPONIVEL`**.
-  - Quando a vistoria assinada for do tipo **`ENTRADA`**, o status do Flat no banco de dados é atualizado para **`OCUPADO`**.
-
-- **Painel Pós-Assinatura Posicionado Abaixo da Assinatura (Sem Alerta no Topo)**:
-  - Na página pública da Vistoria (`/assinar/vistoria/[token]`), após o locatário confirmar a assinatura, o laudo exibe em tempo real a imagem da assinatura processada no quadro correspondente.
-  - O painel verde com as opções de **📥 Baixar Laudo PDF Assinado**, **📱 Enviar Cópia no WhatsApp** e **❌ Fechar Tela** é posicionado **exclusivamente abaixo do campo de assinatura** (não no topo da página).
-
-- **Priorização de Vistoria Assinada no Grid de Contratos e APIs (`GridMeses.tsx` & `/api/assinar/vistoria`)**:
-  - Quando houver mais de um registro de vistoria para um imóvel/contrato, as consultas e listagens devem priorizar o registro com `statusAssinatura` igual/contendo `"ASSINADO"`. A busca em `GridMeses.tsx` e nas APIs ordena por `[{ statusAssinatura: "desc" }, { updatedAt: "desc" }]` para garantir que o botão do contrato exiba `✓ Ver Assinado` (em verde) e que o link público exiba o documento assinado.
-
-- **Resolução de URLs Relativas de Assinatura no PDF (`convertUrlToBase64`)**:
-  - `convertUrlToBase64` em `src/lib/checklistPdfGenerator.ts` resolve caminhos relativos de imagens (ex: `/uploads/...`) prependo `window.location.origin` no cliente e `getAppBaseUrl()` no servidor Node.js, garantindo que tanto a assinatura da empresa/vistoriador quanto a assinatura do locatário e fotos dos itens sejam sempre convertidas para Base64 e desenhadas no PDF.
+### Pilares Principais:
+- **Tecnologias**: Next.js (App Router), React, TypeScript, Tailwind CSS, PostgreSQL, Prisma ORM, Sharp (compressão WebP), jsPDF (gerador de documentos).
+- **Comunicação Multicanal**: Disparos nativos no WhatsApp via Evolution API e e-mails via SMTP.
+- **Fintech Nativa**: Emissão de boletos com QR Code Pix dinâmico integrado via mTLS OAuth 2.0 com o Banco Inter (Cobrança v3) e baixa em tempo real por Webhook e reconciliação ativa.
+- **Assinatura Digital**: Links públicos para assinatura touch/mouse de contratos e laudos de vistoria com captura de fotos da câmera do celular.
+- **Multi-tenant / SaaS**: Cada empresa possui isolamento de dados, podendo o Super Admin gerenciar planos, preços, limites e acessos.
 
 ---
 
-## 5. Formatação de Máscaras e Validações
+## 2. Guia de Funcionalidades e Roteiro para Gravação de Vídeos
 
-- **Campos de Telefone e WhatsApp**:
-  - Devem utilizar a função `formatPhone` de `src/lib/validation.ts` no evento `onChange` e no carregamento de formulários.
-  - Suporta dinamicamente fixo `(XX) XXXX-XXXX` (10 dígitos) e celular `(XX) XXXXX-XXXX` (11 dígitos).
+Use este roteiro para criar vídeos didáticos, tutoriais de uso e materiais de marketing:
 
----
-
-## 6. Banco de Dados e Reset/Seeding
-
-- **Prevenção de Duplicidades**:
-  - O arquivo `prisma/seed.ts` limpa previamente todas as tabelas via `deleteMany({})` antes de inserir os registros demonstrativos.
-
----
-
-## 7. Salvamento e Prevenção de Duplicidade em Modelos de Contrato
-
-- **Atualização Sem Duplicidades**:
-  - A rota `src/app/api/modelos-contrato/route.ts` verifica se o modelo possui `id` informado ou se já existe um registro cadastrado com o mesmo `titulo` (case-insensitive) para a empresa (`empresaId`).
-  - Caso encontre o registro, executa o `update` no banco de dados para atualizar o modelo existente em vez de criar um novo registro duplicado (`create`).
-  - O cliente em `src/app/contratos/modelos/page.tsx` envia o `id: selectedModeloId` no payload e preserva a seleção ativa após o salvamento.
+### 2.1 Painel Principal / Dashboard
+- **Roteiro de Vídeo**: *Como monitorar a sua operação imobiliária em tempo real.*
+- **Recursos Exibidos**:
+  - **Indicadores de Ocupação**: Cartões inteligentes com imóveis ocupados, disponíveis, em manutenção e taxa percentual de ocupação.
+  - **Métricas Financeiras**: Total a receber no mês, receitas recebidas, despesas pagas, inadimplência em aberto e saldo financeiro líquido.
+  - **Avisos e Alertas**: Contratos vencendo nos próximos 30 dias, parcelas em atraso e vistorias pendentes.
+  - **Ações Rápidas**: Botões de 1 clique para emitir contrato, criar vistoria, cadastrar flat ou lançar receita.
 
 ---
 
-## 8. Tratamento de PDFs, Mídias e URLs Dinâmicas em Hospedagem VPS
-
-- **Funções Assíncronas de PDF Base64 (`get*PDFBase64`)**:
-  - As funções `getContratoPDFBase64`, `getChecklistPDFBase64` e `getReciboPDFBase64` são **obrigatoriamente assíncronas (`async`)** porque convertem previamente as logomarcas e fotos para Data URIs Base64.
-  - **REGRA OBRIGATÓRIA**: Todas as chamadas dessas funções nos componentes React devem utilizar a palavra-chave `await` (ex: `const pdfBase64 = await getContratoPDFBase64(...)`). Jamais chamar sem `await`.
-
-- **Higienização de Mídia na Evolution API (`sendWhatsAppDocument`)**:
-  - A Evolution API exige que o parâmetro `media` seja uma **URL direta (`http://...`)** ou uma **string Base64 PURA** (sem o prefixo `data:application/pdf;base64,`).
-  - `sendWhatsAppDocument` em `src/lib/evolutionApi.ts` faz a resolução assíncrona automática se uma `Promise` ou string for fornecida, extraindo a porção base64 pura e garantindo que exceções como `trim is not a function` ou `Owned media must be a url or base64` nunca ocorram.
-
-- **Porta Padrão e Nginx Reverse Proxy (Porta 3010)**:
-  - A aplicação foi configurada para rodar na **porta 3010** (`package.json`, `baseUrl.ts`, `.env`, `Dockerfile` e `docker-compose.yml`).
-  - **Mapeamento Oficial de Portas dos Sistemas na VPS**:
-    - **Porta 3002**: `sgh`
-    - **Porta 3005**: `contratos`
-    - **Porta 3010**: `dnyl` (Sistema de Locações / Gestão de Flats)
-  - O arquivo `nginx.conf.example` fornece o modelo pronto de Nginx repassando a porta 3010 para o domínio público com suporte a SSL (`certbot`), upload de arquivos de até 25MB (`client_max_body_size 25M`) e repasse de cabeçalhos HTTP (`proxy_set_header X-Forwarded-Proto $scheme`).
-
-- **URLs Dinâmicas do Sistema (`getAppBaseUrl`)**:
-  - Para garantir suporte total a hospedagens VPS com Docker/Nginx e domínios de produção sem dependência de `localhost:3010`, todas as URLs enviadas por e-mail ou WhatsApp utilizam a função utilitária `getAppBaseUrl(req)` de `src/lib/baseUrl.ts`.
-
-- **Garantia de Links Clicáveis no WhatsApp Mobile (Mensagem de URL Isolada)**:
-  - O aplicativo do WhatsApp nos celulares (Android/iOS) desativa links em legendas de mídias e também em textos que contêm marcadores de formatação (`*...*`).
-  - Para garantir que a URL do laudo/contrato seja **100% clicável no celular**, a rota `/api/whatsapp/send/route.ts` envia primeiramente o PDF, depois o texto explicativo e, em seguida, dispara o **link HTTP puramente isolado** como mensagem individual final com `linkPreview: true`.
-  - **Aviso de Teste Local em Celular**: O endereço `http://localhost:3010` só é clicável no próprio computador de desenvolvimento. Para testar o clique direto pelo celular na rede local ou produção, a variável `NEXT_PUBLIC_APP_URL` no `.env` deve ser configurada com o IP da máquina na rede (ex: `http://192.168.x.x:3010`) ou com o domínio público da VPS (ex: `https://meusistema.com.br`).
+### 2.2 Gestão de Imóveis e Flats (`/flats`)
+- **Roteiro de Vídeo**: *Cadastro completo de imóveis e controle de ocupação.*
+- **Recursos Exibidos**:
+  - Cadastro de unidades com número/identificador, condomínio/local vinculado, descrição, valor de aluguel padrão e valor de diária.
+  - **Galeria de Fotos**: Upload de múltiplas fotos com ordenação e compressão automática para WebP (~50 KB por foto) salva permanentemente no banco.
+  - **Status Dinâmicos**: `DISPONIVEL` (verde), `OCUPADO` (azul), `MANUTENCAO` (amarelo), `RESERVADO` (roxo).
+  - **Visualização Flexível**: Alternância entre visualização em Cartões com fotos e Tabela analítica.
+  - **Histórico Completo por Imóvel**: Aba de contratos vigentes, histórico de locatários anteriores e laudos de vistoria de entrada e saída.
 
 ---
 
-## 9. Limites e Validações de Upload de Arquivos (Tamanho Máximo)
-
-- **Imagens e Fotos (Logomarca, Assinaturas, Vistorias e Flats)**:
-  - **Tamanho Máximo Permitido**: **5 MB por arquivo**.
-  - **Validação Dupla**: Ocorre tanto no frontend (antes de enviar o formulário) quanto no backend nas rotas de API (`/api/vistorias/upload-foto`, `/api/flats/upload-fotos`, `/api/empresa/upload-logo`, `/api/empresa/upload-assinatura`).
-  - Caso o arquivo exceda 5MB, a ação é bloqueada exibindo um aviso informando o nome do arquivo e o tamanho em MB.
-
-- **Documentos e Laudos Impressos (.PDF)**:
-  - **Tamanho Máximo Permitido**: **10 MB por arquivo**.
-  - **Validação**: Aplicada no cliente e na rota `/api/vistorias/upload-laudo`.
-
-- **Acesso Público aos Uploads de Vistoria (Celular e Links Públicos)**:
-  - As rotas `/api/vistorias/upload-foto` e `/api/vistorias/upload-laudo` não exigem sessão de login administrativo (`getAuthSession`), permitindo que locatários e vistoriadores capturem e enviem fotos de itens diretamente do celular a partir do link público da vistoria (`/assinar/vistoria/[token]`).
+### 2.3 Gestão de Condomínios e Locais (`/locais`)
+- **Roteiro de Vídeo**: *Organizando seus imóveis por prédios, condomínios ou localidades.*
+- **Recursos Exibidos**:
+  - Cadastro do condomínio/edifício com endereço completo, CEP com busca automática, fotos e observações.
+  - Vinculação de múltiplos flats/apartamentos pertencentes ao mesmo condomínio.
 
 ---
 
-## 10. Preservação de Cache e Integridade dos Estilos CSS / Layout Tailwind
-
-- **Prevenção de Quebra de Estilos (`.next` Cache)**:
-  - **REGRA ABSOLUTA E IMPRESCINDÍVEL**: **JAMAIS** executar o comando `npx next build` enquanto o servidor de desenvolvimento `next dev` estiver em execução em segundo plano no ambiente de desenvolvimento local.
-  - **Motivo Técnico**: O comando `next build` recompila e sobrescreve integralmente o diretório `.next`, invalidando os manifestos e chunks de folhas de estilo CSS (`TailwindCSS`) utilizados em tempo real pelo `next dev`, resultando no recarregamento de HTML sem formatação no navegador do usuário.
-  - **Restabelecimento Automático em Caso de Erro de Cache**: Se houver perda acidental de folhas de estilo ou arquivos 404 de CSS, executar imediatamente a reinicialização limpa:
-    `taskkill /F /IM node.exe; Remove-Item -Recurse -Force .next; npm run dev`
-  - Esta diretriz garante que os seletores Tailwind CSS e chunks do Webpack permaneçam perfeitamente sincronizados e que o layout jamais seja renderizado sem estilização visual.
-
----
-
-## 11. Estabilidade do Editor de Contratos e Cor de Texto Preta Mandatória
-
-- **Arquitetura Não-Controlada sem Pulo de Cursor**:
-  - No editor visual de modelos de contrato (`src/app/contratos/modelos/page.tsx`), a folha A4 em `contentEditable` opera de forma **100% não-controlada pelo React durante a digitação**.
-  - **NÃO** deve haver `setConteudoHtml` no evento `onInput` / `onKeyUp`. A leitura de `editorRef.current.innerHTML` só é realizada nas ações explicítas de salvar (`handleSave`), alternar para pré-visualização (`handleTogglePreview`) ou carregar um novo modelo.
-  - Isso garante zero re-renders do React enquanto o usuário digita, eliminando 100% o pulo de cursor ou perda de foco.
-
-- **Drag & Drop Nativo de Tags**:
-  - As tags da caixa de ferramentas possuem suporte a arrastar com o mouse e soltar diretamente no local desejado da folha A4.
-  - O manipulador `handleDropTag` utiliza `document.caretRangeFromPoint(e.clientX, e.clientY)` para identificar a posição exata sob a ponta do cursor do mouse no momento da soltura e insere o nó `<strong>{{tag}}</strong>` naquela posição.
-
-- **Cor de Texto em Preto Puro (`color: #000000`)**:
-  - Todos os modelos de contrato, títulos (`<h2>`, `<h3>`), parágrafos (`<p>`) e tabelas no editor e na folha A4 utilizam obrigatoriamente a cor **Preto Puro (`color: #000000; text-black`)**.
-  - NENHUM cabeçalho ou corpo de texto do modelo de contrato deve ser renderizado em tom de azul.
+### 2.4 Cadastro de Locatários e Hóspedes (`/locatarios`)
+- **Roteiro de Vídeo**: *Cadastro rápido de clientes, inquilinos e hóspedes.*
+- **Recursos Exibidos**:
+  - Pessoa Física (CPF, RG, Data de Nascimento, Profissão, Estado Civil) ou Pessoa Jurídica (CNPJ, Razão Social).
+  - Contatos: WhatsApp com máscara dinâmica `(XX) XXXXX-XXXX`, e-mail e endereço residencial completo.
+  - **Cadastro Rápido Sobreposto**: Modal popup para cadastrar inquilino sem sair da tela de contrato ou reserva.
+  - Histórico do cliente com todos os contratos já assinados e parcelas financeiras.
 
 ---
 
-## 12. Procedimento de Atualização / Deploy via Coolify
-
-- **Deploy Automático e Contínuo (Coolify / Webhook)**:
-  - O sistema é hospedado e gerenciado via **Coolify**.
-  - Todo `git push origin master` dispara automaticamente o webhook de build e deploy no Coolify.
-  - Caso seja necessário forçar uma atualização manual pela interface do Coolify, basta acessar o painel da aplicação e clicar em **Redeploy** ou **Deploy**.
-  - O Coolify executa automaticamente os passos de instalação de dependências, `prisma generate`, `prisma db push`, `next build` e inicia o container na porta configurada.
-
-- **Controle de Versão do Sistema (`src/lib/version.ts`)**:
-  - Em cada nova funcionalidade ou atualização enviada, a constante `SYSTEM_VERSION` em `src/lib/version.ts` e no `package.json` deve ser incrementada (ex: `v1.71`, `v1.72`, `v1.73`).
-  - O indicador de versão `🟢 Versão: X.XX` deve permanecer exibido tanto no cartão da tela de login (`src/app/login/page.tsx`) quanto no topo das páginas internas (`src/components/layout/Shell.tsx`), garantindo a confirmação visual imediata de deploy bem-sucedido.
-
----
-
-## 14. Integração com Banco Inter (API Cobrança v3 - Boleto com Pix / Bolepix)
-
-- **Autenticação OAuth 2.0 e mTLS Nativo (`src/lib/bancoInter.ts`)**:
-  - Toda comunicação com o Banco Inter é autenticada utilizando **Mutual TLS (mTLS)** via `https.Agent` com o certificado `.crt` e a chave privada `.key` da empresa.
-  - O Token de Acesso Bearer é obtido via `POST /oauth/v2/token` (`grant_type=client_credentials` e `scope=boleto-cobranca.read boleto-cobranca.write`) e mantido em cache temporário de memória baseado no `expires_in` para otimização de performance.
-  - Ambientes suportados: **PRODUÇÃO** (`https://cdpj.partners.bancointer.com.br`) e **SANDBOX** (`https://cdpj-sandbox.partners.uatinter.co`).
-
-- **Emissão de Cobrança e Bolepix (`/api/banco-inter/emitir`)**:
-  - Dispara `POST /cobranca/v3/cobrancas` informando dados do pagador/locatário (CPF/CNPJ, nome, endereço), valor nominal, data de vencimento, juros e multa do contrato.
-  - Vincula o `codigoSolicitacao`, `nossoNumero`, `linhaDigitavel`, `codigoBarras` e `pixCopiaECola` na tabela `ContaReceber`.
-
-- **Download de PDF Oficial do Boleto (`/api/banco-inter/pdf`)**:
-  - Obtém o PDF gerado pelo Banco Inter via `GET /cobranca/v3/cobrancas/{id}/pdf` e disponibiliza para visualização em nova aba, download direto ou disparo por WhatsApp.
-
-- **Envio Direto de Boleto + Pix via WhatsApp (Evolution API)**:
-  - Dispara o PDF oficial do boleto gerado pelo Inter diretamente como mídia anexada no WhatsApp do locatário, acompanhado da Linha Digitável e do Pix Copia e Cola formatados.
-
-- **Conciliação e Baixa Automática (Webhook + Sincronização)**:
-  - Rota de Webhook: `POST /api/webhooks/banco-inter`. Ao receber status `RECEBIDO` ou `PAGO`, aplica a liquidação imediata da `ContaReceber` (`status: "PAGO"`, `formaPagamento: "BOLETO"`, `valorPago`, `dataPagamento`).
-  - Sincronização em Lote (`POST /api/banco-inter/consultar`): Botão **Sincronizar com Inter** na tela de Contas a Receber para consultar e conciliar todas as cobranças pendentes com 1 clique.
-
-- **Renovação Automática de Planos SaaS via Banco Inter (`/renovar` & `src/lib/bancoInterSaaS.ts`)**:
-  - Na tela de renovação (`/renovar`), o sistema gera automaticamente uma cobrança Pix oficial pelo Banco Inter com o valor do plano e ciclo selecionado (mensal ou anual).
-  - O registro é salvo na tabela `CobrancaAssinaturaSaaS`.
-  - Ao receber a notificação de pagamento no Webhook (`POST /api/webhooks/banco-inter`), o sistema:
-    1. Marca `CobrancaAssinaturaSaaS.status = "PAGO"`.
-    2. Atualiza a `Empresa`: `statusAssinatura: "ATIVO"`, `planoAtual: planoContratado`, e estende a `dataFimAcesso` (+30 dias para mensal ou +365 dias para anual).
-    3. Dispara notificação de confirmação pelo WhatsApp via Evolution API.
-    4. A tela `/renovar` detecta a liberação em tempo real (polling a cada 3s) e redireciona o cliente automaticamente para o `/dashboard`.
+### 2.5 Emissão e Gestão de Contratos de Locação (`/contratos`)
+- **Roteiro de Vídeo**: *Como emitir um contrato de locação em menos de 1 minuto.*
+- **Recursos Exibidos**:
+  - Seleção do Locatário, Imóvel e Modelo de Contrato.
+  - **Vigência Flexível**:
+    - **Por Meses**: Locação residencial ou comercial tradicional (ex: 12 meses, gerando 12 parcelas mensais).
+    - **Por Dias**: Locação por temporada ou diárias (ex: 15 dias, gerando 1 parcela única do período total).
+  - **Geração Financeira Automática**: Cria automaticamente as parcelas no *Contas a Receber* com vencimentos calculados.
+  - **Configuração de Multa e Juros**: Definição de percentuais de multa por atraso e juros moratórios mensais.
+  - **Grid de Contratos**: Visualização rápida do status da assinatura, botão para visualizar contrato em PDF e disparo no WhatsApp.
 
 ---
 
-## 15. Armazenamento Permanente de Imagens em Base64 no PostgreSQL & Compressão Sharp
-
-- **Permanência Total Contra Resets e Deploys**:
-  - Todas as imagens do sistema (**Logomarcas da Empresa**, **Fotos dos Flats**, **Fotos de Itens de Vistoria** e **Assinaturas Digitais**) são convertidas para **Data URIs Base64** e armazenadas diretamente nas colunas de texto do banco de dados PostgreSQL (`Empresa.logomarcaUrl`, `Flat.fotosUrl`, `VistoriaChecklist.itensJson`, `Empresa.assinaturaUrl`, `Usuario.assinaturaUrl`).
-  - Dessa forma, nenhum deploy, atualização de VPS via Coolify, reset de container ou rebuild perde imagens cadastradas.
-
-- **Compressão Inteligente com Sharp (`src/lib/imageOptimizer.ts`)**:
-  - Antes de salvar no banco de dados, todo upload passa obrigatoriamente pela função `optimizeImageToDataUri`.
-  - **Fotos dos Flats e Vistorias**: Redimensionadas para no máximo 1280px e comprimidas para WebP (qualidade 75%), reduzindo o tamanho de ~5 MB para ~30-70 KB por foto.
-  - **Logomarca da Empresa**: Redimensionada para no máximo 800px e comprimida para WebP/PNG (qualidade 85%), reduzindo de ~1.5 MB para ~15-30 KB.
-  - **Assinaturas**: Redimensionadas para no máximo 600px em formato PNG nítido (~10-20 KB).
-  - Esta compressão reduz em mais de 95% o tráfego de rede e consumo de memória do servidor, garantindo carregamento instantâneo das telas.
+### 2.6 Editor Visual de Modelos de Contrato (`/contratos/modelos`)
+- **Roteiro de Vídeo**: *Personalizando modelos de contrato com tags dinâmicas e visualização A4 em tempo real.*
+- **Recursos Exibidos**:
+  - Folha A4 em tempo real na tela com margens e paginação idênticas ao documento impresso.
+  - **Drag & Drop de Tags**: Arraste tags da caixa de ferramentas com o mouse e solte onde quiser no contrato (`{{locatario.nome}}`, `{{flat.numero}}`, `{{valor_mensal}}`, `{{valor_extenso}}`, `{{duracao}}`, `{{vigencia}}`, etc.).
+  - **Arquitetura Estável**: Digitação fluida sem pulo de cursor e texto em **Preto Puro (`#000000`)**.
+  - Criação de novos modelos (Residencial, Comercial, Temporada) e pré-visualização instantânea preenchida com dados reais.
 
 ---
 
-## 16. Otimização de Consultas e Reconciliação em Lote (Batch Queries)
-
-- **Proibição de Consultas N+1 em Loops de Listagem**:
-  - Na rota de flats (`GET /api/flats`) e outras rotas de listagem, as consultas de contratos ativos e dados relacionados devem ser realizadas em **1 única busca em lote** (ex: `prisma.contrato.findMany(...)` com `Set(activeContracts.map(c => c.flatId))`), evitando loops com dezenas de `await` sequenciais ao banco remoto.
-
----
-
-## 17. Hierarquia de Camadas e Modais Sobrepostos (z-index)
-
-- **Padrão de Empilhamento de Modais**:
-  - Quando um modal abre outro modal filho sobreposto (ex: Cadastro Rápido de Hóspede/Locatário a partir da tela de Reserva da Agenda, ou visualizador de fotos ampliadas sobre a vistoria):
-    - Modal de Fundo / Principal: `z-50` ou `z-[90]`
-    - Modal Sobreposto / Filho (Cadastro Rápido / Ampliação): `z-[100]` ou `z-[110]`
-  - Isso impede que janelas filhas fiquem ocultas atrás do modal pai.
+### 2.7 Assinatura Digital de Contratos (`/assinar/contrato/[token]`)
+- **Roteiro de Vídeo**: *Assinatura digital sem papel: envie pelo WhatsApp e receba assinado na hora.*
+- **Recursos Exibidos**:
+  - Link público seguro com token único enviado diretamente ao WhatsApp ou e-mail do locatário.
+  - Leitura completa do contrato no celular, tablet ou computador.
+  - **Quadro de Assinatura Digital Touch**: O locatário assina com o dedo na tela do celular ou com o mouse.
+  - **Auditoria Jurídica**: Gravação de endereço IP, data, hora e carimbo de autenticação.
+  - Download imediato do PDF assinado contendo o certificado visual de assinatura.
 
 ---
 
-## 18. Padrão de Formatação de Referência Mensal (`Ref: MM-AAAA`)
-
-- **Convenção Oficial de Referência**:
-  - Todas as referências de competência e cobrança no sistema utilizam o formato **`Ref: MM-AAAA`** (ex: `Ref: 09-2026`).
+### 2.8 Vistorias e Checklists Digitais com Fotos (`/vistorias`)
+- **Roteiro de Vídeo**: *Vistorias de entrada e saída com fotos pelo celular e laudos periciais.*
+- **Recursos Exibidos**:
+  - Criação de Vistorias de **Entrada** (na entrega das chaves) e **Saída** (na devolução do imóvel).
+  - Checklist detalhado por cômodo (Pintura, Elétrica, Hidráulica, Móveis, Ar-condicionado, Eletrodomésticos).
+  - Status por item: **OK** (verde), **Atenção** (amarelo), **Avaria** (vermelho) com campo para observações detalhadas.
+  - **Captura Multimodal de Fotos**:
+    1. **📷 Câmera Direta**: Aciona a câmera nativa do celular/tablet para foto rápida;
+    2. **📹 Câmera Ao Vivo / Webcam**: Preview em tempo real com troca entre câmera frontal e traseira no navegador;
+    3. **📁 Galeria**: Seleção de fotos armazenadas no aparelho.
+  - **Laudo de Vistoria em PDF**: Gera laudo fotográfico em alta definição com cabeçalho White Clean, miniaturas ampliadas e assinaturas do vistoriador e locatário.
 
 ---
 
-## 19. Sincronização Automática com o GitHub
+### 2.9 Link Público e Interativo de Vistoria para o Locatário (`/assinar/vistoria/[token]`)
+- **Roteiro de Vídeo**: *Vistoria colaborativa: o inquilino confere os itens e assina no próprio celular.*
+- **Recursos Exibidos**:
+  - O locatário abre o link no celular, visualiza todos os itens e pode adicionar apontamentos ou fotos de detalhes.
+  - Coleta da assinatura na tela touch.
+  - **Automação de Status do Imóvel**:
+    - Assinatura da Vistoria de **Entrada** -> Imóvel muda automaticamente para **`OCUPADO`**.
+    - Assinatura da Vistoria de **Saída** -> Imóvel muda automaticamente para **`DISPONIVEL`**.
 
-- **Envio Automático Obrigatório**: Toda e qualquer alteração realizada no código, configurações ou documentação DEVE ser imediatamente adicionada (`git add .`), comitada e enviada (`git push origin master`) para o GitHub ao final de cada alteração, garantindo que o repositório remoto e os webhooks do Coolify/CI estejam sempre 100% atualizados.
+---
 
+### 2.10 Agenda de Ocupação e Reservas por Temporada (`/agenda`)
+- **Roteiro de Vídeo**: *Mapa de reservas estilo Airbnb/Booking para locação por temporada.*
+- **Recursos Exibidos**:
+  - Calendário visual com timeline horizontal de todos os flats.
+  - Criação rápida de reserva informando data de check-in, check-out, hóspede e quantidade de diárias.
+  - Bloqueio de datas para manutenção e cálculo automático do valor total da estadia.
 
+---
+
+### 2.11 Módulo Financeiro: Contas a Receber, Contas a Pagar e Caixa (`/financeiro`)
+- **Roteiro de Vídeo**: *Gestão financeira completa, emissão de recibos e controle de inadimplência.*
+- **Recursos Exibidos**:
+  - **Contas a Receber**: Listagem de todas as parcelas com filtros por competência (`Ref: MM-AAAA`), status (Pendente, Pago, Atrasado) e locatário.
+  - **Baixa Manual ou Automática**: Registro de recebimento com data, valor pago e forma de pagamento.
+  - **Emissão de Recibos em PDF**: Recibo oficial de pagamento de aluguel gerado com 1 clique e disparo por WhatsApp.
+  - **Contas a Pagar**: Lançamento de despesas operacionais (energia, água, condomínio, manutenção, limpeza).
+  - **Relatórios Financeiros em PDF**: Extrato de receitas vs despesas, lucratividade e demonstrativo de repasse ao proprietário.
+
+---
+
+### 2.12 Integração com Banco Inter (API Cobrança v3 - Boleto com Pix / Bolepix)
+- **Roteiro de Vídeo**: *Emissão de Boleto com Pix pelo Banco Inter e baixa automática no sistema.*
+- **Recursos Exibidos**:
+  - **Autenticação mTLS Segura**: Conexão com certificados digitais `.crt` e `.key` em ambiente de Produção ou Sandbox.
+  - **Emissão de Cobrança com 1 Clique**: Gera o boleto oficial com código de barras, linha digitável e QR Code Pix dinâmico.
+  - **Envio no WhatsApp com Anexo PDF**: Dispara o PDF oficial do boleto + Pix Copia e Cola diretamente no WhatsApp do inquilino.
+  - **Baixa Automática Instantânea (Webhook)**: Quando o cliente paga no app de qualquer banco, o Banco Inter notifica o sistema via Webhook e a parcela é liquidada como **`PAGO`** em menos de 2 segundos.
+  - **Sincronização em Lote**: Botão *"Sincronizar com Inter"* para conciliar todas as cobranças pendentes de uma só vez.
+
+---
+
+### 2.13 Integração com WhatsApp via Evolution API
+- **Roteiro de Vídeo**: *Automação de atendimento e envio direto de PDFs no WhatsApp do cliente.*
+- **Recursos Exibidos**:
+  - Conexão simples via QR Code na tela de Parâmetros com status da instância em tempo real.
+  - **Envio Direto de Mídia PDF**: Contratos, Laudos de Vistoria, Recibos e Boletos enviados como arquivos `.PDF` nativos anexados.
+  - **Mensagens Humanizadas**: Textos formatados com saudação amigável e link direto isolado para garantir clique no celular.
+
+---
+
+### 2.14 Painel de Parâmetros e Configurações (`/parametros`)
+- **Roteiro de Vídeo**: *Configurações da empresa, logomarca, certificados e integrações.*
+- **Recursos Exibidos**:
+  - **Dados da Empresa**: Nome fantasia, CNPJ, telefone, endereço, upload da logomarca e da assinatura digital do gestor.
+  - **Configurações de E-mail (SMTP)**: Servidor SMTP com porta, SSL/TLS, credenciais e botão de teste de disparo.
+  - **Configurações do WhatsApp (Evolution API)**: Conexão, geração de QR Code e verificação de status online.
+  - **Configurações do Banco Inter**: Client ID, Client Secret, upload dos certificados mTLS e registro do Webhook com 1 clique.
+  - **Gestão de Funcionários / Usuários**: Controle de acessos com níveis de Administrador e Operador.
+  - **Formas de Pagamento**: Cadastro de métodos aceitos (Bolepix, Pix, Transferência, Dinheiro, Cartão).
+
+---
+
+### 2.15 Módulo SaaS, Planos Dinâmicos e Renovação Automática (`/parametros?aba=saas` e `/renovar`)
+- **Roteiro de Vídeo**: *Como funciona o modelo SaaS, cobrança recorrente e liberação de planos.*
+- **Recursos Exibidos**:
+  - **Gestão de Planos pelo Super Admin**:
+    - Configuração de valores (Mensal, Trimestral, Semestral, Anual) e limites (Imóveis, Usuários, Vistorias, Storage) direto pela interface.
+    - Botão para restaurar valores padrão de fábrica com 1 clique.
+  - **Gestão de Empresas Clientes**:
+    - Listagem de todas as imobiliárias cadastradas com status (`TRIAL`, `ATIVO`, `BLOQUEADO`).
+    - Modal de Liberação Rápida de Acesso (adicionar dias ou meses de assinatura).
+    - Disparo de avisos automáticos de vencimento por WhatsApp.
+  - **Tela de Renovação do Cliente (`/renovar`)**:
+    - Escolha de planos e ciclo (Mensal ou Anual com desconto).
+    - **Geração de Bolepix Oficial do Banco Inter** com QR Code Pix na tela.
+    - **Dupla Reconciliação em Tempo Real (v1.86)**: O sistema recebe a baixa pelo Webhook ou consulta ativamente a API a cada 3 segundos, liberando o acesso na hora com mensagem de sucesso.
+
+---
+
+## 3. Padrões de Projeto e Regras Técnicas Estritas
+
+1. **Padronização Visual de PDFs (White Clean Universal)**:
+   - Todo documento PDF (**Recibos, Contratos, Vistorias e Relatórios**) utiliza obrigatoriamente `drawStandardPDFHeader` de `src/lib/pdfHeaderBuilder.ts`.
+   - **Fundo 100% Branco Clean (`#ffffff`)** com títulos em Azul Marinho (`#1e3a8a`) e faixas de acabamento em Cinza Claro (`#f1f5f9`). Proibido fundo azul.
+   - Rodapé de créditos obrigatório: `Desenvolvimento: pajotecnologia.com.br (87)996540551`.
+
+2. **Armazenamento de Imagens e Compressão WebP**:
+   - Todas as fotos de flats, itens de vistoria, assinaturas e logomarcas são convertidas para Data URIs Base64 após compressão com Sharp (`src/lib/imageOptimizer.ts`) e armazenadas nas colunas PostgreSQL, garantindo que nenhum deploy ou rebuild apague imagens.
+
+3. **Porta e Infraestrutura VPS (Coolify)**:
+   - Porta oficial da aplicação: **3010**.
+   - Toda alteração de código deve ser comitada e enviada automaticamente via `git push origin master`.
+   - A versão em `src/lib/version.ts` e `package.json` deve ser incrementada a cada nova entrega.
+   - **REGRA ABSOLUTA**: Jamais rodar `npx next build` enquanto `next dev` estiver rodando localmente para evitar corrupção de cache CSS.
