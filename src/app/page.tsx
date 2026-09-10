@@ -62,6 +62,14 @@ export default function LandingPage() {
   const [billingCycle, setBillingCycle] = useState<"MENSAL" | "ANUAL">("MENSAL");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
+  const formatPrice = (val: number) => {
+    if (typeof val !== "number" || isNaN(val)) return "0,00";
+    return val.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   // Modal de Acesso Rápido / Cadastro Grátis
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("register");
@@ -815,12 +823,12 @@ export default function LandingPage() {
 
                     <div className="my-5">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-white">R$ {price.toFixed(0)}</span>
+                        <span className="text-3xl font-black text-white">R$ {formatPrice(price)}</span>
                         <span className="text-xs text-slate-400">/mês</span>
                       </div>
                       {billingCycle === "ANUAL" && (
                         <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
-                          R$ {plano.priceYearlyTotal.toFixed(0)} cobrado anualmente
+                          R$ {formatPrice(plano.priceYearlyTotal)} cobrado anualmente
                         </span>
                       )}
                     </div>

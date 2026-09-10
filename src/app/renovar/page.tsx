@@ -94,13 +94,6 @@ function RenovarContent() {
       .then((d) => {
         if (d.user) {
           setUserStatus(d.user.statusAcesso);
-          if (d.user.statusAcesso?.status === "ATIVO" && !d.user.statusAcesso?.isTrial) {
-            setPagamentoConfirmado(true);
-            setDadosLiberacao({
-              dataExpiracao: d.user.statusAcesso?.dataExpiracao,
-              plano: d.user.statusAcesso?.planoAtual,
-            });
-          }
         }
       })
       .catch(() => {});
@@ -140,16 +133,14 @@ function RenovarContent() {
         const res = await fetch(url);
         const json = await res.json();
 
-        if (json.pago || json.statusCobranca === "PAGO" || (json.statusAcesso?.status === "ATIVO" && !json.statusAcesso?.isTrial)) {
+        // Só confirma se a cobrança do checkout atual foi efetivamente liquidada/paga
+        if (json.pago || json.statusCobranca === "PAGO") {
           setPagamentoConfirmado(true);
           setDadosLiberacao({
             dataExpiracao: json.statusAcesso?.dataExpiracao,
             plano: json.statusAcesso?.planoAtual || selectedPlano,
           });
           clearInterval(interval);
-          setTimeout(() => {
-            router.push("/dashboard");
-          }, 3500);
         }
       } catch (err) {
         // Silencioso
@@ -157,7 +148,7 @@ function RenovarContent() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [data, empresaIdParam, pagamentoConfirmado, selectedPlano, router]);
+  }, [data, empresaIdParam, pagamentoConfirmado, selectedPlano]);
 
   const handleCopyPix = () => {
     if (data?.pix?.copiaCola) {
@@ -165,6 +156,14 @@ function RenovarContent() {
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     }
+  };
+
+  const formatPrice = (val: number) => {
+    if (typeof val !== "number" || isNaN(val)) return "0,00";
+    return val.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   const formatBRL = (val: number) => {
@@ -306,12 +305,12 @@ function RenovarContent() {
 
                   <div className="mb-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-white">R$ {price.toFixed(0)}</span>
+                      <span className="text-3xl font-black text-white">R$ {formatPrice(price)}</span>
                       <span className="text-xs text-slate-400">/mês</span>
                     </div>
                     {billingCycle === "ANUAL" && (
                       <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
-                        Faturado R$ {plano.priceYearlyTotal.toFixed(0)}/ano
+                        Faturado R$ {formatPrice(plano.priceYearlyTotal)}/ano
                       </span>
                     )}
                   </div>

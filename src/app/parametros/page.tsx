@@ -2894,7 +2894,7 @@ function ParametrosContent() {
                         step="0.01"
                         required
                         value={saasValorMensal}
-                        onChange={(e) => setSaasValorMensal(Number(e.target.value))}
+                        onChange={(e) => setSaasValorMensal(parseFloat(e.target.value) || 0)}
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
                       />
                     </div>
@@ -2905,7 +2905,7 @@ function ParametrosContent() {
                         step="0.01"
                         required
                         value={saasValorTrimestral}
-                        onChange={(e) => setSaasValorTrimestral(Number(e.target.value))}
+                        onChange={(e) => setSaasValorTrimestral(parseFloat(e.target.value) || 0)}
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
                       />
                     </div>
@@ -2916,7 +2916,7 @@ function ParametrosContent() {
                         step="0.01"
                         required
                         value={saasValorSemestral}
-                        onChange={(e) => setSaasValorSemestral(Number(e.target.value))}
+                        onChange={(e) => setSaasValorSemestral(parseFloat(e.target.value) || 0)}
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
                       />
                     </div>
@@ -2927,7 +2927,7 @@ function ParametrosContent() {
                         step="0.01"
                         required
                         value={saasValorAnual}
-                        onChange={(e) => setSaasValorAnual(Number(e.target.value))}
+                        onChange={(e) => setSaasValorAnual(parseFloat(e.target.value) || 0)}
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
                       />
                     </div>

@@ -30,9 +30,7 @@ export async function GET(request: NextRequest) {
       statusAcesso = await verificarStatusAcesso(targetEmpresaId);
     }
 
-    const isPago =
-      cobranca?.status === "PAGO" ||
-      (statusAcesso?.status === "ATIVO" && !statusAcesso?.isTrial);
+    const isPago = cobranca?.status === "PAGO";
 
     return NextResponse.json({
       success: true,
