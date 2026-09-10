@@ -53,13 +53,9 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileExtension = path.extname(file.name).toLowerCase() || ".png";
 
-    // Otimiza e comprime para WebP de alta qualidade (reduz de megabytes para ~20KB)
-    const { optimizeImageToDataUri } = await import("@/lib/imageOptimizer");
-    const logomarcaDataUri = await optimizeImageToDataUri(buffer, {
-      maxWidth: 800,
-      quality: 85,
-      format: fileExtension === ".png" ? "png" : "webp",
-    });
+    // Otimiza e comprime para WebP de alta qualidade (reduz de megabytes para ~15-20KB)
+    const { optimizeLogo } = await import("@/lib/imageOptimizer");
+    const logomarcaDataUri = await optimizeLogo(buffer);
 
     // Também gravamos o arquivo em disco como fallback / redundância
     try {

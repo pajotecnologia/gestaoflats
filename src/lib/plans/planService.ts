@@ -83,6 +83,7 @@ export function normalizePlanSlug(
   if (isTrial) return plans.TRIAL || SAAS_PLANS.TRIAL;
 
   const raw = (planoString || "").toUpperCase().trim();
+  if (plans[raw]) return plans[raw];
   if (raw === "ESSENCIAL") return plans.ESSENCIAL || SAAS_PLANS.ESSENCIAL;
   if (raw === "PROFISSIONAL" || raw === "MENSAL" || raw === "TRIMESTRAL") return plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL;
   if (raw === "GESTAO" || raw === "SEMESTRAL") return plans.GESTAO || SAAS_PLANS.GESTAO;
@@ -90,6 +91,10 @@ export function normalizePlanSlug(
   if (raw === "ENTERPRISE") return plans.ENTERPRISE || SAAS_PLANS.ENTERPRISE;
   if (raw === "TRIAL") return plans.TRIAL || SAAS_PLANS.TRIAL;
   if (raw === "VITALICIO" || raw === "MESTRE") return plans.MESTRE || SAAS_PLANS.MESTRE;
+
+  // Procura por ID
+  const foundById = Object.values(plans).find((p) => p.id === planoString || p.id === `plan-${raw.toLowerCase()}`);
+  if (foundById) return foundById;
 
   return plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL; // Padrão seguro
 }

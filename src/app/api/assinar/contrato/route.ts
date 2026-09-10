@@ -78,10 +78,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, assinaturaBase64 } = await request.json();
+    let { token, assinaturaBase64 } = await request.json();
 
     if (!token || !assinaturaBase64) {
       return NextResponse.json({ error: "Token e assinatura em imagem são obrigatórios." }, { status: 400 });
+    }
+
+    try {
+      const { optimizeSignature } = await import("@/lib/imageOptimizer");
+      assinaturaBase64 = await optimizeSignature(assinaturaBase64);
+    } catch (optErr) {
+      console.warn("Aviso: Falha ao otimizar assinatura de contrato:", optErr);
     }
 
     const contrato = await prisma.contrato.findUnique({

@@ -7,12 +7,17 @@ export interface PlanFeature {
 
 export interface PlanDefinition {
   id: string;
-  slug: "ESSENCIAL" | "PROFISSIONAL" | "GESTAO" | "EMPRESARIAL" | "ENTERPRISE" | "TRIAL" | "MESTRE";
+  slug: string; // "ESSENCIAL" | "PROFISSIONAL" | "GESTAO" | "EMPRESARIAL" | "ENTERPRISE" | "TRIAL" | "MESTRE" | string custom
   name: string;
   badge?: string;
   description: string;
   popular?: boolean;
+  isCustom?: boolean;
+  visivelPublico?: boolean; // true = aparece na Landing Page e /renovar geral; false = oculto / privado
+  empresasAutorizadasIds?: string[]; // IDs de empresas com acesso a este plano exclusivo
   priceMonthly: number;
+  priceQuarterly?: number; // Trimestral
+  priceSemiannual?: number; // Semestral
   priceYearlyMonthlyEquivalent: number; // valor mensal quando cobrado anualmente (~15-20% desconto)
   priceYearlyTotal: number;
   
@@ -348,15 +353,58 @@ export const COMMERCIAL_PLANS = [
 
 /**
  * Retorna a lista dos planos comerciais considerando customizações salvas no banco
+ * Inclui os planos públicos e omite planos privados/ocultos por padrão.
  */
 export function getCommercialPlans(customPlans?: Record<string, PlanDefinition>): PlanDefinition[] {
   const plans = customPlans || SAAS_PLANS;
-  return [
-    plans.ESSENCIAL || SAAS_PLANS.ESSENCIAL,
-    plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL,
-    plans.GESTAO || SAAS_PLANS.GESTAO,
-    plans.EMPRESARIAL || SAAS_PLANS.EMPRESARIAL,
+  const list = Object.values(plans).filter((p) => {
+    // Excluir Trial e Mestre da vitrine pública
+    if (p.slug === "TRIAL" || p.slug === "MESTRE") return false;
+    // Se explicitamente marcado como privado / oculto, não exibe na landing page
+    if (p.visivelPublico === false) return false;
+    return true;
+  });
+
+  return list.length > 0 ? list : [
+    SAAS_PLANS.ESSENCIAL,
+    SAAS_PLANS.PROFISSIONAL,
+    SAAS_PLANS.GESTAO,
+    SAAS_PLANS.EMPRESARIAL,
   ];
+}
+
+/**
+ * Retorna todos os planos elegíveis para uma empresa específica na tela /renovar:
+ * - Todos os planos públicos
+ * - Planos privados onde a empresa está na lista autorizada
+ * - Plano solicitado especificamente via requestedPlanoId (Link Direto VIP)
+ */
+export function getPlansForCompany(
+  empresaId?: string,
+  customPlans?: Record<string, PlanDefinition>,
+  requestedPlanoId?: string
+): PlanDefinition[] {
+  const plans = customPlans || SAAS_PLANS;
+  return Object.values(plans).filter((p) => {
+    if (p.slug === "TRIAL" || p.slug === "MESTRE") return false;
+
+    // Se é o plano requisitado diretamente por ID (link VIP)
+    if (requestedPlanoId && (p.id === requestedPlanoId || p.slug === requestedPlanoId)) {
+      return true;
+    }
+
+    // Se é um plano público
+    if (p.visivelPublico !== false) {
+      return true;
+    }
+
+    // Se é um plano privado direcionado a esta empresa
+    if (empresaId && p.empresasAutorizadasIds && p.empresasAutorizadasIds.includes(empresaId)) {
+      return true;
+    }
+
+    return false;
+  });
 }
 
 /**

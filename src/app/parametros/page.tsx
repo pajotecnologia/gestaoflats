@@ -40,6 +40,13 @@ import {
   Activity,
   Eye,
   EyeOff,
+  HardDrive,
+  Lock,
+  Globe,
+  Copy,
+  ExternalLink,
+  PieChart,
+  Info,
 } from "lucide-react";
 
 function ParametrosContent() {
@@ -179,6 +186,45 @@ function ParametrosContent() {
   const [salvandoPlanos, setSalvandoPlanos] = useState(false);
   const [hasCustomPlanos, setHasCustomPlanos] = useState(false);
 
+  // Modal de Criação / Edição de Plano Personalizado
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [editingPlanSlug, setEditingPlanSlug] = useState<string | null>(null);
+  const [savingCustomPlan, setSavingCustomPlan] = useState(false);
+  const [planFormData, setPlanFormData] = useState<any>({
+    name: "",
+    slug: "",
+    badge: "",
+    description: "",
+    idealPara: "",
+    popular: false,
+    visivelPublico: true,
+    empresasAutorizadasIds: [],
+    priceMonthly: 99,
+    priceQuarterly: 270,
+    priceSemiannual: 510,
+    priceYearlyMonthlyEquivalent: 79,
+    priceYearlyTotal: 948,
+    limits: {
+      maxProperties: 10,
+      maxUsers: 2,
+      maxSignaturesPerMonth: 10,
+      maxStorageGB: 5,
+      maxWhatsAppMessagesPerMonth: 300,
+      maxOwners: 2,
+    },
+    features: {
+      boletosInterBolepix: true,
+      vistoriasComFotos: true,
+      gestaoProprietarios: false,
+      repassesAutomaticos: false,
+      suporteNivel: "PADRAO",
+    },
+  });
+
+  // Modal de Detalhes de Armazenamento por Empresa
+  const [showStorageModal, setShowStorageModal] = useState(false);
+  const [storageModalEmpresa, setStorageModalEmpresa] = useState<any>(null);
+
   // Gestão de Empresas
   const [empresasSaaS, setEmpresasSaaS] = useState<any[]>([]);
   const [summarySaaS, setSummarySaaS] = useState<any>(null);
@@ -211,6 +257,139 @@ function ParametrosContent() {
     } finally {
       setLoadingPlanos(false);
     }
+  };
+
+  const handleOpenNewPlan = () => {
+    setEditingPlanSlug(null);
+    setPlanFormData({
+      name: "Plano Sob Medida",
+      slug: `CUSTOM_${Date.now().toString().slice(-4)}`,
+      badge: "EXCLUSIVO",
+      description: "Plano personalizado com limites e condições especiais.",
+      idealPara: "Clientes com necessidades e volume sob medida.",
+      popular: false,
+      visivelPublico: false,
+      empresasAutorizadasIds: [],
+      priceMonthly: 199,
+      priceQuarterly: 540,
+      priceSemiannual: 990,
+      priceYearlyMonthlyEquivalent: 159,
+      priceYearlyTotal: 1908,
+      limits: {
+        maxProperties: 25,
+        maxUsers: 5,
+        maxSignaturesPerMonth: 40,
+        maxStorageGB: 15,
+        maxWhatsAppMessagesPerMonth: 1000,
+        maxOwners: 10,
+      },
+      features: {
+        boletosInterBolepix: true,
+        vistoriasComFotos: true,
+        gestaoProprietarios: true,
+        repassesAutomaticos: true,
+        suporteNivel: "PRIORITARIO",
+      },
+    });
+    setShowPlanModal(true);
+  };
+
+  const handleOpenEditPlan = (slug: string) => {
+    const p = saasPlanos[slug];
+    if (!p) return;
+    setEditingPlanSlug(slug);
+    setPlanFormData({
+      ...p,
+      slug: p.slug || slug,
+      name: p.name || slug,
+      badge: p.badge || "",
+      description: p.description || "",
+      idealPara: p.idealPara || "",
+      popular: Boolean(p.popular),
+      visivelPublico: p.visivelPublico !== false,
+      empresasAutorizadasIds: p.empresasAutorizadasIds || [],
+      priceMonthly: p.priceMonthly ?? 0,
+      priceQuarterly: p.priceQuarterly ?? 0,
+      priceSemiannual: p.priceSemiannual ?? 0,
+      priceYearlyMonthlyEquivalent: p.priceYearlyMonthlyEquivalent ?? 0,
+      priceYearlyTotal: p.priceYearlyTotal ?? 0,
+      limits: {
+        maxProperties: p.limits?.maxProperties ?? 10,
+        maxUsers: p.limits?.maxUsers ?? 2,
+        maxSignaturesPerMonth: p.limits?.maxSignaturesPerMonth ?? 10,
+        maxStorageGB: p.limits?.maxStorageGB ?? 5,
+        maxWhatsAppMessagesPerMonth: p.limits?.maxWhatsAppMessagesPerMonth ?? 300,
+        maxOwners: p.limits?.maxOwners ?? 2,
+      },
+      features: {
+        boletosInterBolepix: p.features?.boletosInterBolepix !== false,
+        vistoriasComFotos: p.features?.vistoriasComFotos !== false,
+        gestaoProprietarios: Boolean(p.features?.gestaoProprietarios),
+        repassesAutomaticos: Boolean(p.features?.repassesAutomaticos),
+        suporteNivel: p.features?.suporteNivel || "PADRAO",
+      },
+    });
+    setShowPlanModal(true);
+  };
+
+  const handleSaveCustomPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingCustomPlan(true);
+    try {
+      const res = await fetch("/api/saas/planos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "upsert_plano",
+          plano: planFormData,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("✅ Plano salvo com sucesso!");
+        setShowPlanModal(false);
+        carregarPlanosSaaS();
+      } else {
+        alert(data.error || "Erro ao salvar plano.");
+      }
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setSavingCustomPlan(false);
+    }
+  };
+
+  const handleDeleteCustomPlan = async (slug: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o plano personalizado "${slug}"?`)) return;
+    setSalvandoPlanos(true);
+    try {
+      const res = await fetch("/api/saas/planos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete_plano",
+          planoId: slug,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("✅ Plano personalizado excluído!");
+        carregarPlanosSaaS();
+      } else {
+        alert(data.error || "Erro ao excluir plano.");
+      }
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setSalvandoPlanos(false);
+    }
+  };
+
+  const handleCopyVipLink = (slug: string) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const vipUrl = `${origin}/renovar?planoId=${slug}`;
+    navigator.clipboard.writeText(vipUrl);
+    alert(`📋 Link VIP Direto copiado para a área de transferência:\n${vipUrl}`);
   };
 
   const handleSalvarPlanosSaaS = async () => {
@@ -2166,7 +2345,7 @@ function ParametrosContent() {
             {saasSubTab === "empresas" && (
               <div className="space-y-5">
                 {/* PAINEL DE INTELIGÊNCIA FINANCEIRA & ANALYTICS SAAS (EXCLUSIVO EMPRESA MESTRE) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                   {/* CARD 1: MRR SAAS */}
                   <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between">
@@ -2254,7 +2433,28 @@ function ParametrosContent() {
                     </div>
                     <div className="mt-1 flex items-center justify-between text-[10px] text-indigo-700/80 dark:text-indigo-400/80 font-medium">
                       <span>{summarySaaS?.totalFlatsOcupadosGlobal || 0} Ocupados</span>
-                      <span className="font-bold text-indigo-600 dark:text-indigo-300">{summarySaaS?.taxaOcupacaoGlobal || 0}% Ocupação Média</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-300">{summarySaaS?.taxaOcupacaoGlobal || 0}% Ocupação</span>
+                    </div>
+                  </div>
+
+                  {/* CARD 5: ARMAZENAMENTO / STORAGE TOTAL */}
+                  <div className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200 dark:border-purple-800/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
+                        Storage Total
+                      </span>
+                      <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-300">
+                        <HardDrive className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-2xl font-black text-purple-800 dark:text-purple-200">
+                        {summarySaaS?.totalStorageFormattedGlobal || "0 KB"}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-purple-700/80 dark:text-purple-400/80 font-medium">
+                      <span>Compressão WebP</span>
+                      <span className="font-bold text-purple-600 dark:text-purple-300">Otimizado</span>
                     </div>
                   </div>
                 </div>
@@ -2270,7 +2470,7 @@ function ParametrosContent() {
                         </span>
                       </h2>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Métricas individuais, portfólio de imóveis, receita gerada e controle de mensalidade SaaS
+                        Métricas individuais, portfólio de imóveis, armazenamento consumido e controle de mensalidade SaaS
                       </p>
                     </div>
 
@@ -2297,7 +2497,7 @@ function ParametrosContent() {
 
                       <button
                         onClick={loadEmpresasSaaS}
-                        className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                        className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                         title="Atualizar lista"
                       >
                         <RefreshCw className="w-4 h-4" />
@@ -2317,6 +2517,7 @@ function ParametrosContent() {
                           <th className="py-3 px-3">Empresa / Cidade</th>
                           <th className="py-3 px-3">Admin & Contato</th>
                           <th className="py-3 px-3">Portfólio / Imóveis</th>
+                          <th className="py-3 px-3">Storage / Espaço</th>
                           <th className="py-3 px-3">Aluguéis Geridos (VGV)</th>
                           <th className="py-3 px-3">Plano & Valor SaaS</th>
                           <th className="py-3 px-3 text-center">Status</th>
@@ -2416,6 +2617,42 @@ function ParametrosContent() {
                                   <div className="text-[10px] text-slate-500 mt-0.5">
                                     📄 {emp.metrics?.totalContratosAtivos || 0} Contratos Ativos • 👥 {emp.counts?.locatarios || 0} Locatários
                                   </div>
+                                </td>
+
+                                {/* STORAGE / ESPAÇO */}
+                                <td className="py-3.5 px-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setStorageModalEmpresa(emp);
+                                      setShowStorageModal(true);
+                                    }}
+                                    className="text-left group hover:opacity-80 transition cursor-pointer"
+                                    title="Clique para ver o detalhamento do armazenamento desta empresa"
+                                  >
+                                    <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                      <HardDrive className="w-3.5 h-3.5 text-purple-500 inline shrink-0" />
+                                      <span>{emp.storage?.totalFormatted || "0 KB"}</span>
+                                      <span className="text-[10px] text-slate-400 font-normal">
+                                        / {emp.storage?.maxFormatted || "5 GB"}
+                                      </span>
+                                    </div>
+                                    <div className="w-24 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden mt-1.5">
+                                      <div
+                                        className={`h-full rounded-full ${
+                                          (emp.storage?.percentage || 0) > 90
+                                            ? "bg-rose-500"
+                                            : (emp.storage?.percentage || 0) > 70
+                                            ? "bg-amber-500"
+                                            : "bg-emerald-500"
+                                        }`}
+                                        style={{ width: `${Math.max(3, Math.min(100, emp.storage?.percentage || 0))}%` }}
+                                      />
+                                    </div>
+                                    <div className="text-[9px] text-slate-400 mt-0.5 group-hover:text-purple-600 transition">
+                                      {emp.storage?.percentage || 0}% • Ver Detalhes 🔍
+                                    </div>
+                                  </button>
                                 </td>
 
                                 {/* ALUGUÉIS GERIDOS (VGV) */}
@@ -2519,11 +2756,21 @@ function ParametrosContent() {
                       <span>Matriz de Planos, Limites & Preços do SaaS</span>
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Defina os limites de imóveis, usuários, assinaturas digitais, repasses e preços cobrados em cada plano. Todas as alterações têm efeito imediato no sistema.
+                      Defina os limites de imóveis, usuários, vistorias, armazenamento e crie planos sob medida para clientes especiais com link VIP exclusivo.
                     </p>
                   </div>
 
-                  <div className="flex items-center space-x-2 shrink-0">
+                  <div className="flex items-center flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleOpenNewPlan}
+                      className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                      title="Criar novo plano sob medida para clientes específicos"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Novo Plano Customizado</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleRestaurarPlanosPadrao}
@@ -2540,7 +2787,7 @@ function ParametrosContent() {
                       className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      <span>{salvandoPlanos ? "Salvando..." : "Salvar Configurações dos Planos"}</span>
+                      <span>{salvandoPlanos ? "Salvando..." : "Salvar Configurações"}</span>
                     </button>
                   </div>
                 </div>
@@ -2549,7 +2796,9 @@ function ParametrosContent() {
                   <div className="text-center py-12 text-xs text-slate-500">Carregando dados dos planos...</div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL"].map((slug) => {
+                    {Object.keys(saasPlanos)
+                      .filter((s) => s !== "TRIAL" && s !== "MESTRE")
+                      .map((slug) => {
                       const p = saasPlanos[slug] || {};
                       const limits = p.limits || {};
                       const features = p.features || {};
@@ -2593,12 +2842,20 @@ function ParametrosContent() {
                       return (
                         <div
                           key={slug}
-                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-xs"
+                          className={`bg-white dark:bg-slate-900 border rounded-2xl p-5 space-y-4 shadow-xs relative ${
+                            p.visivelPublico === false
+                              ? "border-purple-300 dark:border-purple-800/80 bg-purple-50/10"
+                              : "border-slate-200 dark:border-slate-800"
+                          }`}
                         >
                           {/* Topo do Card do Plano */}
-                          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-2">
                             <div className="flex items-center space-x-2">
-                              <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                              <span className={`p-1.5 px-2.5 rounded-xl font-bold text-xs ${
+                                p.visivelPublico === false
+                                  ? "bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                  : "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400"
+                              }`}>
                                 {slug}
                               </span>
                               <div>
@@ -2612,13 +2869,49 @@ function ParametrosContent() {
                               </div>
                             </div>
 
-                            <input
-                              type="text"
-                              value={p.badge || ""}
-                              onChange={(e) => updatePlan("badge", e.target.value)}
-                              className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-center max-w-[130px]"
-                              placeholder="Badge (opcional)"
-                            />
+                            <div className="flex items-center space-x-1.5 flex-wrap">
+                              {p.visivelPublico === false ? (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 flex items-center gap-1">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  <span>VIP / Oculto</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                                  <Globe className="w-2.5 h-2.5" />
+                                  <span>Público</span>
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleCopyVipLink(slug)}
+                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition"
+                                title="Copiar Link VIP Direto para este plano (/renovar?planoId=...)"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditPlan(slug)}
+                                className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition font-bold text-xs flex items-center gap-1"
+                                title="Editar avançado (Visibilidade, Clientes VIP, etc.)"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="text-[10px]">Avançado</span>
+                              </button>
+
+                              {(p.isCustom || !["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL"].includes(slug)) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomPlan(slug)}
+                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
+                                  title="Excluir Plano Personalizado"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           {/* Bloco 1: Preços */}
@@ -3487,6 +3780,443 @@ function ParametrosContent() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CRIAR / EDITAR PLANO SAAS PERSONALIZADO */}
+        {showPlanModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-4 my-8">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                    {editingPlanSlug ? `Editar Plano: ${planFormData.name || editingPlanSlug}` : "Criar Novo Plano Personalizado"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPlanModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCustomPlan} className="space-y-4 text-xs">
+                {/* DADOS BÁSICOS */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nome do Plano *</label>
+                    <input
+                      type="text"
+                      required
+                      value={planFormData.name || ""}
+                      onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                      placeholder="Ex: VIP Construtora"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Código / Slug Único *</label>
+                    <input
+                      type="text"
+                      required
+                      disabled={Boolean(editingPlanSlug)}
+                      value={planFormData.slug || ""}
+                      onChange={(e) => setPlanFormData({ ...planFormData, slug: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-mono disabled:opacity-60"
+                      placeholder="Ex: VIP_SILVA"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Badge Visual</label>
+                    <input
+                      type="text"
+                      value={planFormData.badge || ""}
+                      onChange={(e) => setPlanFormData({ ...planFormData, badge: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100"
+                      placeholder="Ex: SOB MEDIDA"
+                    />
+                  </div>
+                </div>
+
+                {/* VISIBILIDADE & EXCLUSIVIDADE */}
+                <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 space-y-3">
+                  <span className="font-bold text-purple-900 dark:text-purple-200 block text-xs flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Visibilidade & Controle de Acesso</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label className="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibilidade"
+                        checked={planFormData.visivelPublico !== false}
+                        onChange={() => setPlanFormData({ ...planFormData, visivelPublico: true })}
+                        className="text-purple-600"
+                      />
+                      <div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">🌐 Público para Todos</span>
+                        <span className="text-[10px] text-slate-500">Exibido na Landing Page e na tela /renovar de todos os clientes.</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibilidade"
+                        checked={planFormData.visivelPublico === false}
+                        onChange={() => setPlanFormData({ ...planFormData, visivelPublico: false })}
+                        className="text-purple-600"
+                      />
+                      <div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">🔒 Privado / VIP (Oculto)</span>
+                        <span className="text-[10px] text-slate-500">Apenas acessível via link direto VIP ou pelas empresas autorizadas abaixo.</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {planFormData.visivelPublico === false && (
+                    <div className="pt-2 border-t border-purple-200 dark:border-purple-800">
+                      <label className="block font-semibold text-purple-900 dark:text-purple-200 mb-1 text-[11px]">
+                        Empresas Autorizadas a Ver este Plano na tela /renovar:
+                      </label>
+                      <div className="max-h-36 overflow-y-auto space-y-1.5 p-2 bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-800">
+                        {empresasSaaS.map((emp) => {
+                          const isChecked = (planFormData.empresasAutorizadasIds || []).includes(emp.id);
+                          return (
+                            <label key={emp.id} className="flex items-center space-x-2 text-[11px] cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const current = planFormData.empresasAutorizadasIds || [];
+                                  if (e.target.checked) {
+                                    setPlanFormData({ ...planFormData, empresasAutorizadasIds: [...current, emp.id] });
+                                  } else {
+                                    setPlanFormData({ ...planFormData, empresasAutorizadasIds: current.filter((id: string) => id !== emp.id) });
+                                  }
+                                }}
+                                className="rounded text-purple-600"
+                              />
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">{emp.nomeFantasia}</span>
+                              <span className="text-slate-400 text-[10px]">({emp.cnpj || emp.email})</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* TABELA DE PREÇOS */}
+                <div>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block mb-2 text-xs">💰 Valores dos Ciclos de Pagamento</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Mensal (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={planFormData.priceMonthly ?? 0}
+                        onChange={(e) => setPlanFormData({ ...planFormData, priceMonthly: parseFloat(e.target.value) || 0 })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Trimestral (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={planFormData.priceQuarterly ?? 0}
+                        onChange={(e) => setPlanFormData({ ...planFormData, priceQuarterly: parseFloat(e.target.value) || 0 })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Semestral (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={planFormData.priceSemiannual ?? 0}
+                        onChange={(e) => setPlanFormData({ ...planFormData, priceSemiannual: parseFloat(e.target.value) || 0 })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">Anual Total (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={planFormData.priceYearlyTotal ?? 0}
+                        onChange={(e) => {
+                          const total = parseFloat(e.target.value) || 0;
+                          setPlanFormData({
+                            ...planFormData,
+                            priceYearlyTotal: total,
+                            priceYearlyMonthlyEquivalent: Math.round(total / 12),
+                          });
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* LIMITES DE CAPACIDADE */}
+                <div>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block mb-2 text-xs">📊 Quotas e Limites Operacionais</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">🏢 Limite Imóveis / Flats</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={planFormData.limits?.maxProperties ?? 10}
+                        onChange={(e) => setPlanFormData({
+                          ...planFormData,
+                          limits: { ...planFormData.limits, maxProperties: parseInt(e.target.value, 10) || 1 },
+                        })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">👥 Limite Usuários / Equipe</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={planFormData.limits?.maxUsers ?? 2}
+                        onChange={(e) => setPlanFormData({
+                          ...planFormData,
+                          limits: { ...planFormData.limits, maxUsers: parseInt(e.target.value, 10) || 1 },
+                        })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">💾 Armazenamento (GB)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={planFormData.limits?.maxStorageGB ?? 5}
+                        onChange={(e) => setPlanFormData({
+                          ...planFormData,
+                          limits: { ...planFormData.limits, maxStorageGB: parseInt(e.target.value, 10) || 1 },
+                        })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">✍️ Assinaturas Digitais / Mês</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={planFormData.limits?.maxSignaturesPerMonth ?? 20}
+                        onChange={(e) => setPlanFormData({
+                          ...planFormData,
+                          limits: { ...planFormData.limits, maxSignaturesPerMonth: parseInt(e.target.value, 10) || 1 },
+                        })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">📱 WhatsApp Msg / Mês</label>
+                      <input
+                        type="number"
+                        min="10"
+                        value={planFormData.limits?.maxWhatsAppMessagesPerMonth ?? 500}
+                        onChange={(e) => setPlanFormData({
+                          ...planFormData,
+                          limits: { ...planFormData.limits, maxWhatsAppMessagesPerMonth: parseInt(e.target.value, 10) || 10 },
+                        })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-500 mb-0.5">🤝 Proprietários / Repasses</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={planFormData.limits?.maxOwners ?? 5}
+                        onChange={(e) => setPlanFormData({
+                          ...planFormData,
+                          limits: { ...planFormData.limits, maxOwners: parseInt(e.target.value, 10) || 0 },
+                        })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* DESCRIÇÃO */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-slate-500 mb-0.5">Descrição do Plano</label>
+                    <input
+                      type="text"
+                      value={planFormData.description || ""}
+                      onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-slate-100"
+                      placeholder="Benefícios e destaques..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-500 mb-0.5">Ideal Para</label>
+                    <input
+                      type="text"
+                      value={planFormData.idealPara || ""}
+                      onChange={(e) => setPlanFormData({ ...planFormData, idealPara: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-slate-100"
+                      placeholder="Ex: Construtoras com múltiplos prédios..."
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPlanModal(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingCustomPlan}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-md disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{savingCustomPlan ? "Salvando..." : "Salvar Plano"}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL RAIO-X DE ARMAZENAMENTO / STORAGE POR EMPRESA */}
+        {showStorageModal && storageModalEmpresa && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center space-x-2">
+                  <HardDrive className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                    Raio-X de Storage: {storageModalEmpresa.nomeFantasia}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowStorageModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* CARD DE CONSUMO TOTAL */}
+              <div className="bg-purple-50/60 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-200 dark:border-purple-800/60 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-purple-900 dark:text-purple-200">Consumo Total em Disco:</span>
+                  <span className="font-black text-purple-700 dark:text-purple-300 text-base">
+                    {storageModalEmpresa.storage?.totalFormatted || "0 KB"} / {storageModalEmpresa.storage?.maxFormatted || "5 GB"}
+                  </span>
+                </div>
+                <div className="w-full bg-purple-200 dark:bg-purple-900/60 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      (storageModalEmpresa.storage?.percentage || 0) > 90
+                        ? "bg-rose-500"
+                        : (storageModalEmpresa.storage?.percentage || 0) > 70
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${Math.max(3, Math.min(100, storageModalEmpresa.storage?.percentage || 0))}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-purple-700 dark:text-purple-400 font-medium">
+                  <span>{storageModalEmpresa.storage?.percentage || 0}% da cota do plano utilizada</span>
+                  <span>Plano: {storageModalEmpresa.planoAtual || "MENSAL"}</span>
+                </div>
+              </div>
+
+              {/* DETALHAMENTO POR CATEGORIA */}
+              <div className="space-y-2.5 text-xs">
+                <span className="font-bold text-slate-700 dark:text-slate-300 block">Detalhamento por Tipo de Mídia:</span>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-base">🏠</span>
+                    <div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block">Galeria de Flats & Imóveis</span>
+                      <span className="text-[10px] text-slate-500">
+                        {storageModalEmpresa.storage?.details?.flatsPhotosCount || 0} fotos de alta resolução
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                    {storageModalEmpresa.storage?.details?.flatsFormatted || "0 KB"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-base">📋</span>
+                    <div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block">Vistorias & Laudos Periciais</span>
+                      <span className="text-[10px] text-slate-500">
+                        {storageModalEmpresa.storage?.details?.vistoriasPhotosCount || 0} fotos de vistorias com laudo
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                    {storageModalEmpresa.storage?.details?.vistoriasFormatted || "0 KB"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-base">✍️</span>
+                    <div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block">Logomarcas & Assinaturas Digitais</span>
+                      <span className="text-[10px] text-slate-500">
+                        Logos da imobiliária e rubricas do gestor/usuários
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                    {storageModalEmpresa.storage?.details?.assetsFormatted || "0 KB"}
+                  </span>
+                </div>
+              </div>
+
+              {/* DICA DE OTIMIZAÇÃO */}
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-start space-x-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  O sistema comprime automaticamente todas as fotos para o formato WebP moderno, reduzindo o tamanho em mais de 90% sem perda de nitidez visual.
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowStorageModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer shadow-xs"
+                >
+                  Fechar Raio-X
+                </button>
+              </div>
             </div>
           </div>
         )}

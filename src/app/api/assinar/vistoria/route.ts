@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const {
+    let {
       token,
       vistoriaId,
       contratoId,
@@ -93,6 +93,15 @@ export async function POST(request: NextRequest) {
       statusAssinatura,
       gerarNovoLink,
     } = await request.json();
+
+    if (assinaturaBase64) {
+      try {
+        const { optimizeSignature } = await import("@/lib/imageOptimizer");
+        assinaturaBase64 = await optimizeSignature(assinaturaBase64);
+      } catch (optErr) {
+        console.warn("Aviso: Falha ao otimizar assinatura de vistoria:", optErr);
+      }
+    }
 
     const clientIp = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
 

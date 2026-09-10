@@ -62,7 +62,7 @@ function RenovarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const empresaIdParam = searchParams.get("empresaId") || "";
-  const planoParam = (searchParams.get("plano") || "PROFISSIONAL").toUpperCase();
+  const planoParam = (searchParams.get("plano") || searchParams.get("planoId") || "PROFISSIONAL").toUpperCase();
 
   const [selectedPlano, setSelectedPlano] = useState<string>(planoParam);
   const [commercialPlans, setCommercialPlans] = useState<PlanDefinition[]>(COMMERCIAL_PLANS);
@@ -74,19 +74,22 @@ function RenovarContent() {
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [dadosLiberacao, setDadosLiberacao] = useState<{ dataExpiracao?: string; plano?: string } | null>(null);
 
-  // Carrega os planos e valores configurados no SaaS
+  // Carrega os planos e valores configurados no SaaS (incluindo planos VIP direcionados)
   useEffect(() => {
-    fetch("/api/saas/planos")
+    const planoIdQuery = searchParams.get("planoId") || searchParams.get("plano") || "";
+    fetch(`/api/saas/planos?planoId=${encodeURIComponent(planoIdQuery)}`)
       .then((res) => res.json())
       .then((d) => {
-        if (d.commercialPlans && Array.isArray(d.commercialPlans) && d.commercialPlans.length > 0) {
+        if (d.clientEligiblePlans && Array.isArray(d.clientEligiblePlans) && d.clientEligiblePlans.length > 0) {
+          setCommercialPlans(d.clientEligiblePlans);
+        } else if (d.commercialPlans && Array.isArray(d.commercialPlans) && d.commercialPlans.length > 0) {
           setCommercialPlans(d.commercialPlans);
         } else if (d.planos) {
           setCommercialPlans(getCommercialPlans(d.planos));
         }
       })
       .catch(() => {});
-  }, []);
+  }, [searchParams]);
 
   const fetchAuthStatus = () => {
     fetch("/api/auth/me")
@@ -281,11 +284,20 @@ function RenovarContent() {
                     : "bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80"
                 }`}
               >
-                {plano.popular && (
+                {plano.visivelPublico === false ? (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>👑 Exclusivo para sua Empresa</span>
+                  </div>
+                ) : plano.popular ? (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
                     Mais Escolhido
                   </div>
-                )}
+                ) : plano.badge ? (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 text-[10px] font-black uppercase tracking-wider shadow-md">
+                    {plano.badge}
+                  </div>
+                ) : null}
 
                 <div>
                   <div className="flex items-center justify-between mb-2">

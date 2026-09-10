@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthSessionOrFallback, isUserSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verificarStatusAcesso, getSaasConfig } from "@/lib/saasConfig";
+import { calculateDataUriBytes, formatBytes } from "@/lib/imageOptimizer";
 
 export async function GET() {
   try {
@@ -27,6 +28,7 @@ export async function GET() {
             nome: true,
             email: true,
             cargo: true,
+            assinaturaUrl: true,
           },
         },
         flats: {
@@ -34,6 +36,15 @@ export async function GET() {
             id: true,
             status: true,
             valorPadrao: true,
+            fotosUrl: true,
+          },
+        },
+        vistoriasChecklist: {
+          select: {
+            id: true,
+            tipoVistoria: true,
+            itensJson: true,
+            assinaturaLocatarioUrl: true,
           },
         },
         contratos: {
@@ -57,6 +68,7 @@ export async function GET() {
             contratos: true,
             locatarios: true,
             fornecedores: true,
+            vistoriasChecklist: true,
           },
         },
       },
@@ -75,6 +87,7 @@ export async function GET() {
     let totalFlatsGlobal = 0;
     let totalFlatsOcupadosGlobal = 0;
     let totalContratosAtivosGlobal = 0;
+    let totalStorageBytesGlobal = 0;
 
     const empresasComStatus = await Promise.all(
       empresas.map(async (emp) => {
@@ -91,6 +104,67 @@ export async function GET() {
           (acc, cr) => acc + (cr.valorPago || cr.valor || 0),
           0
         );
+
+        // 💾 Cálculo Preciso do Consumo de Storage / Espaço em Disco
+        let flatStorageBytes = 0;
+        let flatPhotosCount = 0;
+        emp.flats.forEach((f) => {
+          if (f.fotosUrl) {
+            try {
+              const parsed: string[] = JSON.parse(f.fotosUrl);
+              if (Array.isArray(parsed)) {
+                parsed.forEach((url) => {
+                  flatStorageBytes += calculateDataUriBytes(url);
+                  flatPhotosCount++;
+                });
+              }
+            } catch (e) {
+              flatStorageBytes += calculateDataUriBytes(f.fotosUrl);
+              flatPhotosCount++;
+            }
+          }
+        });
+
+        let vistoriaStorageBytes = 0;
+        let vistoriaPhotosCount = 0;
+        emp.vistoriasChecklist.forEach((v) => {
+          if (v.itensJson) {
+            try {
+              const parsed = JSON.parse(v.itensJson);
+              const items = Array.isArray(parsed) ? parsed : (parsed.itens || []);
+              items.forEach((item: any) => {
+                if (item.fotos && Array.isArray(item.fotos)) {
+                  item.fotos.forEach((foto: string) => {
+                    vistoriaStorageBytes += calculateDataUriBytes(foto);
+                    vistoriaPhotosCount++;
+                  });
+                } else if (item.foto) {
+                  vistoriaStorageBytes += calculateDataUriBytes(item.foto);
+                  vistoriaPhotosCount++;
+                }
+              });
+            } catch (e) {
+              vistoriaStorageBytes += calculateDataUriBytes(v.itensJson);
+            }
+          }
+          if (v.assinaturaLocatarioUrl) {
+            vistoriaStorageBytes += calculateDataUriBytes(v.assinaturaLocatarioUrl);
+          }
+        });
+
+        let assetsStorageBytes = 0;
+        assetsStorageBytes += calculateDataUriBytes(emp.logomarcaUrl);
+        assetsStorageBytes += calculateDataUriBytes(emp.assinaturaUrl);
+        emp.usuarios.forEach((u) => {
+          assetsStorageBytes += calculateDataUriBytes(u.assinaturaUrl);
+        });
+
+        const totalStorageBytes = flatStorageBytes + vistoriaStorageBytes + assetsStorageBytes;
+        totalStorageBytesGlobal += totalStorageBytes;
+
+        const maxStorageGB = emp.isMestre ? 999 : ((statusAcesso as any).limiteStorageGB || 5);
+        const maxStorageBytes = maxStorageGB * 1024 * 1024 * 1024;
+        const storagePercentage = Math.min(100, Math.max(1, Math.round((totalStorageBytes / maxStorageBytes) * 100)));
 
         // Determinar valor estimado da mensalidade SaaS da empresa
         let mensalidadeSaaS = 0;
@@ -142,6 +216,29 @@ export async function GET() {
           usuarios: emp.usuarios,
           counts: emp._count,
           statusAcesso,
+          storage: {
+            totalBytes: totalStorageBytes,
+            totalFormatted: formatBytes(totalStorageBytes),
+            maxStorageGB,
+            maxFormatted: `${maxStorageGB} GB`,
+            percentage: storagePercentage,
+            breakdown: {
+              flats: {
+                bytes: flatStorageBytes,
+                formatted: formatBytes(flatStorageBytes),
+                photosCount: flatPhotosCount,
+              },
+              vistorias: {
+                bytes: vistoriaStorageBytes,
+                formatted: formatBytes(vistoriaStorageBytes),
+                photosCount: vistoriaPhotosCount,
+              },
+              assets: {
+                bytes: assetsStorageBytes,
+                formatted: formatBytes(assetsStorageBytes),
+              },
+            },
+          },
           metrics: {
             totalFlats,
             flatsOcupados,
@@ -170,6 +267,8 @@ export async function GET() {
       totalFlatsOcupadosGlobal,
       taxaOcupacaoGlobal,
       totalContratosAtivosGlobal,
+      totalStorageBytesGlobal,
+      totalStorageFormattedGlobal: formatBytes(totalStorageBytesGlobal),
     };
 
     return NextResponse.json({

@@ -27,15 +27,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = path.extname(file.name).toLowerCase() || ".png";
-    let mimeType = "image/png";
-    if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
-    else if (ext === ".webp") mimeType = "image/webp";
-    else if (ext === ".svg") mimeType = "image/svg+xml";
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const ext = path.extname(file.name) || ".png";
 
-    const base64Data = buffer.toString("base64");
-    const assinaturaDataUri = `data:${mimeType};base64,${base64Data}`;
+    const { optimizeSignature } = await import("@/lib/imageOptimizer");
+    const assinaturaDataUri = await optimizeSignature(buffer);
 
     // Gravação em disco como redundância local
     try {
