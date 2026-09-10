@@ -2214,8 +2214,8 @@ function ParametrosContent() {
 
         {/* MODAL ADICIONAR / EDITAR FORMA DE PAGAMENTO */}
         {showFormaModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[92vh] my-auto overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
                   <CreditCard className="w-4 h-4 text-cyan-600" />
@@ -3660,8 +3660,8 @@ function ParametrosContent() {
 
         {/* MODAL LIBERAR / RENOVAR ACESSO DE EMPRESA */}
         {showLiberarModal && empresaLiberar && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[92vh] my-auto overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
                   <Unlock className="w-5 h-5 text-amber-500" />
@@ -3786,171 +3786,196 @@ function ParametrosContent() {
 
         {/* MODAL CRIAR / EDITAR PLANO SAAS PERSONALIZADO */}
         {showPlanModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-4 my-8">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                    {editingPlanSlug ? `Editar Plano: ${planFormData.name || editingPlanSlug}` : "Criar Novo Plano Personalizado"}
-                  </h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[92vh] my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              
+              {/* Top Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4 shrink-0 bg-slate-50/80 dark:bg-slate-950/50">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                      {editingPlanSlug ? `Editar Plano: ${planFormData.name || editingPlanSlug}` : "Criar Novo Plano Personalizado"}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Configure os preços, quotas e visibilidade exclusiva do plano SaaS
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowPlanModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveCustomPlan} className="space-y-4 text-xs">
-                {/* DADOS BÁSICOS */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nome do Plano *</label>
-                    <input
-                      type="text"
-                      required
-                      value={planFormData.name || ""}
-                      onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
-                      placeholder="Ex: VIP Construtora"
-                    />
-                  </div>
+              {/* Form Body */}
+              <form id="formCustomPlan" onSubmit={handleSaveCustomPlan} className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+                {/* 1. DADOS BÁSICOS */}
+                <div className="bg-slate-50/70 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 block text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span>1. Informações Básicas do Plano</span>
+                  </span>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Código / Slug Único *</label>
-                    <input
-                      type="text"
-                      required
-                      disabled={Boolean(editingPlanSlug)}
-                      value={planFormData.slug || ""}
-                      onChange={(e) => setPlanFormData({ ...planFormData, slug: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-mono disabled:opacity-60"
-                      placeholder="Ex: VIP_SILVA"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="min-w-0">
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nome do Plano *</label>
+                      <input
+                        type="text"
+                        required
+                        value={planFormData.name || ""}
+                        onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Ex: VIP Construtora"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Badge Visual</label>
-                    <input
-                      type="text"
-                      value={planFormData.badge || ""}
-                      onChange={(e) => setPlanFormData({ ...planFormData, badge: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100"
-                      placeholder="Ex: SOB MEDIDA"
-                    />
+                    <div className="min-w-0">
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Código / Slug Único *</label>
+                      <input
+                        type="text"
+                        required
+                        disabled={Boolean(editingPlanSlug)}
+                        value={planFormData.slug || ""}
+                        onChange={(e) => setPlanFormData({ ...planFormData, slug: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-mono disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Ex: VIP_SILVA"
+                      />
+                    </div>
+
+                    <div className="min-w-0">
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Badge Visual</label>
+                      <input
+                        type="text"
+                        value={planFormData.badge || ""}
+                        onChange={(e) => setPlanFormData({ ...planFormData, badge: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Ex: SOB MEDIDA"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* VISIBILIDADE & EXCLUSIVIDADE */}
-                <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 space-y-3">
+                {/* 2. VISIBILIDADE & EXCLUSIVIDADE */}
+                <div className="p-4 rounded-2xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 space-y-3">
                   <span className="font-bold text-purple-900 dark:text-purple-200 block text-xs flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>Visibilidade & Controle de Acesso</span>
+                    <span>2. Visibilidade & Controle de Acesso</span>
                   </span>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label className="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 cursor-pointer">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <label className="flex items-start space-x-2.5 p-3 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 cursor-pointer hover:border-purple-400 transition">
                       <input
                         type="radio"
                         name="visibilidade"
                         checked={planFormData.visivelPublico !== false}
                         onChange={() => setPlanFormData({ ...planFormData, visivelPublico: true })}
-                        className="text-purple-600"
+                        className="mt-0.5 text-purple-600 focus:ring-purple-500"
                       />
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">🌐 Público para Todos</span>
-                        <span className="text-[10px] text-slate-500">Exibido na Landing Page e na tela /renovar de todos os clientes.</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">Exibido na Landing Page e na tela /renovar de todos os clientes.</span>
                       </div>
                     </label>
 
-                    <label className="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 cursor-pointer">
+                    <label className="flex items-start space-x-2.5 p-3 rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 cursor-pointer hover:border-purple-400 transition">
                       <input
                         type="radio"
                         name="visibilidade"
                         checked={planFormData.visivelPublico === false}
                         onChange={() => setPlanFormData({ ...planFormData, visivelPublico: false })}
-                        className="text-purple-600"
+                        className="mt-0.5 text-purple-600 focus:ring-purple-500"
                       />
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs">🔒 Privado / VIP (Oculto)</span>
-                        <span className="text-[10px] text-slate-500">Apenas acessível via link direto VIP ou pelas empresas autorizadas abaixo.</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block mt-0.5">Apenas acessível via link VIP ou pelas empresas autorizadas abaixo.</span>
                       </div>
                     </label>
                   </div>
 
                   {planFormData.visivelPublico === false && (
-                    <div className="pt-2 border-t border-purple-200 dark:border-purple-800">
-                      <label className="block font-semibold text-purple-900 dark:text-purple-200 mb-1 text-[11px]">
+                    <div className="pt-2 border-t border-purple-200 dark:border-purple-800/80">
+                      <label className="block font-semibold text-purple-900 dark:text-purple-200 mb-1.5 text-[11px]">
                         Empresas Autorizadas a Ver este Plano na tela /renovar:
                       </label>
-                      <div className="max-h-36 overflow-y-auto space-y-1.5 p-2 bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-800">
-                        {empresasSaaS.map((emp) => {
-                          const isChecked = (planFormData.empresasAutorizadasIds || []).includes(emp.id);
-                          return (
-                            <label key={emp.id} className="flex items-center space-x-2 text-[11px] cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1 rounded">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  const current = planFormData.empresasAutorizadasIds || [];
-                                  if (e.target.checked) {
-                                    setPlanFormData({ ...planFormData, empresasAutorizadasIds: [...current, emp.id] });
-                                  } else {
-                                    setPlanFormData({ ...planFormData, empresasAutorizadasIds: current.filter((id: string) => id !== emp.id) });
-                                  }
-                                }}
-                                className="rounded text-purple-600"
-                              />
-                              <span className="font-semibold text-slate-800 dark:text-slate-200">{emp.nomeFantasia}</span>
-                              <span className="text-slate-400 text-[10px]">({emp.cnpj || emp.email})</span>
-                            </label>
-                          );
-                        })}
+                      <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-white dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-800">
+                        {empresasSaaS.length === 0 ? (
+                          <span className="text-[11px] text-slate-400 p-2 block">Nenhuma empresa cadastrada.</span>
+                        ) : (
+                          empresasSaaS.map((emp) => {
+                            const isChecked = (planFormData.empresasAutorizadasIds || []).includes(emp.id);
+                            return (
+                              <label key={emp.id} className="flex items-center space-x-2.5 text-[11px] cursor-pointer hover:bg-purple-50/50 dark:hover:bg-slate-800/50 p-1.5 rounded-lg transition">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    const current = planFormData.empresasAutorizadasIds || [];
+                                    if (e.target.checked) {
+                                      setPlanFormData({ ...planFormData, empresasAutorizadasIds: [...current, emp.id] });
+                                    } else {
+                                      setPlanFormData({ ...planFormData, empresasAutorizadasIds: current.filter((id: string) => id !== emp.id) });
+                                    }
+                                  }}
+                                  className="rounded text-purple-600 focus:ring-purple-500"
+                                />
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">{emp.nomeFantasia}</span>
+                                <span className="text-slate-400 text-[10px]">({emp.cnpj || emp.email})</span>
+                              </label>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* TABELA DE PREÇOS */}
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block mb-2 text-xs">💰 Valores dos Ciclos de Pagamento</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Mensal (R$)</label>
+                {/* 3. TABELA DE PREÇOS */}
+                <div className="bg-slate-50/70 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>3. Valores dos Ciclos de Pagamento</span>
+                  </span>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="min-w-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Mensal (R$) *</label>
                       <input
                         type="number"
                         step="0.01"
                         required
                         value={planFormData.priceMonthly ?? 0}
                         onChange={(e) => setPlanFormData({ ...planFormData, priceMonthly: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Trimestral (R$)</label>
+                    <div className="min-w-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Trimestral (R$)</label>
                       <input
                         type="number"
                         step="0.01"
                         value={planFormData.priceQuarterly ?? 0}
                         onChange={(e) => setPlanFormData({ ...planFormData, priceQuarterly: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Semestral (R$)</label>
+                    <div className="min-w-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Semestral (R$)</label>
                       <input
                         type="number"
                         step="0.01"
                         value={planFormData.priceSemiannual ?? 0}
                         onChange={(e) => setPlanFormData({ ...planFormData, priceSemiannual: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">Anual Total (R$)</label>
+                    <div className="min-w-0 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Anual Total (R$) *</label>
                       <input
                         type="number"
                         step="0.01"
@@ -3964,18 +3989,24 @@ function ParametrosContent() {
                             priceYearlyMonthlyEquivalent: Math.round(total / 12),
                           });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* LIMITES DE CAPACIDADE */}
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block mb-2 text-xs">📊 Quotas e Limites Operacionais</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">🏢 Limite Imóveis / Flats</label>
+                {/* 4. LIMITES DE CAPACIDADE */}
+                <div className="bg-slate-50/70 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span>4. Quotas e Limites Operacionais</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                        <span>🏢</span> <span>Limite Imóveis / Flats</span>
+                      </label>
                       <input
                         type="number"
                         min="1"
@@ -3985,11 +4016,14 @@ function ParametrosContent() {
                           ...planFormData,
                           limits: { ...planFormData.limits, maxProperties: parseInt(e.target.value, 10) || 1 },
                         })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">👥 Limite Usuários / Equipe</label>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                        <span>👥</span> <span>Limite Usuários / Equipe</span>
+                      </label>
                       <input
                         type="number"
                         min="1"
@@ -3999,11 +4033,14 @@ function ParametrosContent() {
                           ...planFormData,
                           limits: { ...planFormData.limits, maxUsers: parseInt(e.target.value, 10) || 1 },
                         })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">💾 Armazenamento (GB)</label>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                        <span>💾</span> <span>Armazenamento (GB)</span>
+                      </label>
                       <input
                         type="number"
                         min="1"
@@ -4013,11 +4050,14 @@ function ParametrosContent() {
                           ...planFormData,
                           limits: { ...planFormData.limits, maxStorageGB: parseInt(e.target.value, 10) || 1 },
                         })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">✍️ Assinaturas Digitais / Mês</label>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                        <span>✍️</span> <span>Assinaturas Digitais / Mês</span>
+                      </label>
                       <input
                         type="number"
                         min="1"
@@ -4026,11 +4066,14 @@ function ParametrosContent() {
                           ...planFormData,
                           limits: { ...planFormData.limits, maxSignaturesPerMonth: parseInt(e.target.value, 10) || 1 },
                         })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">📱 WhatsApp Msg / Mês</label>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                        <span>📱</span> <span>WhatsApp Msg / Mês</span>
+                      </label>
                       <input
                         type="number"
                         min="10"
@@ -4039,11 +4082,14 @@ function ParametrosContent() {
                           ...planFormData,
                           limits: { ...planFormData.limits, maxWhatsAppMessagesPerMonth: parseInt(e.target.value, 10) || 10 },
                         })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-slate-500 mb-0.5">🤝 Proprietários / Repasses</label>
+
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
+                        <span>🤝</span> <span>Proprietários / Repasses</span>
+                      </label>
                       <input
                         type="number"
                         min="0"
@@ -4052,67 +4098,78 @@ function ParametrosContent() {
                           ...planFormData,
                           limits: { ...planFormData.limits, maxOwners: parseInt(e.target.value, 10) || 0 },
                         })}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* DESCRIÇÃO */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-0.5">Descrição do Plano</label>
-                    <input
-                      type="text"
-                      value={planFormData.description || ""}
-                      onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-slate-100"
-                      placeholder="Benefícios e destaques..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-0.5">Ideal Para</label>
-                    <input
-                      type="text"
-                      value={planFormData.idealPara || ""}
-                      onChange={(e) => setPlanFormData({ ...planFormData, idealPara: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-900 dark:text-slate-100"
-                      placeholder="Ex: Construtoras com múltiplos prédios..."
-                    />
-                  </div>
-                </div>
+                {/* 5. DESCRIÇÃO & DESTACADOS */}
+                <div className="bg-slate-50/70 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>5. Descrição e Apresentação</span>
+                  </span>
 
-                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPlanModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200 cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingCustomPlan}
-                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-md disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>{savingCustomPlan ? "Salvando..." : "Salvar Plano"}</span>
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="min-w-0">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Descrição do Plano</label>
+                      <input
+                        type="text"
+                        value={planFormData.description || ""}
+                        onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Benefícios e destaques..."
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Ideal Para</label>
+                      <input
+                        type="text"
+                        value={planFormData.idealPara || ""}
+                        onChange={(e) => setPlanFormData({ ...planFormData, idealPara: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Ex: Construtoras com múltiplos prédios..."
+                      />
+                    </div>
+                  </div>
                 </div>
               </form>
+
+              {/* Fixed Footer Actions */}
+              <div className="border-t border-slate-200 dark:border-slate-800 px-6 py-3.5 bg-slate-50 dark:bg-slate-950 flex items-center justify-end space-x-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowPlanModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  form="formCustomPlan"
+                  disabled={savingCustomPlan}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md disabled:opacity-50 flex items-center space-x-2 transition cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{savingCustomPlan ? "Salvando..." : "Salvar Plano"}</span>
+                </button>
+              </div>
+
             </div>
           </div>
         )}
 
         {/* MODAL RAIO-X DE ARMAZENAMENTO / STORAGE POR EMPRESA */}
         {showStorageModal && storageModalEmpresa && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[92vh] my-auto overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
                   <HardDrive className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                     Raio-X de Storage: {storageModalEmpresa.nomeFantasia}
+
                   </h3>
                 </div>
                 <button
