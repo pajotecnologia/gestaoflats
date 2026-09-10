@@ -261,3 +261,78 @@ export async function emitirCobrancaSaaSBancoInter({
     ciclo,
   };
 }
+
+/**
+ * Consulta o status da cobrança de renovação diretamente no Banco Inter e aplica a liquidação se paga
+ */
+export async function consultarEBaixarCobrancaSaaS(cobrancaId: string): Promise<boolean> {
+  const cobranca = await prisma.cobrancaAssinaturaSaaS.findUnique({
+    where: { id: cobrancaId },
+  });
+
+  if (!cobranca) return false;
+  if (cobranca.status === "PAGO") return true;
+  if (!cobranca.bancoInterCodigoSolicitacao) return false;
+
+  try {
+    const { config: interConfig, empresaId: interEmpresaId } = await getMasterBancoInterConfig();
+    const token = await getInterOAuthToken(interConfig, interEmpresaId);
+    const agent = createInterHttpsAgent(interConfig.certCrt, interConfig.certKey);
+    const baseUrl = getInterBaseUrl(interConfig.ambiente);
+
+    const res = await makeInterRequest({
+      url: `${baseUrl}/cobranca/v3/cobrancas/${cobranca.bancoInterCodigoSolicitacao}`,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      agent,
+    });
+
+    if (res.status === 200 && res.data) {
+      const situacao = res.data.situacao || res.data.cobranca?.situacao || res.data.status;
+      if (situacao === "RECEBIDO" || situacao === "PAGO" || situacao === "LIQUIDADO") {
+        const valorRecebido = res.data.valorTotalRecebido || res.data.valorNominal || cobranca.valor;
+        const dataPagto = res.data.dataHoraSituacao ? new Date(res.data.dataHoraSituacao) : new Date();
+
+        await prisma.cobrancaAssinaturaSaaS.update({
+          where: { id: cobranca.id },
+          data: {
+            status: "PAGO",
+            valorPago: typeof valorRecebido === "number" ? valorRecebido : parseFloat(valorRecebido) || cobranca.valor,
+            dataPagamento: isNaN(dataPagto.getTime()) ? new Date() : dataPagto,
+            bancoInterStatus: "RECEBIDO",
+          },
+        });
+
+        const empresa = await prisma.empresa.findUnique({
+          where: { id: cobranca.empresaId },
+        });
+
+        if (empresa) {
+          const agora = new Date();
+          let baseDate = agora;
+          if (empresa.dataFimAcesso && empresa.dataFimAcesso.getTime() > agora.getTime()) {
+            baseDate = new Date(empresa.dataFimAcesso.getTime());
+          }
+          const diasAdicionar = cobranca.ciclo === "ANUAL" ? 365 : 30;
+          const novaDataFimAcesso = new Date(baseDate.getTime() + diasAdicionar * 24 * 60 * 60 * 1000);
+
+          await prisma.empresa.update({
+            where: { id: empresa.id },
+            data: {
+              statusAssinatura: "ATIVO",
+              planoAtual: cobranca.plano,
+              dataFimAcesso: novaDataFimAcesso,
+            },
+          });
+        }
+
+        return true;
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao consultar status no Banco Inter:", err);
+  }
+
+  return false;
+}
+

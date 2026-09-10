@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verificarStatusAcesso } from "@/lib/saasConfig";
+import { consultarEBaixarCobrancaSaaS } from "@/lib/bancoInterSaaS";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,16 @@ export async function GET(request: NextRequest) {
         where: { empresaId },
         orderBy: { createdAt: "desc" },
       });
+    }
+
+    // Se ainda estiver PENDENTE e tiver código de solicitação no Inter, consulta ativamente a API do Inter
+    if (cobranca && cobranca.status !== "PAGO" && cobranca.bancoInterCodigoSolicitacao) {
+      const foiBaixado = await consultarEBaixarCobrancaSaaS(cobranca.id).catch(() => false);
+      if (foiBaixado) {
+        cobranca = await prisma.cobrancaAssinaturaSaaS.findUnique({
+          where: { id: cobranca.id },
+        });
+      }
     }
 
     const targetEmpresaId = cobranca?.empresaId || empresaId;
