@@ -37,19 +37,28 @@ export function getInterBaseUrl(ambiente: "PRODUCAO" | "SANDBOX" = "PRODUCAO"): 
  */
 export function sanitizePem(pemOrBase64: string): string {
   if (!pemOrBase64) return "";
-  let clean = pemOrBase64.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  
+  let clean = pemOrBase64.trim();
+
+  // Remove aspas extras se veio de JSON stringificado
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1);
+  }
+
+  // Normaliza quebras de linha escapadas \n ou \r\n
+  clean = clean.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+
   // Se for Base64 puro sem headers PEM, tenta decodificar
   if (!clean.includes("-----BEGIN") && /^[A-Za-z0-9+/=\s]+$/.test(clean)) {
     try {
       const decoded = Buffer.from(clean, "base64").toString("utf-8");
       if (decoded.includes("-----BEGIN")) {
-        return decoded.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        return decoded.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
       }
     } catch {
       // Ignora erro e usa o original
     }
   }
+
   return clean;
 }
 
@@ -76,7 +85,7 @@ export function createInterHttpsAgent(certCrt: string, certKey: string): https.A
     key,
     minVersion: "TLSv1.2",
     maxVersion: "TLSv1.3",
-    ciphers: "DEFAULT:@SECLEVEL=1",
+    ciphers: "DEFAULT:@SECLEVEL=1:ALL",
     rejectUnauthorized: true,
     keepAlive: true,
   });
@@ -166,11 +175,32 @@ export async function makeInterRequest<T = any>({
         reject(new Error("Tempo limite de conexão esgotado ao contatar o Banco Inter (30s)."));
       });
 
-      req.on("error", (err) => {
-        let msg = err.message || "";
-        if (msg.includes("unknown ca") || msg.includes("alert number 48")) {
-          msg = "O servidor do Banco Inter rejeitou o certificado digital (SSL Alert 48: Unknown CA). Isso ocorre quando o certificado enviado pertence a outro ambiente (ex: certificado de PRODUÇÃO sendo testado em SANDBOX, ou vice-versa). Se você baixou o certificado pelo Internet Banking PJ, altere o ambiente para PRODUÇÃO antes de testar.";
+      req.on("error", (err: any) => {
+        const rawMsg = err.message || "";
+        const code = err.code || "";
+        let msg = rawMsg;
+
+        if (
+          rawMsg.includes("unknown ca") ||
+          rawMsg.includes("alert number 48") ||
+          rawMsg.includes("certificate unknown") ||
+          rawMsg.includes("alert number 46") ||
+          code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+        ) {
+          msg = "O Banco Inter rejeitou o certificado digital (SSL Alert: Unknown CA). Isso acontece principalmente quando o certificado enviado foi gerado para PRODUÇÃO (Internet Banking PJ real) mas o Ambiente selecionado nos Parâmetros está marcado como SANDBOX (ou vice-versa). Por favor, altere o Ambiente para PRODUÇÃO e clique em Salvar / Testar novamente.";
+        } else if (
+          rawMsg.includes("bad certificate") ||
+          rawMsg.includes("alert number 42") ||
+          rawMsg.includes("handshake failure") ||
+          rawMsg.includes("alert number 40")
+        ) {
+          msg = "Falha no Handshake TLS: o certificado (.crt) e a chave privada (.key) enviados não formam um par criptográfico válido ou foram rejeitados pelo Banco Inter. Verifique se os arquivos .crt e .key foram extraídos do mesmo arquivo .zip baixado do Internet Banking PJ.";
+        } else if (rawMsg.includes("decrypt error") || rawMsg.includes("alert number 51")) {
+          msg = "Erro ao ler a chave privada (.key). Verifique se o arquivo .key possui senha ou está corrompido.";
+        } else if (code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT") {
+          msg = `Não foi possível conectar ao servidor do Banco Inter (${code}: ${rawMsg}). Verifique sua conexão ou se a API do Inter está online.`;
         }
+
         reject(new Error(`Falha na conexão mTLS com o Banco Inter: ${msg}`));
       });
 
