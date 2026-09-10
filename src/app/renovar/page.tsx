@@ -25,7 +25,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { SYSTEM_VERSION } from "@/lib/version";
-import { COMMERCIAL_PLANS, SAAS_PLANS } from "@/lib/plans/planDefinitions";
+import { COMMERCIAL_PLANS, SAAS_PLANS, PlanDefinition, getCommercialPlans } from "@/lib/plans/planDefinitions";
 import ImobLogo from "@/components/brand/ImobLogo";
 
 interface PlanoPixData {
@@ -65,6 +65,7 @@ function RenovarContent() {
   const planoParam = (searchParams.get("plano") || "PROFISSIONAL").toUpperCase();
 
   const [selectedPlano, setSelectedPlano] = useState<string>(planoParam);
+  const [commercialPlans, setCommercialPlans] = useState<PlanDefinition[]>(COMMERCIAL_PLANS);
   const [billingCycle, setBillingCycle] = useState<"MENSAL" | "ANUAL">("MENSAL");
   const [data, setData] = useState<PlanoPixData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +73,20 @@ function RenovarContent() {
   const [userStatus, setUserStatus] = useState<any>(null);
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [dadosLiberacao, setDadosLiberacao] = useState<{ dataExpiracao?: string; plano?: string } | null>(null);
+
+  // Carrega os planos e valores configurados no SaaS
+  useEffect(() => {
+    fetch("/api/saas/planos")
+      .then((res) => res.json())
+      .then((d) => {
+        if (d.commercialPlans && Array.isArray(d.commercialPlans) && d.commercialPlans.length > 0) {
+          setCommercialPlans(d.commercialPlans);
+        } else if (d.planos) {
+          setCommercialPlans(getCommercialPlans(d.planos));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchAuthStatus = () => {
     fetch("/api/auth/me")
@@ -253,7 +268,7 @@ function RenovarContent() {
 
         {/* Grid de Cards de Planos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-4">
-          {COMMERCIAL_PLANS.map((plano) => {
+          {commercialPlans.map((plano) => {
             const isSelected = selectedPlano === plano.slug;
             const price = billingCycle === "ANUAL" ? plano.priceYearlyMonthlyEquivalent : plano.priceMonthly;
 

@@ -347,6 +347,19 @@ export const COMMERCIAL_PLANS = [
 ];
 
 /**
+ * Retorna a lista dos planos comerciais considerando customizações salvas no banco
+ */
+export function getCommercialPlans(customPlans?: Record<string, PlanDefinition>): PlanDefinition[] {
+  const plans = customPlans || SAAS_PLANS;
+  return [
+    plans.ESSENCIAL || SAAS_PLANS.ESSENCIAL,
+    plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL,
+    plans.GESTAO || SAAS_PLANS.GESTAO,
+    plans.EMPRESARIAL || SAAS_PLANS.EMPRESARIAL,
+  ];
+}
+
+/**
  * Retorna o próximo plano sugerido para upgrade quando o limite for atingido
  */
 export function getNextUpgradePlan(currentSlug: string): PlanDefinition | null {

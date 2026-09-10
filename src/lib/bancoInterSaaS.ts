@@ -7,6 +7,7 @@ import {
   makeInterRequest,
 } from "@/lib/bancoInter";
 import { SAAS_PLANS } from "@/lib/plans/planDefinitions";
+import { getActiveSaasPlans } from "@/lib/plans/planService";
 import { generatePixQRCode } from "@/lib/pix";
 
 /**
@@ -71,7 +72,8 @@ export async function emitirCobrancaSaaSBancoInter({
   planoSlug,
   ciclo,
 }: EmitirCobrancaSaaSParams) {
-  const targetPlan = SAAS_PLANS[planoSlug.toUpperCase()] || SAAS_PLANS.PROFISSIONAL;
+  const activePlans = await getActiveSaasPlans();
+  const targetPlan = activePlans[planoSlug.toUpperCase()] || activePlans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL;
   const valor = ciclo === "ANUAL" ? targetPlan.priceYearlyTotal : targetPlan.priceMonthly;
 
   // 1. Busca os dados da empresa cliente pagadora

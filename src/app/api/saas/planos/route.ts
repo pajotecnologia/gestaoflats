@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback, isUserSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SAAS_PLANS, PlanDefinition } from "@/lib/plans/planDefinitions";
+import { SAAS_PLANS, PlanDefinition, getCommercialPlans } from "@/lib/plans/planDefinitions";
 
 export async function GET() {
-  const session = await getAuthSessionOrFallback();
-  if (!session) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-
   try {
     const config = await prisma.configuracaoSaaS.findFirst();
     let planos = { ...SAAS_PLANS };
@@ -22,7 +17,13 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ planos, hasCustomConfig: Boolean(config?.planosConfigJson) });
+    const commercialPlans = getCommercialPlans(planos);
+
+    return NextResponse.json({
+      planos,
+      commercialPlans,
+      hasCustomConfig: Boolean(config?.planosConfigJson),
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

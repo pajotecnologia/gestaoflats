@@ -3,6 +3,7 @@ import { getSaasConfig } from "@/lib/saasConfig";
 import { generatePixPayload, generatePixQRCode } from "@/lib/pix";
 import { prisma } from "@/lib/prisma";
 import { SAAS_PLANS } from "@/lib/plans/planDefinitions";
+import { getActiveSaasPlans } from "@/lib/plans/planService";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,10 +12,13 @@ export async function GET(request: NextRequest) {
     const cicloParam = (searchParams.get("ciclo") || "MENSAL").toUpperCase();
     const empresaId = searchParams.get("empresaId");
 
-    const config = await getSaasConfig();
+    const [config, activePlans] = await Promise.all([
+      getSaasConfig(),
+      getActiveSaasPlans(),
+    ]);
 
-    // Mapeamento dos planos oficiais
-    let targetPlan = SAAS_PLANS[planoParam] || SAAS_PLANS.PROFISSIONAL;
+    // Mapeamento dos planos oficiais ativos (incluindo customizações de preços e limites)
+    let targetPlan = activePlans[planoParam] || activePlans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL;
 
     let valor = cicloParam === "ANUAL" ? targetPlan.priceYearlyTotal : targetPlan.priceMonthly;
     let nomePlano = `${targetPlan.name} (${cicloParam === "ANUAL" ? "Anual com Desconto" : "Mensal"})`;
