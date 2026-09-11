@@ -3129,7 +3129,14 @@ function ParametrosContent() {
                 <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
                   <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Parâmetros de Assinatura, PIX e Mensagens</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Defina dias de teste grátis para novos cadastros, valores dos planos e chave PIX para pagamentos
+                    Defina dias de teste grátis para novos cadastros, chave PIX para pagamentos e avisos automáticos. Para alterar preços e limites, use a aba{" "}
+                    <button
+                      type="button"
+                      onClick={() => setSaasSubTab("planos")}
+                      className="font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      📦 Gestão de Planos, Limites & Preços
+                    </button>
                   </p>
                 </div>
 
@@ -3174,61 +3181,7 @@ function ParametrosContent() {
                   </div>
                 </div>
 
-                {/* Bloco 2: Valores dos Planos SaaS */}
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
-                    <DollarSign className="w-4 h-4 text-emerald-500" />
-                    <span>Valores dos Planos (R$)</span>
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Mensal (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={saasValorMensal}
-                        onChange={(e) => setSaasValorMensal(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Trimestral (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={saasValorTrimestral}
-                        onChange={(e) => setSaasValorTrimestral(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Semestral (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={saasValorSemestral}
-                        onChange={(e) => setSaasValorSemestral(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Plano Anual (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        required
-                        value={saasValorAnual}
-                        onChange={(e) => setSaasValorAnual(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bloco 3: Dados do PIX para Recebimento */}
+                {/* Bloco 2: Dados do PIX para Recebimento */}
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
                     <CreditCard className="w-4 h-4 text-cyan-500" />
@@ -3288,7 +3241,7 @@ function ParametrosContent() {
                   </div>
                 </div>
 
-                {/* Bloco 4: Telefone de Suporte e Mensagem WhatsApp */}
+                {/* Bloco 3: Telefone de Suporte e Mensagem WhatsApp */}
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
                   <h3 className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-3 flex items-center space-x-2">
                     <MessageSquare className="w-4 h-4 text-emerald-500" />
