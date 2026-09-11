@@ -199,8 +199,9 @@ function ShellContent({ children }: ShellProps) {
     { label: "Servidor de E-mail", href: "/parametros?aba=email", aba: "email", icon: Mail },
     { label: "Usuários & Permissões", href: "/parametros?aba=funcionarios", aba: "funcionarios", icon: Users },
     { label: "Formas de Pagamento", href: "/parametros?aba=formas", aba: "formas", icon: CreditCard },
+    { label: "Banco Inter (Bolepix)", href: "/parametros?aba=inter", aba: "inter", icon: Zap },
     ...(user?.isSuperAdmin
-      ? [{ label: "⚡ Gestão SaaS & Assinaturas", href: "/parametros?aba=saas", aba: "saas", icon: Zap }]
+      ? [{ label: "⚡ Gestão SaaS & Assinaturas", href: "/parametros?aba=saas", aba: "saas", icon: Sparkles }]
       : []),
   ];
 
@@ -398,18 +399,6 @@ function ShellContent({ children }: ShellProps) {
               )}
             </div>
 
-            {/* MANUAL */}
-            <Link
-              href="/ajuda"
-              className={`flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
-                pathname === "/ajuda"
-                  ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border-l-[3px] border-blue-600"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-              }`}
-            >
-              <BookOpen className="w-4 h-4 text-slate-400" />
-              <span>Manual do Sistema</span>
-            </Link>
 
             {user?.isSuperAdmin && (
               <Link

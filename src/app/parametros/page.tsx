@@ -1295,15 +1295,15 @@ function ParametrosContent() {
           </div>
         )}
 
-        {/* CONTROLE DE ABAS INTERATIVAS */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+        {/* CONTROLE DE ABAS INTERATIVAS (SEM BARRA DE ROLAGEM, TOTALMENTE RESPONSIVO) */}
+        <div className="flex flex-wrap items-center border-b border-slate-200 dark:border-slate-800 gap-2 pb-3">
           <button
             type="button"
             onClick={() => setActiveTab("empresa")}
-            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
               activeTab === "empresa"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -1313,10 +1313,10 @@ function ParametrosContent() {
           <button
             type="button"
             onClick={() => setActiveTab("evolution")}
-            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
               activeTab === "evolution"
-                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             <MessageSquare className="w-4 h-4" />
@@ -1326,10 +1326,10 @@ function ParametrosContent() {
           <button
             type="button"
             onClick={() => setActiveTab("email")}
-            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
               activeTab === "email"
-                ? "border-rose-500 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                ? "bg-rose-600 text-white shadow-xs"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             <Mail className="w-4 h-4" />
@@ -1339,10 +1339,10 @@ function ParametrosContent() {
           <button
             type="button"
             onClick={() => setActiveTab("funcionarios")}
-            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
               activeTab === "funcionarios"
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             <UserCheck className="w-4 h-4" />
@@ -1352,10 +1352,10 @@ function ParametrosContent() {
           <button
             type="button"
             onClick={() => setActiveTab("formas")}
-            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
               activeTab === "formas"
-                ? "border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                ? "bg-cyan-600 text-white shadow-xs"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             <CreditCard className="w-4 h-4" />
@@ -1365,13 +1365,13 @@ function ParametrosContent() {
           <button
             type="button"
             onClick={() => setActiveTab("inter")}
-            className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
               activeTab === "inter"
-                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50/50 dark:bg-slate-900"
-                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                ? "bg-orange-600 text-white shadow-xs"
+                : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            <Zap className="w-4 h-4 text-orange-500" />
+            <Zap className="w-4 h-4 text-orange-400" />
             <span>Banco Inter (Bolepix)</span>
           </button>
 
@@ -1379,10 +1379,10 @@ function ParametrosContent() {
             <button
               type="button"
               onClick={() => setActiveTab("saas")}
-              className={`shrink-0 px-4 py-2.5 rounded-t-xl text-xs font-bold transition flex items-center space-x-2 border-b-2 whitespace-nowrap ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
                 activeTab === "saas"
-                  ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-slate-900"
-                  : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40"
+                  ? "bg-amber-600 text-white shadow-xs"
+                  : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
               <Zap className="w-4 h-4 text-amber-500" />
