@@ -955,8 +955,6 @@ export default function VistoriasPage() {
 
                   <a
                     href={`/assinar/vistoria/${linkModalVistoria.tokenAssinatura}`}
-                    target="_blank"
-                    rel="noreferrer"
                     className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold flex items-center justify-center space-x-1.5 transition border border-slate-200 dark:border-slate-700"
                   >
                     <ExternalLink className="w-4 h-4" />

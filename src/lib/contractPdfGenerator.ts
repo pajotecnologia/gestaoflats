@@ -588,8 +588,8 @@ export async function generateContratoPDF(data: ContratoPDFData) {
     document.body.removeChild(link);
 
     setTimeout(() => {
-      window.open(blobUrl, "_blank");
-    }, 100);
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
   } catch (err) {
     console.error("Erro ao gerar PDF do Contrato:", err);
   }

@@ -287,7 +287,12 @@ export default function ContasReceberPage() {
   // 📄 Baixar Boleto PDF do Banco Inter
   const handleDownloadBoletoInter = (c: any) => {
     const url = `/api/banco-inter/pdf?contaId=${c.id}`;
-    window.open(url, "_blank");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Boleto_Inter_${c.id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // 📋 Copiar Texto para Clipboard
