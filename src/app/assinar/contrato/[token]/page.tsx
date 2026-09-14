@@ -413,114 +413,6 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
             }}
           />
 
-          {/* ANEXO I: LAUDO DE VISTORIA DE ENTRADA DO IMÓVEL & FOTOS REAIS DA VISTORIA */}
-          {vistoriaEntrada && vistoriaEntrada.itens && vistoriaEntrada.itens.length > 0 ? (
-            <div className="space-y-4 pt-4 border-t-2 border-slate-200 dark:border-slate-800 print:border-black">
-              <div className="bg-slate-50 dark:bg-slate-950/90 print:bg-gray-50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 print:border-gray-300 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 print:border-gray-200 pb-2">
-                  <div className="flex items-center space-x-2">
-                    <FileCheck className="w-5 h-5 text-blue-600 print:text-black" />
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-900 print:text-black uppercase">
-                        ANEXO I: LAUDO DE VISTORIA DE ENTRADA (CHECKLIST DO IMÓVEL)
-                      </h3>
-                      <p className="text-[11px] text-slate-500 print:text-gray-600">
-                        Vistoriador: <strong>{vistoriaEntrada.responsavel || "Vistoriador Oficial"}</strong> • Data:{" "}
-                        <strong>{vistoriaEntrada.dataVistoria || new Date().toLocaleDateString("pt-BR")}</strong>
-                      </p>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 self-start sm:self-center">
-                    ✓ VISTORIA REALIZADA
-                  </span>
-                </div>
-
-                {/* Tabela de Itens do Checklist */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-200/70 dark:bg-slate-800/80 print:bg-gray-200 text-slate-700 print:text-black font-bold">
-                        <th className="py-2 px-3 rounded-l-lg">Item / Cômodo</th>
-                        <th className="py-2 px-3">Status</th>
-                        <th className="py-2 px-3 rounded-r-lg">Observações / Avarias</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 print:divide-gray-200">
-                      {vistoriaEntrada.itens.map((item: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/50">
-                          <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200 print:text-black">
-                            {item.categoria} - {item.item}
-                          </td>
-                          <td className="py-2 px-3">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                                item.status === "OK"
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300"
-                                  : item.status === "ATENCAO"
-                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300"
-                                  : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300"
-                              }`}
-                            >
-                              {item.status === "OK" ? "✓ OK / BOM" : item.status === "ATENCAO" ? "! ATENÇÃO" : "✕ AVARIA"}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-slate-600 dark:text-slate-400 print:text-gray-700">
-                            {item.observacao || "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Galeria de Fotos Reais da Vistoria */}
-                {(() => {
-                  const allVistoriaFotos: Array<{ url: string; label: string }> = [];
-                  vistoriaEntrada.itens.forEach((it: any) => {
-                    if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
-                      it.fotosUrl.forEach((fUrl: string) => {
-                        allVistoriaFotos.push({ url: fUrl, label: `${it.categoria} - ${it.item}` });
-                      });
-                    }
-                  });
-
-                  if (allVistoriaFotos.length === 0) return null;
-
-                  return (
-                    <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-slate-800 print:border-gray-200">
-                      <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 print:text-black flex items-center space-x-1.5">
-                        <ImageIcon className="w-4 h-4 text-blue-600 print:hidden" />
-                        <span>Fotos Reais da Vistoria de Entrada ({allVistoriaFotos.length} fotos anexadas):</span>
-                      </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-3 gap-3">
-                        {allVistoriaFotos.map((foto, fIdx) => (
-                          <div
-                            key={fIdx}
-                            className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs"
-                            onClick={() => setSelectedZoomFoto(foto.url)}
-                          >
-                            <img
-                              src={foto.url}
-                              alt={foto.label}
-                              className="w-full h-28 object-cover group-hover:scale-105 transition duration-300"
-                            />
-                            <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 p-1.5 text-[9px] text-slate-200 truncate font-semibold">
-                              📷 {foto.label}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <p className="text-[10px] text-slate-500 print:text-gray-600 italic pt-2">
-                  ✓ O Locatário declara ter inspecionado o imóvel e concorda com o estado de conservação descrito neste Laudo de Vistoria de Entrada integrante do contrato.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
           {/* SEÇÃO DE ASSINATURAS DAS DUAS PARTES (LOCADORA & LOCATÁRIO) */}
           <div className="pt-8 border-t-2 border-slate-200 dark:border-slate-800 print:border-black space-y-6">
             <p className="text-[11px] text-slate-500 print:text-gray-600 text-center italic">
@@ -586,7 +478,22 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
               </div>
             </div>
 
-            {/* RODAPÉ DO DESENVOLVEDOR NO DOCUMENTO IMPRESSO/PDF */}
+            {/* AUDITORIA BLOCKCHAIN SE ASSINADO */}
+            {contrato.documentoHashSha256 && (
+              <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 print:bg-gray-50 border border-blue-200 dark:border-blue-900/60 rounded-xl text-left text-[11px] text-slate-700 dark:text-slate-300 space-y-1">
+                <p className="font-bold text-blue-900 dark:text-blue-300">
+                  🛡️ Registro de Auditoria Criptográfica & Blockchain
+                </p>
+                <p className="font-mono text-[10px] text-slate-600 dark:text-slate-400">
+                  Hash SHA-256: {contrato.documentoHashSha256}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Validade Jurídica garantida via MP 2.200-2/2001 e Lei nº 14.063/2020.
+                </p>
+              </div>
+            )}
+
+            {/* RODAPÉ DO DESENVOLVEDOR NA FOLHA DO CONTRATO */}
             <div className="pt-6 border-t border-slate-100 print:border-gray-300 text-center">
               <p className="text-[9px] text-slate-400 print:text-gray-500">
                 Desenvolvimento: pajotecnologia.com.br (87)996540551
@@ -594,6 +501,176 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
             </div>
           </div>
         </div>
+
+        {/* FOLHA 2: ANEXO I - LAUDO DE VISTORIA DE ENTRADA DO IMÓVEL & FOTOS (SEMPRE EM FOLHA SEPARADA / NOVA PÁGINA) */}
+        {vistoriaEntrada && vistoriaEntrada.itens && vistoriaEntrada.itens.length > 0 && (
+          <div
+            className="bg-white dark:bg-slate-900 print:bg-white print:text-black border border-slate-300 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none p-6 sm:p-12 print:p-8 shadow-2xl print:shadow-none space-y-6 mt-8 print:mt-0 break-before-page print:break-before-page"
+            style={{ pageBreakBefore: "always", breakBefore: "page" }}
+          >
+            {/* CABEÇALHO DO ANEXO I */}
+            <div className="border-b-2 border-slate-800 print:border-black pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                {contrato.empresa?.logomarcaUrl ? (
+                  <img
+                    src={contrato.empresa.logomarcaUrl}
+                    alt={contrato.empresa.nomeFantasia || "Logo Empresa"}
+                    className="w-16 h-16 object-contain rounded-xl border border-slate-200 print:border-none"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-blue-600 print:bg-black text-white font-bold flex items-center justify-center text-xl">
+                    {contrato.empresa?.nomeFantasia?.[0] || "P"}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 print:text-black uppercase tracking-tight">
+                    {contrato.empresa?.nomeFantasia || "PRIME GESTÃO IMOBILIÁRIA"}
+                  </h2>
+                  <p className="text-[11px] text-slate-500 print:text-gray-600">
+                    {contrato.empresa?.cnpj && <span>CNPJ: {contrato.empresa.cnpj} • </span>}
+                    {contrato.empresa?.telefone && <span>Tel: {contrato.empresa.telefone}</span>}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right sm:text-right w-full sm:w-auto">
+                <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-950/60 print:bg-gray-100 rounded-lg text-xs font-bold text-blue-800 dark:text-blue-300 print:text-black uppercase border border-blue-200 dark:border-blue-800 print:border-none">
+                  ANEXO I AO CONTRATO DE LOCAÇÃO
+                </span>
+              </div>
+            </div>
+
+            {/* TÍTULO DO ANEXO I */}
+            <div className="text-center py-1">
+              <h1 className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 print:text-black underline underline-offset-4">
+                ANEXO I - LAUDO DE VISTORIA DE ENTRADA (CHECKLIST DO IMÓVEL)
+              </h1>
+              <p className="text-xs text-slate-500 print:text-gray-600 mt-1 font-semibold">
+                Unidade / Imóvel: {contrato.flat?.local?.nome ? `${contrato.flat?.local?.nome} - ` : ""}Flat {contrato.flat?.numero}
+              </p>
+            </div>
+
+            {/* QUADRO RESUMO DA VISTORIA */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-950/80 print:bg-gray-50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 print:border-gray-300 text-xs">
+              <div className="space-y-0.5">
+                <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">VISTORIADOR:</span>
+                <strong className="text-slate-900 print:text-black block text-xs">
+                  {vistoriaEntrada.responsavel || "Vistoriador Oficial"}
+                </strong>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">DATA DA VISTORIA:</span>
+                <strong className="text-slate-900 print:text-black block text-xs">
+                  {vistoriaEntrada.dataVistoria || new Date().toLocaleDateString("pt-BR")}
+                </strong>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">STATUS DA VISTORIA:</span>
+                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  ✓ VISTORIA CONCLUÍDA
+                </span>
+              </div>
+            </div>
+
+            {/* TABELA DE ITENS DO CHECKLIST */}
+            <div className="space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 print:text-black">
+                Itens Verificados no Checklist de Entrada:
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-200/70 dark:bg-slate-800/80 print:bg-gray-200 text-slate-700 print:text-black font-bold">
+                      <th className="py-2.5 px-3 rounded-l-lg">Item / Cômodo</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 rounded-r-lg">Observações / Avarias</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 print:divide-gray-200">
+                    {vistoriaEntrada.itens.map((item: any, idx: number) => (
+                      <tr key={idx} className={idx % 2 === 1 ? "bg-slate-50/60 dark:bg-slate-900/60 print:bg-gray-50/80" : ""}>
+                        <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 print:text-black">
+                          {item.categoria} - {item.item}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                              item.status === "OK"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300"
+                                : item.status === "ATENCAO"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300"
+                                : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300"
+                            }`}
+                          >
+                            {item.status === "OK" ? "✓ OK / BOM" : item.status === "ATENCAO" ? "! ATENÇÃO" : "✕ AVARIA"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 print:text-gray-700">
+                          {item.observacao || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* GALERIA DE FOTOS REAIS DA VISTORIA */}
+            {(() => {
+              const allVistoriaFotos: Array<{ url: string; label: string }> = [];
+              vistoriaEntrada.itens.forEach((it: any) => {
+                if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
+                  it.fotosUrl.forEach((fUrl: string) => {
+                    allVistoriaFotos.push({ url: fUrl, label: `${it.categoria} - ${it.item}` });
+                  });
+                }
+              });
+
+              if (allVistoriaFotos.length === 0) return null;
+
+              return (
+                <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-slate-800 print:border-gray-200">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 print:text-black flex items-center space-x-1.5">
+                    <ImageIcon className="w-4 h-4 text-blue-600 print:hidden" />
+                    <span>Fotos Reais da Vistoria de Entrada ({allVistoriaFotos.length} fotos anexadas):</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-3 gap-3">
+                    {allVistoriaFotos.map((foto, fIdx) => (
+                      <div
+                        key={fIdx}
+                        className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs"
+                        onClick={() => setSelectedZoomFoto(foto.url)}
+                      >
+                        <img
+                          src={foto.url}
+                          alt={foto.label}
+                          className="w-full h-28 object-cover group-hover:scale-105 transition duration-300"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 p-1.5 text-[9px] text-slate-200 truncate font-semibold">
+                          📷 {foto.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* DECLARAÇÃO DE ACEITE DA VISTORIA */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 print:border-gray-200">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 print:text-gray-700 italic">
+                ✓ O Locatário declara ter inspecionado a unidade e concorda integralmente com o estado de conservação e itens descritos neste Laudo de Vistoria de Entrada, que passa a integrar o Contrato de Locação para todos os efeitos legais.
+              </p>
+            </div>
+
+            {/* RODAPÉ DO DESENVOLVEDOR NO ANEXO I */}
+            <div className="pt-6 border-t border-slate-100 print:border-gray-300 text-center">
+              <p className="text-[9px] text-slate-400 print:text-gray-500">
+                Desenvolvimento: pajotecnologia.com.br (87)996540551
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* QUADRO DE COLETA DE ASSINATURA SE AINDA NÃO ESTIVER ASSINADO (Oculto na Impressão/PDF) */}
         {!signedSuccess ? (

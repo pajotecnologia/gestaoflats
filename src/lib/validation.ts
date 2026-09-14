@@ -336,21 +336,26 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "numero_contrato": contrato.id ? String(contrato.id).slice(0, 8).toUpperCase() : "",
 
     "contrato.valorMensal": valorFormatado,
+    "contrato.valor_mensal": valorFormatado,
     "valor_mensal": valorFormatado,
     "valor": valorFormatado,
     "aluguel": valorFormatado,
     "valor_aluguel": valorFormatado,
 
     "contrato.valorExtenso": `${valorFormatado} (${valorExtenso})`,
+    "contrato.valor_extenso": `${valorFormatado} (${valorExtenso})`,
     "valor_extenso": valorExtenso,
     "valor_mensal_extenso": `${valorFormatado} (${valorExtenso})`,
 
     "contrato.tipoValidade": contrato.tipoValidade || "MESES",
+    "contrato.tipo_validade": contrato.tipoValidade || "MESES",
     "tipo_validade": contrato.tipoValidade || "MESES",
 
     "contrato.validadeMeses": validadeMeses,
+    "contrato.validade_meses": validadeMeses,
     "validade_meses": validadeMeses,
     "contrato.validadeDias": contrato.validadeDias ? `${contrato.validadeDias} dias` : "",
+    "contrato.validade_dias": contrato.validadeDias ? `${contrato.validadeDias} dias` : "",
     "validade_dias": contrato.validadeDias ? `${contrato.validadeDias} dias` : "",
 
     "duracao": duracaoTexto,
@@ -359,11 +364,13 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "prazo_meses": duracaoTexto,
 
     "contrato.dataEmissao": dataEmissaoFormatada,
+    "contrato.data_emissao": dataEmissaoFormatada,
     "data_emissao": dataEmissaoFormatada,
     "data_inicio": dataEmissaoFormatada,
     "data_contrato": dataEmissaoFormatada,
 
     "contrato.dataFinal": dataFimFormatada,
+    "contrato.data_final": dataFimFormatada,
     "data_final": dataFimFormatada,
     "data_fim": dataFimFormatada,
     "data_termino": dataFimFormatada,
@@ -375,46 +382,58 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "status_assinatura": contrato.statusAssinatura || "",
 
     "contrato.dataAssinatura": dataAssinaturaFormatada,
+    "contrato.data_assinatura": dataAssinaturaFormatada,
     "data_assinatura": dataAssinaturaFormatada,
 
     "contrato.ipAssinatura": contrato.ipAssinaturaLocatario || "",
+    "contrato.ip_assinatura": contrato.ipAssinaturaLocatario || "",
     "ip_assinatura": contrato.ipAssinaturaLocatario || "",
 
     // NOVAS CONDIÇÕES FINANCEIRAS DO CONTRATO
     "contrato.diaVencimento": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
+    "contrato.dia_vencimento": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
     "dia_vencimento": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
     "vencimento_dia": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
     "pagamento_dia": contrato.diaVencimento !== undefined && contrato.diaVencimento !== null ? String(contrato.diaVencimento) : "5",
 
     "contrato.formaPagamento": contrato.formaPagamento || "PIX",
+    "contrato.forma_pagamento": contrato.formaPagamento || "PIX",
     "forma_pagamento": contrato.formaPagamento || "PIX",
     "forma_pagto": contrato.formaPagamento || "PIX",
 
     "contrato.bancoNome": contrato.bancoNome || "",
+    "contrato.banco_nome": contrato.bancoNome || "",
     "banco_nome": contrato.bancoNome || "",
     "nome_banco": contrato.bancoNome || "",
     "banco": contrato.bancoNome || "",
 
     "contrato.bancoDadosConta": contrato.bancoDadosConta || "",
+    "contrato.banco_dados_conta": contrato.bancoDadosConta || "",
     "dados_conta": contrato.bancoDadosConta || "",
     "conta_bancaria": contrato.bancoDadosConta || "",
     "pix_dados": contrato.bancoDadosConta || "",
 
     "contrato.multaAtrasoPercentual": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
+    "contrato.multa_atraso": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
+    "contrato.multa_atraso_percentual": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
     "multa_percentual": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
     "multa_atraso": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
     "multa": contrato.multaAtrasoPercentual !== undefined && contrato.multaAtrasoPercentual !== null ? `${contrato.multaAtrasoPercentual}%` : "2%",
 
     "contrato.jurosAtrasoPercentual": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
+    "contrato.juros_atraso": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
+    "contrato.juros_atraso_percentual": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
     "juros_percentual": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
     "juros_atraso": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
     "juros": contrato.jurosAtrasoPercentual !== undefined && contrato.jurosAtrasoPercentual !== null ? `${contrato.jurosAtrasoPercentual}%` : "1%",
 
     "contrato.valorCaucao": formatCurrency(Number(contrato.valorCaucao || 0)),
+    "contrato.valor_caucao": formatCurrency(Number(contrato.valorCaucao || 0)),
     "valor_caucao": formatCurrency(Number(contrato.valorCaucao || 0)),
     "caucao": formatCurrency(Number(contrato.valorCaucao || 0)),
 
     "contrato.caucaoParcelas": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
+    "contrato.caucao_parcelas": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
     "caucao_parcelas": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
     "caucao_meses": contrato.caucaoParcelas !== undefined && contrato.caucaoParcelas !== null ? `${contrato.caucaoParcelas}` : "0",
 
