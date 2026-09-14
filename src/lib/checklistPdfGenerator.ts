@@ -240,16 +240,16 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
 
   // Assinaturas das Duas Partes (Empresa/Vistoriador e Locatário)
   y += 18;
-  if (y > 230) {
+  if (y > 205) {
     doc.addPage();
-    y = 35;
+    y = 30;
   }
 
   // Renderizar imagem de assinatura da Empresa (se disponível e formato base64/png)
   if (data.empresaAssinaturaUrl && data.empresaAssinaturaUrl.startsWith("data:image")) {
     try {
       const format = data.empresaAssinaturaUrl.includes("image/jpeg") || data.empresaAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
-      doc.addImage(data.empresaAssinaturaUrl, format, 32, y - 16, 46, 14);
+      doc.addImage(data.empresaAssinaturaUrl, format, 31, y - 15, 46, 14);
     } catch (e) {
       // Fallback gráfico se não for raster suportado
     }
@@ -259,7 +259,7 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
   if (data.locatarioAssinaturaUrl && data.locatarioAssinaturaUrl.startsWith("data:image")) {
     try {
       const format = data.locatarioAssinaturaUrl.includes("image/jpeg") || data.locatarioAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
-      doc.addImage(data.locatarioAssinaturaUrl, format, 132, y - 16, 46, 14);
+      doc.addImage(data.locatarioAssinaturaUrl, format, 133, y - 15, 46, 14);
     } catch (e) {
       // Ignora erro de imagem
     }
@@ -268,7 +268,7 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
   doc.setDrawColor(31, 41, 55);
   doc.setLineWidth(0.5);
   doc.line(14, y, 94, y);
-  doc.line(110, y, 190, y);
+  doc.line(116, y, 196, y);
 
   doc.setFontSize(8.5);
   doc.setTextColor(31, 41, 55);
@@ -280,24 +280,24 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.text(data.locatarioNome || "Locatário(a)", 110, y + 5);
+  doc.text(data.locatarioNome || "Locatário(a)", 116, y + 5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   const locSignCpf = data.locatarioCpf && data.locatarioCpf !== "Não informado" && data.locatarioCpf !== "000.000.000-00" && data.locatarioCpf !== "-" ? `Locatário(a) - CPF: ${data.locatarioCpf}` : "Locatário(a)";
-  doc.text(locSignCpf, 110, y + 9);
+  doc.text(locSignCpf, 116, y + 9);
 
   if (data.ipAssinaturaLocatario) {
     const cleanIp = data.ipAssinaturaLocatario.replace(/^::ffff:/i, "").trim();
     doc.setFontSize(7);
     doc.setTextColor(16, 185, 129);
     doc.setFont("helvetica", "bold");
-    doc.text(`Assinado Digitalmente • IP: ${cleanIp}`, 110, y + 13);
+    doc.text(`Assinado Digitalmente • IP: ${cleanIp}`, 116, y + 13);
   }
 
   // Bloco de Auditoria Blockchain & QR Code no Laudo de Vistoria
   if (data.documentoHashSha256 || data.validationUrl) {
     y += 20;
-    if (y > 230) {
+    if (y + 35 > 260) {
       doc.addPage();
       y = 20;
     }
@@ -305,8 +305,7 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
     doc.setFillColor(240, 249, 255);
     doc.setDrawColor(186, 230, 253);
     doc.setLineWidth(0.5);
-    const boxWidth = data.qrCodeDataUrl ? 148 : 176;
-    doc.roundedRect(14, y, boxWidth, 31, 2, 2, "FD");
+    doc.roundedRect(14, y, 182, 31, 2, 2, "FD");
 
     doc.setTextColor(30, 58, 138);
     doc.setFontSize(8);
@@ -330,17 +329,25 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
 
     if (data.qrCodeDataUrl) {
       try {
-        doc.addImage(data.qrCodeDataUrl, "PNG", 165, y + 2.5, 26, 26);
+        doc.addImage(data.qrCodeDataUrl, "PNG", 166, y + 2.5, 26, 26);
       } catch (e) {}
     }
   }
 
-  // RODAPÉ DO DESENVOLVEDOR NO LAUDO PDF
-  doc.setDrawColor(229, 231, 235);
-  doc.line(14, 280, 196, 280);
-  doc.setTextColor(107, 114, 128);
-  doc.setFontSize(8);
-  doc.text("Desenvolvimento: pajotecnologia.com.br (87)996540551", 105, 286, { align: "center" });
+  // RODAPÉ UNIVERSAL EM TODAS AS PÁGINAS DO LAUDO (NUMERAÇÃO E CRÉDITOS)
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.line(14, 282, 196, 282);
+
+    doc.setTextColor(107, 114, 128);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text("Desenvolvimento: pajotecnologia.com.br (87)996540551", 14, 287);
+    doc.text(`Página ${i} de ${totalPages}`, 196, 287, { align: "right" });
+  }
 
   return doc;
 }

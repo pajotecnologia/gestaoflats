@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
 # Script de Deploy - Sistema Gestão de Flats
-# VPS: gestaoflats.pajotech.com.br | Porta: 3010 | Gerenciado por: aaPanel / Coolify
-# =============================================================================
-# COMO USAR:
-#   cd /www/wwwroot/gestaoflats.pajotech.com.br (ou dnyl)
+# VPS: imob.pajotech.com.br | Porta: 3010 | Gerenciado por: aaPanel / Coolify
+# 
+# Instruções de Execução na VPS:
+#   cd /www/wwwroot/imob.pajotech.com.br (ou dnyl)
 #   bash deploy.sh
 # =============================================================================
 

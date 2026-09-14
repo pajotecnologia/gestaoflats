@@ -46,7 +46,7 @@ async function getAdminEmailConfig() {
     const smtpPort = Number(process.env.SMTP_PORT || paramsConfig?.smtpPort || 465);
     const smtpUser = process.env.SMTP_USER || paramsConfig?.smtpUser || null;
     const smtpPass = process.env.SMTP_PASS || paramsConfig?.smtpPass || null;
-    const smtpFrom = process.env.SMTP_FROM || paramsConfig?.smtpFromEmail || smtpUser || "nao-responder@gestaoflats.pajotech.com.br";
+    const smtpFrom = process.env.SMTP_FROM || paramsConfig?.smtpFromEmail || smtpUser || "nao-responder@imob.pajotech.com.br";
 
     return {
       emailDestino: String(emailDestino),
@@ -63,7 +63,7 @@ async function getAdminEmailConfig() {
       smtpPort: 465,
       smtpUser: null,
       smtpPass: null,
-      smtpFrom: "nao-responder@gestaoflats.pajotech.com.br",
+      smtpFrom: "nao-responder@imob.pajotech.com.br",
     };
   }
 }
@@ -148,7 +148,7 @@ export async function notifyAdminNovoCadastro(data: NovoCadastroData): Promise<b
             </table>
 
             <div style="text-align: center; margin-top: 24px;">
-              <a href="https://gestaoflats.pajotech.com.br/parametros?aba=saas" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 13px; display: inline-block;">
+              <a href="https://imob.pajotech.com.br/parametros?aba=saas" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 13px; display: inline-block;">
                 Acessar Painel de Gestão SaaS
               </a>
             </div>
@@ -252,7 +252,7 @@ export async function notifyAdminNovaContratacao(data: NovaContratacaoData): Pro
             </table>
 
             <div style="text-align: center; margin-top: 24px;">
-              <a href="https://gestaoflats.pajotech.com.br/parametros?aba=saas" style="background-color: #059669; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 13px; display: inline-block;">
+              <a href="https://imob.pajotech.com.br/parametros?aba=saas" style="background-color: #059669; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 13px; display: inline-block;">
                 Liberar / Gerenciar Acesso no Painel
               </a>
             </div>

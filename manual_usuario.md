@@ -21,7 +21,7 @@
 
 ## 1. Visão Geral & Primeiro Acesso
 
-* **Acesso Web**: Acesse o sistema pelo navegador através do link oficial (ex: `https://gestaoflats.pajotech.com.br`).
+* **Acesso Web**: Acesse o sistema pelo navegador através do link oficial (ex: `https://imob.pajotech.com.br`).
 * **Credenciais**: Insira seu e-mail e senha de administrador cadastrados.
 * **Layout Responsivo**: O sistema pode ser utilizado no **Computador**, **Notebook**, **Tablet** e **Celular (Smartphone)**.
 

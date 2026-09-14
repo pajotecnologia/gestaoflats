@@ -11,10 +11,9 @@ import { NextRequest } from "next/server";
  * 4. Fallback padrão: http://localhost:3000
  */
 export function getAppBaseUrl(req?: NextRequest | Request): string {
-  // 1. Variáveis de ambiente configuradas no servidor ou VPS
-  const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
-  if (envUrl && envUrl.trim()) {
-    return envUrl.trim().replace(/\/$/, "");
+  // 1. Lado do cliente (Navegador) - Sempre reflete com 100% de precisão o domínio acessado atualmente
+  if (typeof window !== "undefined" && window.location && window.location.origin) {
+    return window.location.origin.replace(/\/$/, "");
   }
 
   // 2. Requisição no lado do servidor (Next.js API Routes ou Server Components)
@@ -31,12 +30,17 @@ export function getAppBaseUrl(req?: NextRequest | Request): string {
     }
   }
 
-  // 3. Lado do cliente (Navegador)
-  if (typeof window !== "undefined" && window.location && window.location.origin) {
-    return window.location.origin.replace(/\/$/, "");
+  // 3. Variáveis de ambiente configuradas no servidor ou VPS (exceto se for o domínio antigo legado)
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (envUrl && envUrl.trim() && !envUrl.includes("gestaoflats.pajotech.com.br")) {
+    return envUrl.trim().replace(/\/$/, "");
   }
 
-  // 4. Fallback Padrão (Porta 3010)
+  // 4. Fallback Padrão Oficial (Produção: IMOB / Dev: Localhost na porta configurada)
+  if (process.env.NODE_ENV === "production") {
+    return "https://imob.pajotech.com.br";
+  }
+
   const port = process.env.PORT || "3010";
   return `http://localhost:${port}`;
 }
