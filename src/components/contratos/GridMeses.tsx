@@ -26,6 +26,7 @@ import {
   Link2,
   ShieldAlert,
   PlusCircle,
+  Save,
 } from "lucide-react";
 
 export interface ParcelaItem {
@@ -1160,6 +1161,14 @@ export default function GridMeses({
                   disabled={loadingSalvarVinculo || vistoriasParaVincular.length === 0}
                   className="w-2/3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold shadow-md flex items-center justify-center space-x-1.5 transition"
                 >
+                  <Save className="w-4 h-4" />
+                  <span>{loadingSalvarVinculo ? "Vinculando..." : "Salvar Vínculo"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* MODAL OVERLAY DE VISUALIZAÇÃO INTERNA DE DOCUMENTOS (CONTRATO / VISTORIA) */}
       {modalDocumentoUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in duration-200">

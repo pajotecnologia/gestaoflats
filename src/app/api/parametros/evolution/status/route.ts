@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAuthSessionOrFallback } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { checkEvolutionStatus } from "@/lib/evolutionApi";
+
+export async function POST(request: NextRequest) {
+  const session = await getAuthSessionOrFallback();
+  if (!session) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  let { evolutionApiUrl, evolutionApiKey, evolutionInstance } = body;
+
+  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+    const config = await prisma.configuracaoParametros.findUnique({
+      where: { empresaId: session.empresaId },
+    });
+    if (config) {
+      evolutionApiUrl = evolutionApiUrl || config.evolutionApiUrl;
+      evolutionApiKey = evolutionApiKey || config.evolutionApiKey;
+      evolutionInstance = evolutionInstance || config.evolutionInstance;
+    }
+  }
+
+  const result = await checkEvolutionStatus({
+    evolutionApiUrl,
+    evolutionApiKey,
+    evolutionInstance,
+  });
+
+  // Atualiza statusConexao no banco de dados se tiver dados configurados
+  if (session.empresaId) {
+    await prisma.configuracaoParametros.upsert({
+      where: { empresaId: session.empresaId },
+      update: { statusConexao: result.status },
+      create: {
+        empresaId: session.empresaId,
+        evolutionApiUrl,
+        evolutionApiKey,
+        evolutionInstance,
+        statusConexao: result.status,
+      },
+    });
+  }
+
+  return NextResponse.json({
+    success: result.connected,
+    ...result,
+  });
+}

@@ -47,6 +47,10 @@ import {
   ExternalLink,
   PieChart,
   Info,
+  QrCode,
+  Power,
+  RotateCcw,
+  Smartphone,
 } from "lucide-react";
 
 function ParametrosContent() {
@@ -118,6 +122,16 @@ function ParametrosContent() {
   const [statusConexao, setStatusConexao] = useState("DESCONECTADO");
   const [testingEvolution, setTestingEvolution] = useState(false);
   const [savingEvolution, setSavingEvolution] = useState(false);
+  const [creatingInstance, setCreatingInstance] = useState(false);
+  const [loadingQrCode, setLoadingQrCode] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<{ base64?: string; pairingCode?: string; code?: string; message?: string; count?: number } | null>(null);
+  const [loggingOutEvolution, setLoggingOutEvolution] = useState(false);
+  const [restartingEvolution, setRestartingEvolution] = useState(false);
+  const [testWhatsAppNumber, setTestWhatsAppNumber] = useState("");
+  const [sendingTestWhatsApp, setSendingTestWhatsApp] = useState(false);
+  const [qrScanSuccess, setQrScanSuccess] = useState(false);
+  const [showEvolutionApiKey, setShowEvolutionApiKey] = useState(false);
 
   // Form SMTP Gmail / Email Server
   const [smtpHost, setSmtpHost] = useState("smtp.gmail.com");
@@ -984,12 +998,218 @@ function ParametrosContent() {
     }
   };
 
+  // Sugestão de nome de instância baseado no nome da empresa
+  const handleSuggestInstanceName = () => {
+    const raw = nomeFantasia || razaoSocial || "locacoes";
+    const clean = raw
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+    setEvolutionInstance(clean ? `imob_${clean}` : "imob_instancia");
+  };
+
+  // Cria a instância na Evolution API
+  const handleCreateInstance = async () => {
+    if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+      setFeedback({ type: "error", message: "❌ Preencha a URL, API Key Global e Nome da Instância antes de criar." });
+      return;
+    }
+    setCreatingInstance(true);
+    setFeedback({ type: "", message: "" });
+    try {
+      const res = await fetch("/api/parametros/evolution/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          evolutionApiUrl,
+          evolutionApiKey,
+          evolutionInstance,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFeedback({ type: "success", message: `✅ ${data.message || "Instância criada com sucesso!"}` });
+        // Abre imediatamente o modal de QR Code para conectar
+        handleOpenQrModal();
+      } else {
+        setFeedback({ type: "error", message: `❌ ${data.message || data.error || "Falha ao criar instância na Evolution API."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro ao conectar ao servidor: ${err.message || err}` });
+    } finally {
+      setCreatingInstance(false);
+    }
+  };
+
+  // Abre modal e carrega QR Code
+  const handleOpenQrModal = async () => {
+    if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+      setFeedback({ type: "error", message: "❌ Configure a URL, API Key e Nome da Instância para gerar o QR Code." });
+      return;
+    }
+    setShowQrModal(true);
+    setQrScanSuccess(false);
+    setLoadingQrCode(true);
+    try {
+      const res = await fetch("/api/parametros/evolution/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          evolutionApiUrl,
+          evolutionApiKey,
+          evolutionInstance,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.base64 || data.code || data.pairingCode) {
+          setQrCodeData(data);
+        } else if (data.message?.includes("já está conectada")) {
+          setStatusConexao("CONECTADO");
+          setQrScanSuccess(true);
+          setTimeout(() => setShowQrModal(false), 2000);
+        }
+      } else {
+        setFeedback({ type: "error", message: `❌ ${data.message || "Erro ao obter QR Code."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro de conexão: ${err.message || err}` });
+    } finally {
+      setLoadingQrCode(false);
+    }
+  };
+
+  // Polling automático para verificar autenticação com QR Code aberto
+  useEffect(() => {
+    if (!showQrModal || qrScanSuccess) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/parametros/evolution/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            evolutionApiUrl,
+            evolutionApiKey,
+            evolutionInstance,
+          }),
+        });
+        const data = await res.json();
+        if (data.connected || data.status === "CONECTADO") {
+          setStatusConexao("CONECTADO");
+          setQrScanSuccess(true);
+          setFeedback({ type: "success", message: "🎉 WhatsApp Conectado com Sucesso!" });
+          setTimeout(() => {
+            setShowQrModal(false);
+            setQrScanSuccess(false);
+          }, 2000);
+        }
+      } catch (e) {
+        // Ignora falhas pontuais no polling
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showQrModal, qrScanSuccess, evolutionApiUrl, evolutionApiKey, evolutionInstance]);
+
+  // Desconectar (Logout) da sessão do WhatsApp
+  const handleLogoutEvolution = async () => {
+    if (!confirm("Deseja realmente desconectar a sessão do WhatsApp? Será necessário ler o QR Code novamente para reconectar.")) {
+      return;
+    }
+    setLoggingOutEvolution(true);
+    setFeedback({ type: "", message: "" });
+    try {
+      const res = await fetch("/api/parametros/evolution/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          evolutionApiUrl,
+          evolutionApiKey,
+          evolutionInstance,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatusConexao("DESCONECTADO");
+        setFeedback({ type: "success", message: "✅ WhatsApp desconectado com sucesso!" });
+      } else {
+        setFeedback({ type: "error", message: `❌ ${data.message || data.error || "Erro ao desconectar."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro ao desconectar: ${err.message || err}` });
+    } finally {
+      setLoggingOutEvolution(false);
+    }
+  };
+
+  // Reiniciar a instância
+  const handleRestartEvolution = async () => {
+    setRestartingEvolution(true);
+    setFeedback({ type: "", message: "" });
+    try {
+      const res = await fetch("/api/parametros/evolution/restart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          evolutionApiUrl,
+          evolutionApiKey,
+          evolutionInstance,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFeedback({ type: "success", message: "✅ Instância reiniciada com sucesso! Aguarde alguns instantes." });
+        setTimeout(() => handleTestEvolution(), 3500);
+      } else {
+        setFeedback({ type: "error", message: `❌ ${data.message || data.error || "Erro ao reiniciar instância."}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro ao reiniciar: ${err.message || err}` });
+    } finally {
+      setRestartingEvolution(false);
+    }
+  };
+
+  // Disparo de mensagem de teste
+  const handleSendTestWhatsApp = async () => {
+    if (!testWhatsAppNumber) {
+      alert("Informe um número de WhatsApp de destino (com DDD) no campo de teste.");
+      return;
+    }
+    setSendingTestWhatsApp(true);
+    setFeedback({ type: "", message: "" });
+    try {
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: testWhatsAppNumber,
+          message: `🔔 *Teste de Conexão IMOB*\n\nOlá! A sua integração com o WhatsApp via Evolution API está configurada e operando com sucesso! 🚀\n\n*Empresa:* ${nomeFantasia || razaoSocial || "IMOB"}\n*Data/Hora:* ${new Date().toLocaleString("pt-BR")}`,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFeedback({ type: "success", message: "✅ Mensagem de teste enviada com sucesso no WhatsApp!" });
+      } else {
+        setFeedback({ type: "error", message: `❌ Falha no envio: ${data.error || data.message || "Verifique o status da conexão"}` });
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: `❌ Erro no teste de WhatsApp: ${err.message || err}` });
+    } finally {
+      setSendingTestWhatsApp(false);
+    }
+  };
+
   const handleTestEvolution = async () => {
     setTestingEvolution(true);
     setFeedback({ type: "", message: "" });
 
     try {
-      const res = await fetch("/api/parametros/test-connection", {
+      const res = await fetch("/api/parametros/evolution/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1004,7 +1224,7 @@ function ParametrosContent() {
         setStatusConexao(data.status || "CONECTADO");
         setFeedback({ type: "success", message: `✅ Evolution API Conectada com sucesso! (${data.message || "Instância OK"})` });
       } else {
-        setStatusConexao("DESCONECTADO");
+        setStatusConexao(data.status || "DESCONECTADO");
         setFeedback({ type: "error", message: `❌ Falha ao conectar na Evolution API: ${data.message || "Verifique a URL e a API Key"}` });
       }
     } catch (err) {
@@ -1646,22 +1866,42 @@ function ParametrosContent() {
 
         {/* CONTEÚDO DA ABA 2: EVOLUTION API */}
         {activeTab === "evolution" && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Integrador Evolution API (WhatsApp)</h2>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+            {/* Header da Aba */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                    Integrador Evolution API (WhatsApp)
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Crie sua instância, conecte via QR Code e automatize o envio de contratos, boletos e vistorias.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center space-x-1.5 ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center space-x-1.5 shadow-sm transition ${
                     statusConexao === "CONECTADO"
-                      ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300"
-                      : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-300"
+                      ? "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                      : statusConexao === "CONECTANDO"
+                      ? "bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                      : "bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700"
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${statusConexao === "CONECTADO" ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      statusConexao === "CONECTADO"
+                        ? "bg-emerald-500 animate-pulse ring-4 ring-emerald-400/30"
+                        : statusConexao === "CONECTANDO"
+                        ? "bg-amber-500 animate-pulse ring-4 ring-amber-400/30"
+                        : "bg-rose-500"
+                    }`}
+                  />
                   <span>Status: {statusConexao}</span>
                 </span>
 
@@ -1670,61 +1910,207 @@ function ParametrosContent() {
                   onClick={handleSaveEvolution}
                   disabled={savingEvolution}
                   className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                  title="Salvar configurações no banco de dados"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  <span>{savingEvolution ? "Salvar..." : "Salvar Evolution API"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleTestEvolution}
-                  disabled={testingEvolution}
-                  className="py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center space-x-1.5 transition border border-slate-200 dark:border-slate-700"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${testingEvolution ? "animate-spin text-emerald-500" : ""}`} />
-                  <span>{testingEvolution ? "Testando..." : "Testar Instância WhatsApp"}</span>
+                  <span>{savingEvolution ? "Salvando..." : "Salvar Configurações"}</span>
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  URL da Evolution API
-                </label>
+            {/* Configurações de Conexão */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                <Settings className="w-3.5 h-3.5" />
+                <span>1. Dados da Conexão Evolution API</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    URL da Evolution API *
+                  </label>
+                  <input
+                    type="text"
+                    value={evolutionApiUrl}
+                    onChange={(e) => setEvolutionApiUrl(e.target.value)}
+                    placeholder="https://api.evolution.suaempresa.com"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Ex: URL do servidor Evolution API com https://</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    API Key Global *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showEvolutionApiKey ? "text" : "password"}
+                      value={evolutionApiKey}
+                      onChange={(e) => setEvolutionApiKey(e.target.value)}
+                      placeholder="AUTHENTICATION_API_KEY"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 pr-9 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEvolutionApiKey(!showEvolutionApiKey)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showEvolutionApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Chave mestre da Evolution API (Global API Key)</p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Nome da Instância *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleSuggestInstanceName}
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex items-center space-x-0.5"
+                    >
+                      <Sparkles className="w-3 h-3 inline" />
+                      <span>Sugerir Nome</span>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={evolutionInstance}
+                    onChange={(e) => setEvolutionInstance(e.target.value)}
+                    placeholder="ex: imob_recife"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Identificador exclusivo desta empresa no Evolution</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Painel de Ações e Conexão Direta */}
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center space-x-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <span>2. Controle e Conexão Direta da Instância</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Botão Criar Instância */}
+                <button
+                  type="button"
+                  onClick={handleCreateInstance}
+                  disabled={creatingInstance}
+                  className="p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 dark:hover:border-indigo-600 transition flex flex-col items-start text-left group disabled:opacity-50"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-2.5 shadow-sm group-hover:scale-105 transition">
+                    <Plus className={`w-4 h-4 ${creatingInstance ? "animate-spin" : ""}`} />
+                  </div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
+                    {creatingInstance ? "Criando Instância..." : "1. Criar Instância"}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Registra e configura a instância diretamente no servidor da Evolution
+                  </span>
+                </button>
+
+                {/* Botão Conectar WhatsApp (QR Code) */}
+                <button
+                  type="button"
+                  onClick={handleOpenQrModal}
+                  disabled={loadingQrCode}
+                  className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition flex flex-col items-start text-left group disabled:opacity-50"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-2.5 shadow-sm group-hover:scale-105 transition">
+                    <QrCode className={`w-4 h-4 ${loadingQrCode ? "animate-spin" : ""}`} />
+                  </div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
+                    {loadingQrCode ? "Gerando QR..." : "2. Conectar WhatsApp"}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Abre o QR Code na tela para parear com o aplicativo do WhatsApp
+                  </span>
+                </button>
+
+                {/* Botão Verificar Status */}
+                <button
+                  type="button"
+                  onClick={handleTestEvolution}
+                  disabled={testingEvolution}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col items-start text-left group disabled:opacity-50"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center mb-2.5 group-hover:scale-105 transition">
+                    <RefreshCw className={`w-4 h-4 ${testingEvolution ? "animate-spin text-emerald-500" : ""}`} />
+                  </div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100 mb-0.5">
+                    {testingEvolution ? "Verificando..." : "Verificar Status"}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Consulta a conexão ao vivo no servidor Evolution
+                  </span>
+                </button>
+
+                {/* Botão Ações Avançadas (Reiniciar / Logout) */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-xs text-slate-900 dark:text-slate-100">Gerenciamento</span>
+                    <Smartphone className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <div className="flex flex-col space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={handleRestartEvolution}
+                      disabled={restartingEvolution}
+                      className="w-full py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] font-semibold flex items-center justify-center space-x-1.5 transition border border-amber-300/40 dark:border-amber-700/40 disabled:opacity-50"
+                      title="Reiniciar a instância caso trave"
+                    >
+                      <RotateCcw className={`w-3 h-3 ${restartingEvolution ? "animate-spin" : ""}`} />
+                      <span>{restartingEvolution ? "Reiniciando..." : "Reiniciar Instância"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogoutEvolution}
+                      disabled={loggingOutEvolution}
+                      className="w-full py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-semibold flex items-center justify-center space-x-1.5 transition border border-rose-300/40 dark:border-rose-700/40 disabled:opacity-50"
+                      title="Desconectar o WhatsApp desta instância"
+                    >
+                      <Power className={`w-3 h-3 ${loggingOutEvolution ? "animate-spin" : ""}`} />
+                      <span>{loggingOutEvolution ? "Saindo..." : "Desconectar Sessão"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Teste de Disparo de Mensagem em Tempo Real */}
+            <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  Teste Imediato de Disparo de Mensagem
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Digite um número de telefone com DDD para receber uma mensagem de teste e confirmar o envio em tempo real.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-2 max-w-lg">
                 <input
                   type="text"
-                  value={evolutionApiUrl}
-                  onChange={(e) => setEvolutionApiUrl(e.target.value)}
-                  placeholder="ex: https://api.evolution.suaempresa.com"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                  value={testWhatsAppNumber}
+                  onChange={(e) => setTestWhatsAppNumber(formatPhone(e.target.value))}
+                  placeholder="Ex: (87) 99999-9999"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-semibold"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  API Key Global
-                </label>
-                <input
-                  type="password"
-                  value={evolutionApiKey}
-                  onChange={(e) => setEvolutionApiKey(e.target.value)}
-                  placeholder="Global API Key da Evolution"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Nome da Instância
-                </label>
-                <input
-                  type="text"
-                  value={evolutionInstance}
-                  onChange={(e) => setEvolutionInstance(e.target.value)}
-                  placeholder="ex: empresa_recife"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                />
+                <button
+                  type="button"
+                  onClick={handleSendTestWhatsApp}
+                  disabled={sendingTestWhatsApp}
+                  className="w-full sm:w-auto shrink-0 py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                >
+                  <Send className={`w-3.5 h-3.5 ${sendingTestWhatsApp ? "animate-spin" : ""}`} />
+                  <span>{sendingTestWhatsApp ? "Enviando..." : "Enviar Mensagem Teste"}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -4226,6 +4612,144 @@ function ParametrosContent() {
                   className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer shadow-xs"
                 >
                   Fechar Raio-X
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CONECTAR WHATSAPP (QR CODE) */}
+        {showQrModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 my-auto overflow-hidden relative">
+              {/* Header do Modal */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      Conectar WhatsApp via QR Code
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Instância: {evolutionInstance || "Principal"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Status ou Sucesso */}
+              {qrScanSuccess ? (
+                <div className="py-8 flex flex-col items-center justify-center text-center space-y-3 animate-in zoom-in-95">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-lg ring-8 ring-emerald-400/20">
+                    <CheckCircle2 className="w-10 h-10" />
+                  </div>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    WhatsApp Conectado com Sucesso! 🎉
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                    Sua instância já está autenticada e pronta para disparar mensagens e documentos automaticamente.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Área da Imagem do QR Code */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+                    {loadingQrCode ? (
+                      <div className="py-12 flex flex-col items-center space-y-3">
+                        <RefreshCw className="w-8 h-8 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                        <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                          Gerando QR Code na Evolution API...
+                        </span>
+                      </div>
+                    ) : qrCodeData?.base64 ? (
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className="p-3 bg-white rounded-2xl shadow-md border border-slate-200">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={qrCodeData.base64}
+                            alt="QR Code WhatsApp"
+                            className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span>Aguardando leitura pelo celular (auto-detecção ativa)...</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-8 flex flex-col items-center text-center space-y-3">
+                        <AlertCircle className="w-8 h-8 text-amber-500" />
+                        <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs">
+                          {qrCodeData?.message || "Não foi possível carregar o QR Code. Certifique-se de que a instância foi criada no servidor."}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleOpenQrModal}
+                          className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Tentar Novamente</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Código de Pareamento alternativo se disponível */}
+                    {qrCodeData?.pairingCode && (
+                      <div className="mt-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full text-center">
+                        <span className="text-[10px] text-slate-400 block mb-1">Ou conecte com o Código de Pareamento:</span>
+                        <span className="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">
+                          {qrCodeData.pairingCode}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Passo a Passo Ilustrado */}
+                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 text-xs space-y-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                      Como conectar seu aparelho:
+                    </span>
+                    <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px]">
+                      <li>Abra o WhatsApp no seu smartphone</li>
+                      <li>
+                        Toque em <strong>Mais opções</strong> (Android: ⋮) ou <strong>Configurações</strong> (iPhone: ⚙️)
+                      </li>
+                      <li>
+                        Toque em <strong>Aparelhos conectados</strong> e depois em <strong>Conectar um aparelho</strong>
+                      </li>
+                      <li>Aponte seu celular para o QR Code acima para sincronizar</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {/* Rodapé do Modal */}
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handleOpenQrModal}
+                  disabled={loadingQrCode || qrScanSuccess}
+                  className="py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center space-x-1.5 transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingQrCode ? "animate-spin" : ""}`} />
+                  <span>Recarregar QR Code</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer shadow-sm"
+                >
+                  Fechar
                 </button>
               </div>
             </div>
