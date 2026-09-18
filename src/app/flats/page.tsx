@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import UpgradeModal from "@/components/plans/UpgradeModal";
 import PlanUsageWidget from "@/components/plans/PlanUsageWidget";
+import { toast } from "@/components/ui";
 
 export default function FlatsPage() {
   const [locais, setLocais] = useState<any[]>([]);
@@ -181,7 +182,7 @@ export default function FlatsPage() {
     for (const file of fileList) {
       if (file.size > MAX_PHOTO_SIZE) {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        alert(`⚠️ A foto "${file.name}" (${sizeMb} MB) excede o limite máximo permitido de 5 MB.`);
+        toast.warning(`A foto "${file.name}" (${sizeMb} MB) excede o limite máximo permitido de 5 MB.`);
         e.target.value = "";
         return;
       }
@@ -210,10 +211,12 @@ export default function FlatsPage() {
         } else {
           setFotosPreview((prev) => [...prev, ...data.fotosUrl]);
         }
+        toast.success("Foto(s) adicionada(s) com sucesso!");
         loadData();
       }
     } catch (err) {
       console.error("Erro ao enviar fotos:", err);
+      toast.error("Erro ao enviar fotos.");
     } finally {
       setUploadingFotos(false);
     }
@@ -229,7 +232,7 @@ export default function FlatsPage() {
 
     try {
       const method = editingLocal ? "PUT" : "POST";
-      await fetch("/api/flats", {
+      const res = await fetch("/api/flats", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -239,10 +242,17 @@ export default function FlatsPage() {
           endereco: enderecoLocal,
         }),
       });
-      setShowLocalModal(false);
-      loadData();
+      if (res.ok) {
+        toast.success(editingLocal ? "Condomínio/Local atualizado com sucesso!" : "Condomínio/Local cadastrado com sucesso!");
+        setShowLocalModal(false);
+        loadData();
+      } else {
+        const d = await res.json();
+        toast.error(d.error || "Erro ao salvar condomínio/local.");
+      }
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao salvar condomínio/local.");
     } finally {
       setSubmitting(false);
     }
@@ -253,7 +263,8 @@ export default function FlatsPage() {
     setSubmitting(true);
 
     try {
-      const method = editingFlat ? "PUT" : "POST";
+      const isEditing = !!editingFlat;
+      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/flats", {
         method,
         headers: { "Content-Type": "application/json" },
@@ -284,14 +295,16 @@ export default function FlatsPage() {
       }
 
       if (!res.ok) {
-        alert(data.error || "Erro ao salvar imóvel.");
+        toast.error(data.error || "Erro ao salvar imóvel.");
         return;
       }
 
+      toast.success(isEditing ? "Imóvel atualizado com sucesso!" : "Imóvel cadastrado com sucesso!");
       setShowFlatModal(false);
       loadData();
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao salvar imóvel.");
     } finally {
       setSubmitting(false);
     }

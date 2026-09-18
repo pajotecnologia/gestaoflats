@@ -25,6 +25,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 interface Proprietario {
   id: string;
@@ -81,17 +82,21 @@ export default function ProprietariosPage() {
   const [conta, setConta] = useState("");
   const [taxaAdmin, setTaxaAdmin] = useState("10");
   const [observacoes, setObservacoes] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
 
   const loadProprietarios = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const res = await fetch("/api/proprietarios");
       const data = await res.json();
-      if (res.ok) {
-        setProprietarios(data.proprietarios || []);
+      if (Array.isArray(data)) {
+        setProprietarios(data);
+      } else if (data && Array.isArray(data.proprietarios)) {
+        setProprietarios(data.proprietarios);
       }
     } catch (err) {
-      console.error("Erro ao carregar proprietários:", err);
+      console.error(err);
+      toast.error("Erro ao carregar proprietários.");
     } finally {
       setLoading(false);
     }
@@ -123,25 +128,25 @@ export default function ProprietariosPage() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (p: Proprietario) => {
-    setEditingProprietario(p);
-    setNome(p.nome);
-    setCpfCnpj(p.cpfCnpj);
-    setRgIe(p.rgIe || "");
-    setEmail(p.email || "");
-    setTelefone(p.telefone);
-    setEndereco(p.endereco || "");
-    setBairro(p.bairro || "");
-    setCidade(p.cidade || "");
-    setEstado(p.estado || "");
-    setCep(p.cep || "");
-    setChavePix(p.chavePix || "");
-    setTipoChavePix(p.tipoChavePix || "CPF");
-    setBanco(p.banco || "");
-    setAgencia(p.agencia || "");
-    setConta(p.conta || "");
-    setTaxaAdmin(String(p.taxaAdministracaoPadrao ?? 10));
-    setObservacoes(p.observacoes || "");
+  const handleOpenEdit = (prop: Proprietario) => {
+    setEditingProprietario(prop);
+    setNome(prop.nome);
+    setCpfCnpj(prop.cpfCnpj);
+    setRgIe(prop.rgIe || "");
+    setEmail(prop.email || "");
+    setTelefone(prop.telefone);
+    setEndereco(prop.endereco || "");
+    setBairro(prop.bairro || "");
+    setCidade(prop.cidade || "");
+    setEstado(prop.estado || "");
+    setCep(prop.cep || "");
+    setChavePix(prop.chavePix || "");
+    setTipoChavePix(prop.tipoChavePix || "CPF");
+    setBanco(prop.banco || "");
+    setAgencia(prop.agencia || "");
+    setConta(prop.conta || "");
+    setTaxaAdmin(prop.taxaAdministracaoPadrao ? String(prop.taxaAdministracaoPadrao) : "10");
+    setObservacoes(prop.observacoes || "");
     setShowModal(true);
   };
 
@@ -150,7 +155,10 @@ export default function ProprietariosPage() {
     setSubmitting(true);
 
     try {
-      const method = editingProprietario ? "PUT" : "POST";
+      const isEditing = !!editingProprietario;
+      const url = "/api/proprietarios";
+      const method = isEditing ? "PUT" : "POST";
+
       const body = {
         id: editingProprietario?.id,
         nome,
@@ -172,7 +180,7 @@ export default function ProprietariosPage() {
         observacoes,
       };
 
-      const res = await fetch("/api/proprietarios", {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -180,33 +188,40 @@ export default function ProprietariosPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Erro ao salvar proprietário.");
+        toast.error(data.error || "Erro ao salvar proprietário.");
         return;
       }
 
+      toast.success(isEditing ? "Proprietário atualizado com sucesso!" : "Proprietário cadastrado com sucesso!");
       setShowModal(false);
       loadProprietarios();
     } catch (err) {
       console.error(err);
-      alert("Erro ao salvar.");
+      toast.error("Erro de conexão ao salvar.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string, nomeProp: string) => {
-    if (!confirm(`Tem certeza que deseja remover o proprietário "${nomeProp}"?`)) return;
+  const handleDelete = (id: string, nomeProp: string) => {
+    setDeleteTarget({ id, nome: nomeProp });
+  };
 
+  const handleDeleteConfirm = async (id: string) => {
     try {
       const res = await fetch(`/api/proprietarios?id=${id}`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("Proprietário excluído com sucesso!");
         loadProprietarios();
       } else {
         const d = await res.json();
-        alert(d.error || "Erro ao excluir.");
+        toast.error(d.error || "Erro ao excluir.");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Erro de conexão ao excluir.");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -674,6 +689,20 @@ export default function ProprietariosPage() {
             </div>
           </div>
         )}
+
+        {/* Confirmar Exclusão */}
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          title="Excluir Proprietário"
+          description={`Tem certeza que deseja remover o proprietário "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="danger"
+          onConfirm={() => {
+            if (deleteTarget) handleDeleteConfirm(deleteTarget.id);
+          }}
+          onClose={() => setDeleteTarget(null)}
+        />
       </div>
     </Shell>
   );

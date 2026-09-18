@@ -21,6 +21,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
+import { toast } from "@/components/ui";
 
 export default function AssinarVistoriaPublicPage({ params }: { params: { token: string } }) {
   const [vistoria, setVistoria] = useState<any>(null);
@@ -128,7 +129,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
     for (const file of fileList) {
       if (file.size > MAX_PHOTO_SIZE) {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        alert(`⚠️ A foto "${file.name}" (${sizeMb} MB) excede o limite máximo permitido de 5 MB.`);
+        toast.warning(`A foto "${file.name}" (${sizeMb} MB) excede o limite máximo permitido de 5 MB.`);
         e.target.value = "";
         return;
       }
@@ -153,11 +154,12 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
           fotosUrl: [...existing, ...data.fotoUrls],
         };
         setItems(updated);
+        toast.success("Foto(s) adicionada(s) com sucesso!");
       } else {
-        alert(data.error || "Erro ao fazer upload da foto.");
+        toast.error(data.error || "Erro ao fazer upload da foto.");
       }
     } catch (err: any) {
-      alert("Erro de conexão ao enviar foto: " + (err.message || err));
+      toast.error("Erro de conexão ao enviar foto: " + (err.message || err));
     } finally {
       setUploadingItemIndex(null);
       e.target.value = "";
@@ -192,7 +194,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
       setFacingMode(mode);
     } catch (err: any) {
       console.error("Erro ao acessar câmera:", err);
-      alert("Não foi possível acessar a câmera. Verifique as permissões de câmera do navegador ou utilize a opção Câmera Direta / Galeria.");
+      toast.error("Não foi possível acessar a câmera. Verifique as permissões de câmera do navegador ou utilize a opção Câmera Direta / Galeria.");
       stopCamera();
     }
   };
@@ -253,12 +255,13 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
             fotosUrl: [...existing, ...data.fotoUrls],
           };
           setItems(updated);
+          toast.success("Foto capturada com sucesso!");
           stopCamera();
         } else {
-          alert(data.error || "Erro ao salvar foto capturada.");
+          toast.error(data.error || "Erro ao salvar foto capturada.");
         }
       } catch (err: any) {
-        alert("Erro no envio da foto: " + (err.message || err));
+        toast.error("Erro no envio da foto: " + (err.message || err));
       } finally {
         setUploadingItemIndex(null);
       }
@@ -268,7 +271,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
   const handleConfirmarAssinatura = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assinaturaBase64) {
-      alert("Por favor, desenhe sua assinatura no quadro antes de confirmar.");
+      toast.warning("Por favor, desenhe sua assinatura no quadro antes de confirmar.");
       return;
     }
 
@@ -339,7 +342,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
   const handleEnviarWhatsAppCopia = async () => {
     const locTel = vistoria?.locatario?.telefone || vistoria?.contrato?.locatario?.telefone;
     if (!vistoria || !locTel) {
-      alert("Telefone/WhatsApp do locatário não disponível para envio.");
+      toast.warning("Telefone/WhatsApp do locatário não disponível para envio.");
       return;
     }
 
@@ -388,7 +391,7 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Laudo PDF enviado com sucesso pelo WhatsApp!");
+        toast.success("Laudo PDF enviado com sucesso pelo WhatsApp!");
       } else {
         const phone = locTel.replace(/\D/g, "");
         const formattedPhone = phone.startsWith("55") ? phone : `55${phone}`;

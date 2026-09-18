@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "@/components/ui";
 
 interface ReservaItem {
   contratoId: string;
@@ -208,7 +209,7 @@ export default function AgendaPage() {
 
   const handleOpenNovaReserva = (flatIdDefault?: string, dateDefault?: string) => {
     if (flats.length === 0) {
-      alert("Nenhum imóvel configurado para locação por Diária/Temporada. Acesse o menu 'Flats & Condomínios' e defina a modalidade como 'Por Diária' ou 'Diária e Mensal'.");
+      toast.warning("Nenhum imóvel configurado para locação por Diária/Temporada. Acesse o menu 'Flats & Condomínios' e defina a modalidade como 'Por Diária' ou 'Diária e Mensal'.");
       return;
     }
 
@@ -245,7 +246,7 @@ export default function AgendaPage() {
   const handleCriarNovoLocatario = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoLocatarioNome || !novoLocatarioCpf || !novoLocatarioTelefone) {
-      alert("Preencha nome, CPF e telefone do locatário.");
+      toast.warning("Preencha nome, CPF e telefone do locatário.");
       return;
     }
 
@@ -264,10 +265,11 @@ export default function AgendaPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Erro ao cadastrar locatário.");
+        toast.error(data.error || "Erro ao cadastrar locatário.");
         return;
       }
 
+      toast.success("Locatário cadastrado com sucesso!");
       const resLocs = await fetch("/api/locatarios").then((r) => r.json());
       setLocatarios(resLocs.locatarios || []);
       if (data.locatario?.id) {
@@ -279,7 +281,7 @@ export default function AgendaPage() {
       setNovoLocatarioTelefone("");
       setNovoLocatarioEmail("");
     } catch (err) {
-      alert("Erro de conexão ao cadastrar locatário.");
+      toast.error("Erro de conexão ao cadastrar locatário.");
     } finally {
       setSalvandoLocatario(false);
     }
@@ -289,6 +291,7 @@ export default function AgendaPage() {
     e.preventDefault();
     if (!reservaFlatId || !reservaLocatarioId || !reservaCheckIn || !reservaCheckOut) {
       setErrorMessage("Por favor, preencha todos os campos obrigatórios da reserva.");
+      toast.warning("Por favor, preencha todos os campos obrigatórios da reserva.");
       return;
     }
 
@@ -296,11 +299,13 @@ export default function AgendaPage() {
     const dOut = new Date(reservaCheckOut + "T00:00:00");
     if (dOut <= dIn) {
       setErrorMessage("A data de check-out deve ser posterior à data de check-in.");
+      toast.warning("A data de check-out deve ser posterior à data de check-in.");
       return;
     }
 
     if (disponibilidadeReserva.checked && !disponibilidadeReserva.disponivel) {
       setErrorMessage(disponibilidadeReserva.mensagem || "O período selecionado está indisponível na agenda.");
+      toast.error(disponibilidadeReserva.mensagem || "O período selecionado está indisponível na agenda.");
       return;
     }
 
@@ -331,14 +336,17 @@ export default function AgendaPage() {
       const dataContrato = await resContrato.json();
       if (!resContrato.ok) {
         setErrorMessage(dataContrato.error || "Erro ao confirmar reserva.");
+        toast.error(dataContrato.error || "Erro ao confirmar reserva.");
         return;
       }
 
+      toast.success("Reserva confirmada com sucesso!");
       setShowReservaModal(false);
       setSucessoContrato(dataContrato.contrato);
       loadData();
     } catch (err: any) {
       setErrorMessage("Erro inesperado ao emitir contrato da reserva.");
+      toast.error("Erro inesperado ao emitir contrato da reserva.");
     } finally {
       setSubmitting(false);
     }

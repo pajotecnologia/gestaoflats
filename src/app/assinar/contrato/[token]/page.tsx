@@ -20,6 +20,7 @@ import {
   FileDown,
   Image as ImageIcon,
 } from "lucide-react";
+import { toast } from "@/components/ui";
 
 export default function AssinarContratoPublicPage({ params }: { params: { token: string } }) {
   const [contrato, setContrato] = useState<any>(null);
@@ -108,12 +109,12 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
   const handleConfirmarAssinatura = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assinaturaBase64) {
-      alert("Por favor, desenhe sua assinatura no quadro antes de confirmar.");
+      toast.warning("Por favor, desenhe sua assinatura no quadro antes de confirmar.");
       return;
     }
 
     if (contrato?.locatario?.cpf && cpfConfirmacao.replace(/\D/g, "") !== contrato.locatario.cpf.replace(/\D/g, "")) {
-      alert("O CPF informado não confere com o CPF do Locatário cadastrado no contrato.");
+      toast.error("O CPF informado não confere com o CPF do Locatário cadastrado no contrato.");
       return;
     }
 
@@ -133,7 +134,9 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || "Erro ao registrar assinatura.");
+        toast.error(data.error || "Erro ao registrar assinatura.");
       } else {
+        toast.success("Assinatura confirmada com sucesso!");
         setContrato((prev: any) => ({
           ...prev,
           statusAssinatura: "ASSINADO",
@@ -147,6 +150,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
       }
     } catch (err) {
       setErrorMsg("Erro de conexão ao salvar assinatura.");
+      toast.error("Erro de conexão ao salvar assinatura.");
     } finally {
       setSubmitting(false);
     }
@@ -209,12 +213,12 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Cópia do contrato em PDF enviada com sucesso pelo WhatsApp!");
+        toast.success("Cópia do contrato em PDF enviada com sucesso pelo WhatsApp!");
       } else {
-        alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique as configurações em Parâmetros."}`);
+        toast.error(`Falha ao enviar pelo WhatsApp: ${data.error || "Verifique as configurações em Parâmetros."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao enviar contrato via WhatsApp: ${err.message || err}`);
+      toast.error(`Erro ao enviar contrato via WhatsApp: ${err.message || err}`);
     }
   };
 

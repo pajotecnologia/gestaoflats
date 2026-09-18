@@ -29,6 +29,7 @@ import {
   Download,
   Layers,
 } from "lucide-react";
+import { toast } from "@/components/ui";
 
 export default function ContasReceberPage() {
   const [contas, setContas] = useState<any[]>([]);
@@ -136,7 +137,7 @@ export default function ContasReceberPage() {
 
   const handleEnviarWhatsAppRecibo = async (c: any) => {
     if (!c.locatario?.telefone) {
-      alert("Locatário não possui telefone/WhatsApp cadastrado.");
+      toast.warning("Locatário não possui telefone/WhatsApp cadastrado.");
       return;
     }
 
@@ -186,18 +187,18 @@ export default function ContasReceberPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Recibo em PDF enviado com sucesso pelo WhatsApp!");
+        toast.success("Recibo em PDF enviado com sucesso pelo WhatsApp!");
       } else {
-        alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique as configurações em Parâmetros."}`);
+        toast.error(`Falha ao enviar pelo WhatsApp: ${data.error || "Verifique as configurações em Parâmetros."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao enviar recibo via WhatsApp: ${err.message || err}`);
+      toast.error(`Erro ao enviar recibo via WhatsApp: ${err.message || err}`);
     }
   };
 
   const handleEnviarWhatsAppCobranca = async (c: any) => {
     if (!c.locatario?.telefone) {
-      alert("Locatário não possui telefone/WhatsApp cadastrado.");
+      toast.warning("Locatário não possui telefone/WhatsApp cadastrado.");
       return;
     }
 
@@ -228,12 +229,12 @@ export default function ContasReceberPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(`✅ Cobrança e dados do PIX enviados com sucesso para ${c.locatario.nome} no WhatsApp!`);
+        toast.success(`Cobrança e dados do PIX enviados com sucesso para ${c.locatario.nome} no WhatsApp!`);
       } else {
-        alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique a conexão da Evolution API em Parâmetros."}`);
+        toast.error(`Falha ao enviar pelo WhatsApp: ${data.error || "Verifique a conexão da Evolution API em Parâmetros."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao enviar cobrança via WhatsApp: ${err.message || err}`);
+      toast.error(`Erro ao enviar cobrança via WhatsApp: ${err.message || err}`);
     }
   };
 
@@ -251,13 +252,13 @@ export default function ContasReceberPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Boleto com Pix (Bolepix) emitido com sucesso no Banco Inter!");
+        toast.success("Boleto com Pix (Bolepix) emitido com sucesso no Banco Inter!");
         await loadData();
       } else {
-        alert(`❌ Falha ao emitir no Banco Inter:\n${data.error || "Verifique as credenciais e certificados em Parâmetros."}`);
+        toast.error(`Falha ao emitir no Banco Inter: ${data.error || "Verifique as credenciais e certificados em Parâmetros."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro de conexão ao emitir: ${err.message || err}`);
+      toast.error(`Erro de conexão ao emitir: ${err.message || err}`);
     } finally {
       setEmittingInterId(null);
     }
@@ -272,13 +273,13 @@ export default function ContasReceberPage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(`✅ ${data.message}`);
+        toast.success(data.message || "Sincronização concluída com sucesso!");
         await loadData();
       } else {
-        alert(`❌ Falha ao sincronizar: ${data.error || "Erro no servidor."}`);
+        toast.error(`Falha ao sincronizar: ${data.error || "Erro no servidor."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao conectar ao Banco Inter: ${err.message || err}`);
+      toast.error(`Erro ao conectar ao Banco Inter: ${err.message || err}`);
     } finally {
       setSyncingInter(false);
     }
@@ -305,7 +306,7 @@ export default function ContasReceberPage() {
   // 📱 Enviar Boleto PDF + Pix do Banco Inter pelo WhatsApp
   const handleEnviarWhatsAppBoletoInter = async (c: any) => {
     if (!c.locatario?.telefone) {
-      alert("Locatário não possui telefone/WhatsApp cadastrado.");
+      toast.warning("Locatário não possui telefone/WhatsApp cadastrado.");
       return;
     }
 
@@ -353,14 +354,14 @@ export default function ContasReceberPage() {
 
         const data = await res.json();
         if (res.ok && data.success) {
-          alert(`✅ Boleto e dados do Pix enviados com sucesso para ${c.locatario.nome} no WhatsApp!`);
+          toast.success(`Boleto e dados do Pix enviados com sucesso para ${c.locatario.nome} no WhatsApp!`);
         } else {
-          alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique a Evolution API em Parâmetros."}`);
+          toast.error(`Falha ao enviar pelo WhatsApp: ${data.error || "Verifique a Evolution API em Parâmetros."}`);
         }
       };
       reader.readAsDataURL(pdfBlob);
     } catch (err: any) {
-      alert(`❌ Erro ao enviar boleto via WhatsApp: ${err.message || err}`);
+      toast.error(`Erro ao enviar boleto via WhatsApp: ${err.message || err}`);
     }
   };
 
@@ -420,12 +421,12 @@ export default function ContasReceberPage() {
       if (res.ok) {
         setShowBaixaModal(false);
         await loadData();
-        alert("✅ Baixa registrada com sucesso!");
+        toast.success("Baixa registrada com sucesso!");
       } else {
-        alert(`❌ Falha ao registrar baixa: ${data.error || "Erro desconhecido"}`);
+        toast.error(`Falha ao registrar baixa: ${data.error || "Erro desconhecido"}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao registrar baixa: ${err.message || err}`);
+      toast.error(`Erro ao registrar baixa: ${err.message || err}`);
     } finally {
       setSubmitting(false);
     }
@@ -436,7 +437,8 @@ export default function ContasReceberPage() {
     setSubmitting(true);
 
     try {
-      const method = editingConta ? "PUT" : "POST";
+      const isEditing = !!editingConta;
+      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/financeiro/receber", {
         method,
         headers: { "Content-Type": "application/json" },
@@ -455,13 +457,14 @@ export default function ContasReceberPage() {
 
       const data = await res.json();
       if (res.ok) {
+        toast.success(isEditing ? "Lançamento atualizado com sucesso!" : "Lançamento criado com sucesso!");
         setShowModal(false);
         await loadData();
       } else {
-        alert(`❌ Erro ao salvar lançamento: ${data.error || "Erro no servidor"}`);
+        toast.error(`Erro ao salvar lançamento: ${data.error || "Erro no servidor"}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro de conexão: ${err.message || err}`);
+      toast.error(`Erro de conexão: ${err.message || err}`);
     } finally {
       setSubmitting(false);
     }

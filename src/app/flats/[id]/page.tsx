@@ -28,6 +28,7 @@ import {
   Upload,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "@/components/ui";
 
 export default function FlatDetailPage({ params }: { params: { id: string } }) {
   const [flat, setFlat] = useState<any>(null);
@@ -46,6 +47,7 @@ export default function FlatDetailPage({ params }: { params: { id: string } }) {
       }
     } catch (err) {
       console.error("Erro ao carregar detalhes do flat:", err);
+      toast.error("Erro ao carregar detalhes do imóvel.");
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function FlatDetailPage({ params }: { params: { id: string } }) {
     for (const file of fileList) {
       if (file.size > MAX_PHOTO_SIZE) {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        alert(`⚠️ A foto "${file.name}" (${sizeMb} MB) excede o limite máximo permitido de 5 MB.`);
+        toast.warning(`A foto "${file.name}" (${sizeMb} MB) excede o limite máximo permitido de 5 MB.`);
         e.target.value = "";
         return;
       }
@@ -85,12 +87,17 @@ export default function FlatDetailPage({ params }: { params: { id: string } }) {
 
       const data = await res.json();
       if (data.fotosUrl) {
+        toast.success("Foto(s) enviada(s) com sucesso!");
         loadFlat();
+      } else {
+        toast.error(data.error || "Erro no upload das fotos.");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Erro de conexão ao enviar fotos.");
     } finally {
       setUploadingFotos(false);
+      e.target.value = "";
     }
   };
 

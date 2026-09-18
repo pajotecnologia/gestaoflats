@@ -28,6 +28,7 @@ import {
   PlusCircle,
   Save,
 } from "lucide-react";
+import { toast } from "@/components/ui/Toast";
 
 export interface ParcelaItem {
   id: string;
@@ -217,14 +218,14 @@ export default function GridMeses({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Contrato encerrado com sucesso!\nO imóvel foi liberado e o status foi atualizado para DISPONÍVEL.");
+        toast.success("Contrato encerrado com sucesso! O imóvel foi liberado.");
         setShowEncerrarModal(false);
         if (onBaixaSucesso) onBaixaSucesso();
       } else {
-        alert(data.error || "Erro ao encerrar contrato.");
+        toast.error(data.error || "Erro ao encerrar contrato.");
       }
     } catch (err: any) {
-      alert("Erro ao encerrar contrato: " + (err.message || err));
+      toast.error("Erro ao encerrar contrato: " + (err.message || err));
     } finally {
       setLoadingEncerramento(false);
     }
@@ -265,7 +266,7 @@ export default function GridMeses({
   const handleSalvarVinculo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVistoriaIdParaVincular) {
-      alert("Selecione uma vistoria para vincular.");
+      toast.warning("Selecione uma vistoria para vincular.");
       return;
     }
 
@@ -283,14 +284,14 @@ export default function GridMeses({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Vistoria vinculada com sucesso ao contrato!");
+        toast.success("Vistoria vinculada com sucesso ao contrato!");
         setShowVincularModal(false);
         if (onBaixaSucesso) onBaixaSucesso();
       } else {
-        alert(data.error || "Erro ao vincular vistoria.");
+        toast.error(data.error || "Erro ao vincular vistoria.");
       }
     } catch (err: any) {
-      alert("Erro ao vincular vistoria: " + (err.message || err));
+      toast.error("Erro ao vincular vistoria: " + (err.message || err));
     } finally {
       setLoadingSalvarVinculo(false);
     }
@@ -396,12 +397,12 @@ export default function GridMeses({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Contrato em PDF e mensagem enviados com sucesso pelo WhatsApp!");
+        toast.success("Contrato em PDF e mensagem enviados com sucesso pelo WhatsApp!");
       } else {
-        alert(`❌ Falha ao enviar pelo WhatsApp:\n${data.error || "Verifique se o WhatsApp está configurado em Parâmetros."}`);
+        toast.error(`Falha ao enviar pelo WhatsApp: ${data.error || "Verifique as configurações em Parâmetros."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao enviar pelo WhatsApp:\n${err.message || err}`);
+      toast.error(`Erro ao enviar pelo WhatsApp: ${err.message || err}`);
     }
   };
 

@@ -32,6 +32,7 @@ import {
   Link as LinkIcon,
   ShieldCheck,
 } from "lucide-react";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 export default function VistoriasPage() {
   const [vistorias, setVistorias] = useState<any[]>([]);
@@ -63,6 +64,9 @@ export default function VistoriasPage() {
   // Modal Link Assinatura Digital
   const [linkModalVistoria, setLinkModalVistoria] = useState<any | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  // Modal Exclusão Vistoria
+  const [deleteVistoriaTarget, setDeleteVistoriaTarget] = useState<any | null>(null);
+  const [deletingVistoria, setDeletingVistoria] = useState(false);
 
   // Modal Envio por E-mail
   const [emailModalVistoria, setEmailModalVistoria] = useState<any | null>(null);
@@ -119,7 +123,7 @@ export default function VistoriasPage() {
   const handleStartChecklist = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFlatId) {
-      alert("Por favor, selecione o Flat / Imóvel.");
+      toast.warning("Por favor, selecione o Flat / Imóvel.");
       return;
     }
 
@@ -141,28 +145,31 @@ export default function VistoriasPage() {
   };
 
   // Handler para Excluir Vistoria
-  const handleDeleteVistoria = async (v: any) => {
-    if (v.contratoId) {
-      alert(`⚠️ Esta vistoria está vinculada ao Contrato #${v.contratoId.slice(0, 8)} e não pode ser excluída enquanto o contrato existir.`);
+  const handleConfirmDeleteVistoria = async () => {
+    if (!deleteVistoriaTarget) return;
+
+    if (deleteVistoriaTarget.contratoId) {
+      toast.warning(`Esta vistoria está vinculada ao Contrato #${deleteVistoriaTarget.contratoId.slice(0, 8)} e não pode ser excluída enquanto o contrato existir.`);
+      setDeleteVistoriaTarget(null);
       return;
     }
 
-    if (!confirm(`Tem certeza que deseja excluir o laudo de vistoria (${v.tipoVistoria}) do Flat ${v.flat?.numero}?`)) {
-      return;
-    }
-
+    setDeletingVistoria(true);
     try {
-      const res = await fetch(`/api/vistorias?id=${v.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/vistorias?id=${deleteVistoriaTarget.id}`, { method: "DELETE" });
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setFeedback({ type: "success", message: "✅ Vistoria excluída com sucesso!" });
+        toast.success("Vistoria excluída com sucesso!");
+        setDeleteVistoriaTarget(null);
         loadData();
       } else {
-        alert(data.error || "Erro ao excluir vistoria.");
+        toast.error(data.error || "Erro ao excluir vistoria.");
       }
     } catch (err: any) {
-      alert(`Erro: ${err.message || err}`);
+      toast.error(`Erro: ${err.message || err}`);
+    } finally {
+      setDeletingVistoria(false);
     }
   };
 
@@ -208,7 +215,7 @@ export default function VistoriasPage() {
   const handleSendWhatsApp = async (v: any) => {
     const telefone = v.locatario?.telefone || v.contrato?.locatario?.telefone;
     if (!telefone) {
-      alert("Locatário não possui telefone cadastrado para disparo de WhatsApp.");
+      toast.warning("Locatário não possui telefone cadastrado para disparo de WhatsApp.");
       return;
     }
 
@@ -266,12 +273,12 @@ export default function VistoriasPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setFeedback({ type: "success", message: `✅ Laudo PDF enviado com sucesso pelo WhatsApp para ${locNome}!` });
+        toast.success(`Laudo PDF enviado com sucesso pelo WhatsApp para ${locNome}!`);
       } else {
-        alert(`❌ Falha ao enviar WhatsApp: ${data.error || "Verifique a integração da Evolution API em Parâmetros."}`);
+        toast.error(`Falha ao enviar WhatsApp: ${data.error || "Verifique as configurações em Parâmetros."}`);
       }
     } catch (err: any) {
-      alert(`Erro: ${err.message || err}`);
+      toast.error(`Erro ao enviar WhatsApp: ${err.message || err}`);
     }
   };
 
@@ -740,8 +747,8 @@ export default function VistoriasPage() {
                             {!v.contratoId && (
                               <button
                                 type="button"
-                                onClick={() => handleDeleteVistoria(v)}
-                                className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 transition"
+                                onClick={() => setDeleteVistoriaTarget(v)}
+                                className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 transition cursor-pointer"
                                 title="Excluir Vistoria"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1104,6 +1111,25 @@ export default function VistoriasPage() {
             }}
           />
         )}
+
+        {/* Modal de Confirmação de Exclusão */}
+        <ConfirmDialog
+          isOpen={Boolean(deleteVistoriaTarget)}
+          onClose={() => setDeleteVistoriaTarget(null)}
+          onConfirm={handleConfirmDeleteVistoria}
+          isLoading={deletingVistoria}
+          title="Excluir Laudo de Vistoria"
+          description={
+            <span>
+              Tem certeza que deseja excluir permanentemente o laudo de vistoria de{" "}
+              <strong className="text-zinc-100 font-bold">{deleteVistoriaTarget?.tipoVistoria}</strong> do Flat{" "}
+              <strong className="text-zinc-100 font-bold">{deleteVistoriaTarget?.flat?.numero}</strong>? Esta ação não pode ser desfeita.
+            </span>
+          }
+          confirmText="Excluir Laudo"
+          cancelText="Cancelar"
+          variant="danger"
+        />
       </div>
     </Shell>
   );

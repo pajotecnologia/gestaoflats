@@ -45,6 +45,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { Toaster } from "@/components/ui/Toast";
+
 export default function RootLayout({
   children,
 }: {
@@ -75,6 +77,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} ${inter.variable} antialiased min-h-screen selection:bg-blue-600 selection:text-white transition-colors duration-200`}>
         {children}
+        <Toaster />
       </body>
     </html>
   );

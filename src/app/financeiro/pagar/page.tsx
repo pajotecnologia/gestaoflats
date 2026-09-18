@@ -19,6 +19,7 @@ import {
   Filter,
   Layers,
 } from "lucide-react";
+import { toast } from "@/components/ui";
 
 export default function ContasPagarPage() {
   const [contas, setContas] = useState<any[]>([]);
@@ -131,12 +132,12 @@ export default function ContasPagarPage() {
       if (res.ok) {
         setShowBaixaModal(false);
         await loadData();
-        alert("✅ Baixa de despesa registrada com sucesso!");
+        toast.success("Baixa de despesa registrada com sucesso!");
       } else {
-        alert(`❌ Falha ao registrar baixa: ${data.error || "Erro desconhecido"}`);
+        toast.error(`Falha ao registrar baixa: ${data.error || "Erro desconhecido"}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao registrar baixa: ${err.message || err}`);
+      toast.error(`Erro ao registrar baixa: ${err.message || err}`);
     } finally {
       setSubmitting(false);
     }
@@ -147,7 +148,8 @@ export default function ContasPagarPage() {
     setSubmitting(true);
 
     try {
-      const method = editingConta ? "PUT" : "POST";
+      const isEditing = !!editingConta;
+      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/financeiro/pagar", {
         method,
         headers: { "Content-Type": "application/json" },
@@ -166,13 +168,14 @@ export default function ContasPagarPage() {
 
       const data = await res.json();
       if (res.ok) {
+        toast.success(isEditing ? "Despesa atualizada com sucesso!" : "Despesa lançada com sucesso!");
         setShowModal(false);
         await loadData();
       } else {
-        alert(`❌ Erro ao salvar despesa: ${data.error || "Erro no servidor"}`);
+        toast.error(`Erro ao salvar despesa: ${data.error || "Erro no servidor"}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro de conexão: ${err.message || err}`);
+      toast.error(`Erro de conexão: ${err.message || err}`);
     } finally {
       setSubmitting(false);
     }

@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Video,
 } from "lucide-react";
+import { toast } from "@/components/ui";
 
 interface ChecklistVistoriaModalProps {
   flatNumero: string;
@@ -255,7 +256,7 @@ export default function ChecklistVistoriaModal({
       setFacingMode(mode);
     } catch (err: any) {
       console.error("Erro ao acessar câmera:", err);
-      alert("Não foi possível acessar a câmera do dispositivo. Verifique as permissões de câmera do navegador ou utilize a opção Câmera Direta / Galeria.");
+      toast.error("Não foi possível acessar a câmera do dispositivo. Verifique as permissões de câmera do navegador ou utilize a opção Câmera Direta / Galeria.");
       stopCamera();
     }
   };
@@ -316,12 +317,13 @@ export default function ChecklistVistoriaModal({
             fotosUrl: [...existing, ...data.fotoUrls],
           };
           setItems(updated);
+          toast.success("Foto capturada com sucesso!");
           stopCamera();
         } else {
-          alert(data.error || "Erro ao salvar foto capturada.");
+          toast.error(data.error || "Erro ao salvar foto capturada.");
         }
       } catch (err: any) {
-        alert("Erro no envio da foto: " + (err.message || err));
+        toast.error("Erro no envio da foto: " + (err.message || err));
       } finally {
         setUploadingItemIndex(null);
       }
@@ -348,7 +350,7 @@ export default function ChecklistVistoriaModal({
     for (let i = 0; i < files.length; i++) {
       if (files[i].size > MAX_PHOTO_SIZE) {
         const sizeMb = (files[i].size / (1024 * 1024)).toFixed(2);
-        alert(`⚠️ O arquivo "${files[i].name}" (${sizeMb} MB) excede o tamanho máximo permitido de 5 MB. Por favor, escolha uma imagem menor.`);
+        toast.warning(`O arquivo "${files[i].name}" (${sizeMb} MB) excede o tamanho máximo permitido de 5 MB. Por favor, escolha uma imagem menor.`);
         e.target.value = "";
         return;
       }
@@ -374,11 +376,12 @@ export default function ChecklistVistoriaModal({
           fotosUrl: [...existing, ...data.fotoUrls],
         };
         setItems(updated);
+        toast.success("Imagem(ns) adicionada(s) com sucesso!");
       } else {
-        alert(data.error || "Erro no upload da imagem.");
+        toast.error(data.error || "Erro no upload da imagem.");
       }
     } catch (err: any) {
-      alert("Erro ao enviar imagem: " + (err.message || err));
+      toast.error("Erro ao enviar imagem: " + (err.message || err));
     } finally {
       setUploadingItemIndex(null);
       e.target.value = "";
@@ -501,7 +504,7 @@ export default function ChecklistVistoriaModal({
   const handleEnviarWhatsAppLink = async () => {
     const targetTelefone = currentLocatarioTelefone || locatarioTelefone;
     if (!targetTelefone) {
-      alert("Locatário não possui número de telefone/WhatsApp cadastrado.");
+      toast.warning("Locatário não possui número de telefone/WhatsApp cadastrado.");
       return;
     }
 

@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Edit3,
 } from "lucide-react";
+import { toast } from "@/components/ui";
 
 interface ChecklistVistoriaViewModalProps {
   vistoria: any;
@@ -108,7 +109,7 @@ export default function ChecklistVistoriaViewModal({
 
   const handleSendWhatsApp = async () => {
     if (!locatarioTelefone) {
-      alert("Locatário não possui telefone/WhatsApp cadastrado.");
+      toast.warning("Locatário não possui telefone/WhatsApp cadastrado.");
       return;
     }
 
@@ -152,12 +153,12 @@ export default function ChecklistVistoriaViewModal({
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Laudo PDF enviado com sucesso pelo WhatsApp!");
+        toast.success("Laudo PDF enviado com sucesso pelo WhatsApp!");
       } else {
-        alert(`❌ Falha ao enviar pelo WhatsApp: ${data.error || "Verifique se a integração está configurada."}`);
+        toast.error(`Falha ao enviar pelo WhatsApp: ${data.error || "Verifique se a integração está configurada."}`);
       }
     } catch (err: any) {
-      alert("Erro ao enviar laudo via WhatsApp: " + (err.message || err));
+      toast.error("Erro ao enviar laudo via WhatsApp: " + (err.message || err));
     } finally {
       setSendingWhatsApp(false);
     }

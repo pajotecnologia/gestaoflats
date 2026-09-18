@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Shell from "@/components/layout/Shell";
 import { formatCNPJ, formatCPF, formatPhone, formatCEP } from "@/lib/validation";
 import { Truck, Plus, X, Edit3, Trash2, Building2, User, Search, Phone, Mail, MapPin } from "lucide-react";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 export default function FornecedoresPage() {
   const [fornecedores, setFornecedores] = useState<any[]>([]);
@@ -11,6 +12,7 @@ export default function FornecedoresPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingFornecedor, setEditingFornecedor] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
 
   const [tipoDocumento, setTipoDocumento] = useState<"CNPJ" | "CPF">("CNPJ");
   const [razaoSocial, setRazaoSocial] = useState("");
@@ -79,19 +81,20 @@ export default function FornecedoresPage() {
     }
   };
 
-  const handleDelete = async (id: string, nome: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o fornecedor "${nome}"?`)) return;
-
+  const handleDeleteConfirm = async (id: string) => {
     try {
       const res = await fetch(`/api/fornecedores?id=${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Erro ao excluir fornecedor.");
+        toast.error(data.error || "Erro ao excluir fornecedor.");
         return;
       }
+      toast.success("Fornecedor excluído com sucesso!");
       loadData();
     } catch (err: any) {
-      alert("Erro de conexão ao excluir fornecedor.");
+      toast.error("Erro de conexão ao excluir fornecedor.");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -101,7 +104,8 @@ export default function FornecedoresPage() {
     setErrorMessage("");
 
     try {
-      const method = editingFornecedor ? "PUT" : "POST";
+      const isEditing = !!editingFornecedor;
+      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/fornecedores", {
         method,
         headers: { "Content-Type": "application/json" },
@@ -119,13 +123,16 @@ export default function FornecedoresPage() {
       const data = await res.json();
       if (!res.ok) {
         setErrorMessage(data.error || "Erro ao salvar fornecedor.");
+        toast.error(data.error || "Erro ao salvar fornecedor.");
         return;
       }
 
+      toast.success(isEditing ? "Fornecedor atualizado com sucesso!" : "Fornecedor cadastrado com sucesso!");
       setShowModal(false);
       loadData();
     } catch (err: any) {
       setErrorMessage("Erro inesperado ao salvar fornecedor.");
+      toast.error("Erro inesperado ao salvar fornecedor.");
     } finally {
       setSubmitting(false);
     }
@@ -284,7 +291,7 @@ export default function FornecedoresPage() {
                               <Edit3 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(f.id, f.razaoSocial)}
+                              onClick={() => setDeleteTarget({ id: f.id, nome: f.razaoSocial })}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
                               title="Excluir Fornecedor"
                             >
@@ -467,6 +474,20 @@ export default function FornecedoresPage() {
             </div>
           </div>
         )}
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          title="Excluir Fornecedor"
+          description={`Tem certeza que deseja excluir o fornecedor "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="danger"
+          onConfirm={() => {
+            if (deleteTarget) handleDeleteConfirm(deleteTarget.id);
+          }}
+          onClose={() => setDeleteTarget(null)}
+        />
       </div>
     </Shell>
   );

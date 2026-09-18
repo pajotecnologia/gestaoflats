@@ -52,6 +52,7 @@ import {
   RotateCcw,
   Smartphone,
 } from "lucide-react";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 function ParametrosContent() {
   const searchParams = useSearchParams();
@@ -60,6 +61,35 @@ function ParametrosContent() {
   const [empresa, setEmpresa] = useState<any>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "primary" | "danger";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
+
+  const openConfirm = (opts: {
+    title: string;
+    description: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "primary" | "danger";
+    onConfirm: () => void;
+  }) => {
+    setConfirmModal({
+      isOpen: true,
+      ...opts,
+    });
+  };
 
   // Sync tab reativamente do parâmetro URL ?aba=
   useEffect(() => {
@@ -360,51 +390,58 @@ function ParametrosContent() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("✅ Plano salvo com sucesso!");
+        toast.success("Plano salvo com sucesso!");
         setShowPlanModal(false);
         carregarPlanosSaaS();
       } else {
-        alert(data.error || "Erro ao salvar plano.");
+        toast.error(data.error || "Erro ao salvar plano.");
       }
     } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+      toast.error(`Erro: ${err.message}`);
     } finally {
       setSavingCustomPlan(false);
     }
   };
 
-  const handleDeleteCustomPlan = async (slug: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o plano personalizado "${slug}"?`)) return;
-    setSalvandoPlanos(true);
-    try {
-      const res = await fetch("/api/saas/planos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "delete_plano",
-          slug,
-          planoId: slug,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert("✅ Plano personalizado excluído!");
-        carregarPlanosSaaS();
-      } else {
-        alert(data.error || "Erro ao excluir plano.");
-      }
-    } catch (err: any) {
-      alert(`Erro: ${err.message}`);
-    } finally {
-      setSalvandoPlanos(false);
-    }
+  const handleDeleteCustomPlan = (slug: string) => {
+    openConfirm({
+      title: "Excluir Plano Personalizado",
+      description: `Tem certeza que deseja excluir o plano personalizado "${slug}"?`,
+      confirmText: "Excluir",
+      variant: "danger",
+      onConfirm: async () => {
+        setSalvandoPlanos(true);
+        try {
+          const res = await fetch("/api/saas/planos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "delete_plano",
+              slug,
+              planoId: slug,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            toast.success("Plano personalizado excluído!");
+            carregarPlanosSaaS();
+          } else {
+            toast.error(data.error || "Erro ao excluir plano.");
+          }
+        } catch (err: any) {
+          toast.error(`Erro: ${err.message}`);
+        } finally {
+          setSalvandoPlanos(false);
+        }
+      },
+    });
   };
 
   const handleCopyVipLink = (slug: string) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const vipUrl = `${origin}/renovar?planoId=${slug}`;
     navigator.clipboard.writeText(vipUrl);
-    alert(`📋 Link VIP Direto copiado para a área de transferência:\n${vipUrl}`);
+    toast.success("Link VIP Direto copiado para a área de transferência!");
   };
 
   const handleSalvarPlanosSaaS = async () => {
@@ -423,52 +460,59 @@ function ParametrosContent() {
       }
 
       if (res.ok && data.success) {
-        alert("✅ Limites e preços dos planos salvos com sucesso no sistema!");
+        toast.success("Limites e preços dos planos salvos com sucesso no sistema!");
         setHasCustomPlanos(true);
         setFeedback({ type: "success", message: "✅ Limites e preços dos planos salvos com sucesso!" });
       } else {
-        alert(data.error || `Erro ao salvar planos (HTTP ${res.status}).`);
+        toast.error(data.error || `Erro ao salvar planos (HTTP ${res.status}).`);
         setFeedback({ type: "error", message: `❌ ${data.error || "Erro ao salvar planos."}` });
       }
     } catch (err: any) {
-      alert(`Erro de rede ao conectar com o servidor: ${err?.message || err}`);
+      toast.error(`Erro de rede ao conectar com o servidor: ${err?.message || err}`);
       setFeedback({ type: "error", message: `❌ Erro de rede: ${err?.message || err}` });
     } finally {
       setSalvandoPlanos(false);
     }
   };
 
-  const handleRestaurarPlanosPadrao = async () => {
-    if (!window.confirm("Deseja restaurar as configurações padrão de fábrica para todos os planos SaaS?")) return;
-    setSalvandoPlanos(true);
-    try {
-      const res = await fetch("/api/saas/planos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reset" }),
-      });
-      let data: any = {};
-      try {
-        data = await res.json();
-      } catch (jsonErr) {
-        data = { error: `Resposta inválida do servidor (HTTP ${res.status})` };
-      }
+  const handleRestaurarPlanosPadrao = () => {
+    openConfirm({
+      title: "Restaurar Planos Padrão",
+      description: "Deseja restaurar as configurações padrão de fábrica para todos os planos SaaS?",
+      confirmText: "Restaurar Padrão",
+      variant: "danger",
+      onConfirm: async () => {
+        setSalvandoPlanos(true);
+        try {
+          const res = await fetch("/api/saas/planos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "reset" }),
+          });
+          let data: any = {};
+          try {
+            data = await res.json();
+          } catch (jsonErr) {
+            data = { error: `Resposta inválida do servidor (HTTP ${res.status})` };
+          }
 
-      if (res.ok && data.planos) {
-        alert("✅ Planos restaurados para a configuração padrão de fábrica!");
-        setSaasPlanos(data.planos);
-        setHasCustomPlanos(false);
-        setFeedback({ type: "success", message: "✅ Planos restaurados para os padrões de fábrica!" });
-      } else {
-        alert(data.error || `Erro ao restaurar planos (HTTP ${res.status}).`);
-        setFeedback({ type: "error", message: `❌ ${data.error || "Erro ao restaurar."}` });
-      }
-    } catch (err: any) {
-      alert(`Erro de rede ao conectar com o servidor: ${err?.message || err}`);
-      setFeedback({ type: "error", message: `❌ Erro de rede: ${err?.message || err}` });
-    } finally {
-      setSalvandoPlanos(false);
-    }
+          if (res.ok && data.planos) {
+            toast.success("Planos restaurados para a configuração padrão de fábrica!");
+            setSaasPlanos(data.planos);
+            setHasCustomPlanos(false);
+            setFeedback({ type: "success", message: "✅ Planos restaurados para os padrões de fábrica!" });
+          } else {
+            toast.error(data.error || `Erro ao restaurar planos (HTTP ${res.status}).`);
+            setFeedback({ type: "error", message: `❌ ${data.error || "Erro ao restaurar."}` });
+          }
+        } catch (err: any) {
+          toast.error(`Erro de rede ao conectar com o servidor: ${err?.message || err}`);
+          setFeedback({ type: "error", message: `❌ Erro de rede: ${err?.message || err}` });
+        } finally {
+          setSalvandoPlanos(false);
+        }
+      },
+    });
   };
 
   const loadSaasConfig = async () => {
@@ -576,37 +620,47 @@ function ParametrosContent() {
       if (res.ok) {
         setShowLiberarModal(false);
         await loadEmpresasSaaS();
+        toast.success(data.message || "Acesso liberado com sucesso!");
         setFeedback({ type: "success", message: `✅ ${data.message || "Acesso liberado com sucesso!"}` });
       } else {
-        alert(data.error || "Erro ao liberar acesso");
+        toast.error(data.error || "Erro ao liberar acesso");
       }
     } catch (e: any) {
-      alert(`Erro: ${e.message}`);
+      toast.error(`Erro: ${e.message}`);
     } finally {
       setSubmittingLiberar(false);
     }
   };
 
-  const handleDispararAvisosWhatsApp = async () => {
-    if (!confirm("Deseja disparar agora os avisos de vencimento de teste/plano para todas as empresas com expiração próxima?")) return;
-    setDisparandoAvisos(true);
-    try {
-      const res = await fetch("/api/saas/avisos-expiracao", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        await loadEmpresasSaaS();
-        setFeedback({
-          type: "success",
-          message: `✅ Avisos processados! Total verificadas: ${data.totalVerificadas}, Avisos: ${data.avisosProcessados}.`,
-        });
-      } else {
-        setFeedback({ type: "error", message: `❌ Erro ao disparar avisos: ${data.error}` });
-      }
-    } catch (e: any) {
-      setFeedback({ type: "error", message: `❌ Erro: ${e.message}` });
-    } finally {
-      setDisparandoAvisos(false);
-    }
+  const handleDispararAvisosWhatsApp = () => {
+    openConfirm({
+      title: "Disparar Avisos de Vencimento",
+      description: "Deseja disparar agora os avisos de vencimento de teste/plano para todas as empresas com expiração próxima?",
+      confirmText: "Disparar Avisos",
+      variant: "primary",
+      onConfirm: async () => {
+        setDisparandoAvisos(true);
+        try {
+          const res = await fetch("/api/saas/avisos-expiracao", { method: "POST" });
+          const data = await res.json();
+          if (res.ok) {
+            await loadEmpresasSaaS();
+            toast.success(`Avisos processados! Total: ${data.totalVerificadas}, Avisos: ${data.avisosProcessados}.`);
+            setFeedback({
+              type: "success",
+              message: `✅ Avisos processados! Total verificadas: ${data.totalVerificadas}, Avisos: ${data.avisosProcessados}.`,
+            });
+          } else {
+            toast.error(`Erro ao disparar avisos: ${data.error}`);
+            setFeedback({ type: "error", message: `❌ Erro ao disparar avisos: ${data.error}` });
+          }
+        } catch (e: any) {
+          toast.error(`Erro ao disparar avisos: ${e.message}`);
+        } finally {
+          setDisparandoAvisos(false);
+        }
+      },
+    });
   };
 
   const loadData = async () => {
@@ -753,12 +807,13 @@ function ParametrosContent() {
       if (res.ok) {
         setShowFormaModal(false);
         await loadFormas();
+        toast.success("Forma de pagamento salva com sucesso!");
         setFeedback({ type: "success", message: "Forma de pagamento salva com sucesso!" });
       } else {
-        alert(data.error || "Erro ao salvar forma de pagamento");
+        toast.error(data.error || "Erro ao salvar forma de pagamento");
       }
     } catch (err: any) {
-      alert(`Erro: ${err.message || err}`);
+      toast.error(`Erro: ${err.message || err}`);
     } finally {
       setSubmittingForma(false);
     }
@@ -777,18 +832,27 @@ function ParametrosContent() {
     }
   };
 
-  const handleDeleteForma = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta forma de pagamento?")) return;
-    try {
-      const res = await fetch(`/api/formas-pagamento?id=${id}`, { method: "DELETE" });
-      if (res.ok) {
-        await loadFormas();
-      } else {
-        alert("Não foi possível excluir esta forma de pagamento.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteForma = (id: string) => {
+    openConfirm({
+      title: "Excluir Forma de Pagamento",
+      description: "Tem certeza que deseja excluir esta forma de pagamento?",
+      confirmText: "Excluir",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/formas-pagamento?id=${id}`, { method: "DELETE" });
+          if (res.ok) {
+            toast.success("Forma de pagamento excluída com sucesso!");
+            await loadFormas();
+          } else {
+            toast.error("Não foi possível excluir esta forma de pagamento.");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Erro de conexão ao excluir.");
+        }
+      },
+    });
   };
 
   const handleOpenNewFuncModal = () => {
@@ -1116,34 +1180,42 @@ function ParametrosContent() {
   }, [showQrModal, qrScanSuccess, evolutionApiUrl, evolutionApiKey, evolutionInstance]);
 
   // Desconectar (Logout) da sessão do WhatsApp
-  const handleLogoutEvolution = async () => {
-    if (!confirm("Deseja realmente desconectar a sessão do WhatsApp? Será necessário ler o QR Code novamente para reconectar.")) {
-      return;
-    }
-    setLoggingOutEvolution(true);
-    setFeedback({ type: "", message: "" });
-    try {
-      const res = await fetch("/api/parametros/evolution/logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          evolutionApiUrl,
-          evolutionApiKey,
-          evolutionInstance,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setStatusConexao("DESCONECTADO");
-        setFeedback({ type: "success", message: "✅ WhatsApp desconectado com sucesso!" });
-      } else {
-        setFeedback({ type: "error", message: `❌ ${data.message || data.error || "Erro ao desconectar."}` });
-      }
-    } catch (err: any) {
-      setFeedback({ type: "error", message: `❌ Erro ao desconectar: ${err.message || err}` });
-    } finally {
-      setLoggingOutEvolution(false);
-    }
+  const handleLogoutEvolution = () => {
+    openConfirm({
+      title: "Desconectar WhatsApp",
+      description: "Deseja realmente desconectar a sessão do WhatsApp? Será necessário ler o QR Code novamente para reconectar.",
+      confirmText: "Desconectar",
+      variant: "danger",
+      onConfirm: async () => {
+        setLoggingOutEvolution(true);
+        setFeedback({ type: "", message: "" });
+        try {
+          const res = await fetch("/api/parametros/evolution/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              evolutionApiUrl,
+              evolutionApiKey,
+              evolutionInstance,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setStatusConexao("DESCONECTADO");
+            toast.success("WhatsApp desconectado com sucesso!");
+            setFeedback({ type: "success", message: "✅ WhatsApp desconectado com sucesso!" });
+          } else {
+            toast.error(data.message || data.error || "Erro ao desconectar.");
+            setFeedback({ type: "error", message: `❌ ${data.message || data.error || "Erro ao desconectar."}` });
+          }
+        } catch (err: any) {
+          toast.error(`Erro ao desconectar: ${err.message || err}`);
+          setFeedback({ type: "error", message: `❌ Erro ao desconectar: ${err.message || err}` });
+        } finally {
+          setLoggingOutEvolution(false);
+        }
+      },
+    });
   };
 
   // Reiniciar a instância
@@ -1177,7 +1249,7 @@ function ParametrosContent() {
   // Disparo de mensagem de teste
   const handleSendTestWhatsApp = async () => {
     if (!testWhatsAppNumber) {
-      alert("Informe um número de WhatsApp de destino (com DDD) no campo de teste.");
+      toast.warning("Informe um número de WhatsApp de destino (com DDD) no campo de teste.");
       return;
     }
     setSendingTestWhatsApp(true);
@@ -1193,11 +1265,14 @@ function ParametrosContent() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        toast.success("Mensagem de teste enviada com sucesso no WhatsApp!");
         setFeedback({ type: "success", message: "✅ Mensagem de teste enviada com sucesso no WhatsApp!" });
       } else {
+        toast.error(`Falha no envio: ${data.error || data.message || "Verifique o status da conexão"}`);
         setFeedback({ type: "error", message: `❌ Falha no envio: ${data.error || data.message || "Verifique o status da conexão"}` });
       }
     } catch (err: any) {
+      toast.error(`Erro no teste de WhatsApp: ${err.message || err}`);
       setFeedback({ type: "error", message: `❌ Erro no teste de WhatsApp: ${err.message || err}` });
     } finally {
       setSendingTestWhatsApp(false);
@@ -1236,7 +1311,7 @@ function ParametrosContent() {
 
   const handleTestSmtp = async () => {
     if (!testEmailDestino) {
-      alert("Por favor, digite um e-mail de destino no campo de teste.");
+      toast.warning("Por favor, digite um e-mail de destino no campo de teste.");
       return;
     }
 
@@ -4755,6 +4830,21 @@ function ParametrosContent() {
             </div>
           </div>
         )}
+
+        {/* Modal de Confirmação Reutilizável */}
+        <ConfirmDialog
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          description={confirmModal.description}
+          confirmText={confirmModal.confirmText || "Confirmar"}
+          cancelText={confirmModal.cancelText || "Cancelar"}
+          variant={confirmModal.variant || "primary"}
+          onConfirm={() => {
+            confirmModal.onConfirm();
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          }}
+          onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        />
       </div>
     </Shell>
   );

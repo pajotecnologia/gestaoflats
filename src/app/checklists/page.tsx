@@ -19,6 +19,7 @@ import {
   Eye,
   Check,
 } from "lucide-react";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 interface TopicoItem {
   topico: string;
@@ -32,6 +33,7 @@ export default function ModelosChecklistPage() {
   const [showModal, setShowModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedPreviewModelo, setSelectedPreviewModelo] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; titulo: string } | null>(null);
 
   const [editingModelo, setEditingModelo] = useState<any>(null);
   const [titulo, setTitulo] = useState("");
@@ -133,18 +135,19 @@ export default function ModelosChecklistPage() {
     setTopicos(updated);
   };
 
-  const handleDelete = async (id: string, tit: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o modelo "${tit}"?`)) return;
-
+  const handleDeleteConfirm = async (id: string) => {
     try {
       const res = await fetch(`/api/modelos-checklist?id=${id}`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("Modelo de checklist excluído com sucesso!");
         loadData();
       } else {
-        alert("Erro ao excluir modelo de checklist.");
+        toast.error("Erro ao excluir modelo de checklist.");
       }
     } catch (err) {
-      alert("Erro de conexão ao excluir.");
+      toast.error("Erro de conexão ao excluir.");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -152,11 +155,13 @@ export default function ModelosChecklistPage() {
     e.preventDefault();
     if (!titulo.trim()) {
       setErrorMessage("Informe o título do modelo de checklist.");
+      toast.warning("Informe o título do modelo de checklist.");
       return;
     }
 
     if (topicos.length === 0) {
       setErrorMessage("Adicione pelo menos 1 tópico com itens ao modelo.");
+      toast.warning("Adicione pelo menos 1 tópico com itens ao modelo.");
       return;
     }
 
@@ -164,7 +169,8 @@ export default function ModelosChecklistPage() {
     setErrorMessage("");
 
     try {
-      const method = editingModelo ? "PUT" : "POST";
+      const isEditing = !!editingModelo;
+      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/modelos-checklist", {
         method,
         headers: { "Content-Type": "application/json" },
@@ -180,13 +186,16 @@ export default function ModelosChecklistPage() {
       const data = await res.json();
       if (!res.ok) {
         setErrorMessage(data.error || "Erro ao salvar modelo.");
+        toast.error(data.error || "Erro ao salvar modelo.");
         return;
       }
 
+      toast.success(isEditing ? "Modelo de checklist atualizado com sucesso!" : "Modelo de checklist cadastrado com sucesso!");
       setShowModal(false);
       loadData();
     } catch (err: any) {
       setErrorMessage("Erro de conexão ao salvar modelo de checklist.");
+      toast.error("Erro de conexão ao salvar modelo de checklist.");
     } finally {
       setSubmitting(false);
     }
@@ -356,7 +365,7 @@ export default function ModelosChecklistPage() {
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(m.id, m.titulo)}
+                        onClick={() => setDeleteTarget({ id: m.id, titulo: m.titulo })}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
                         title="Excluir Modelo"
                       >
@@ -619,6 +628,20 @@ export default function ModelosChecklistPage() {
             </div>
           </div>
         )}
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          title="Excluir Modelo de Checklist"
+          description={`Tem certeza que deseja excluir o modelo "${deleteTarget?.titulo}"? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="danger"
+          onConfirm={() => {
+            if (deleteTarget) handleDeleteConfirm(deleteTarget.id);
+          }}
+          onClose={() => setDeleteTarget(null)}
+        />
       </div>
     </Shell>
   );

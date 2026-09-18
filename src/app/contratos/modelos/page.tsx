@@ -32,6 +32,7 @@ import {
   Edit3,
   Info,
 } from "lucide-react";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 // Sanitiza qualquer HTML removendo cores azuis ou coloridas antigas e forçando Preto Puro (#000000)
 const forceBlackText = (html: string) => {
@@ -106,6 +107,7 @@ export default function ModelosContratoPage() {
   const [modelos, setModelos] = useState<any[]>([]);
   const [titulo, setTitulo] = useState("");
   const [selectedModeloId, setSelectedModeloId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; titulo: string } | null>(null);
 
   const defaultContentHtml = DEFAULT_CONTRATO_HTML;
 
@@ -185,16 +187,14 @@ export default function ModelosContratoPage() {
     }
   };
 
-  const handleDeleteModelo = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm("Deseja realmente excluir este modelo de contrato?")) return;
-
+  const handleDeleteConfirm = async (id: string) => {
     try {
       const res = await fetch(`/api/modelos-contrato?id=${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
         setFeedback("✅ Modelo de contrato excluído com sucesso!");
+        toast.success("Modelo de contrato excluído com sucesso!");
         if (selectedModeloId === id) {
           handleNovoModelo();
         }
@@ -202,9 +202,13 @@ export default function ModelosContratoPage() {
       } else {
         const data = await res.json();
         setFeedback(`❌ Erro ao excluir: ${data.error}`);
+        toast.error(`Erro ao excluir: ${data.error}`);
       }
     } catch (err: any) {
       setFeedback(`❌ Erro ao conectar ao servidor.`);
+      toast.error("Erro ao conectar ao servidor.");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -319,11 +323,13 @@ export default function ModelosContratoPage() {
 
     if (!titulo.trim()) {
       setFeedback("⚠️ Por favor, informe um Título para o modelo de contrato.");
+      toast.warning("Por favor, informe um Título para o modelo de contrato.");
       return;
     }
 
     if (!cleanHtml.trim()) {
       setFeedback("⚠️ O conteúdo do contrato não pode estar vazio.");
+      toast.warning("O conteúdo do contrato não pode estar vazio.");
       return;
     }
 
@@ -340,8 +346,10 @@ export default function ModelosContratoPage() {
       const data = await res.json();
       if (!res.ok) {
         setFeedback(`❌ Erro ao salvar: ${data.error}`);
+        toast.error(`Erro ao salvar: ${data.error}`);
       } else {
         setFeedback("✅ Modelo de contrato salvo com sucesso!");
+        toast.success("Modelo de contrato salvo com sucesso!");
         if (data.modelo?.id) {
           setSelectedModeloId(data.modelo.id);
         }
@@ -349,6 +357,7 @@ export default function ModelosContratoPage() {
       }
     } catch (err) {
       setFeedback("❌ Erro ao conectar ao servidor.");
+      toast.error("Erro ao conectar ao servidor.");
     } finally {
       setSaving(false);
     }
@@ -629,7 +638,10 @@ export default function ModelosContratoPage() {
 
                       <button
                         type="button"
-                        onClick={(e) => handleDeleteModelo(mod.id, e)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget({ id: mod.id, titulo: mod.titulo });
+                        }}
                         className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 transition"
                         title="Excluir Modelo"
                       >
@@ -1045,6 +1057,20 @@ export default function ModelosContratoPage() {
             </div>
           </div>
         </div>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          title="Excluir Modelo de Contrato"
+          description={`Tem certeza que deseja excluir o modelo "${deleteTarget?.titulo}"? Esta ação não pode ser desfeita.`}
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="danger"
+          onConfirm={() => {
+            if (deleteTarget) handleDeleteConfirm(deleteTarget.id);
+          }}
+          onClose={() => setDeleteTarget(null)}
+        />
       </div>
     </Shell>
   );

@@ -32,6 +32,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "@/components/ui";
 
 interface Repasse {
   id: string;
@@ -166,13 +167,13 @@ export default function RepassesPage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        alert(`✅ ${data.message}`);
+        toast.success(data.message || "Repasses gerados com sucesso!");
         await loadData();
       } else {
-        alert(`❌ Erro ao gerar repasses: ${data.error || "Erro no servidor."}`);
+        toast.error(`Erro ao gerar repasses: ${data.error || "Erro no servidor."}`);
       }
     } catch (err: any) {
-      alert(`❌ Erro ao conectar: ${err.message || err}`);
+      toast.error(`Erro ao conectar: ${err.message || err}`);
     } finally {
       setGeneratingRepasses(false);
     }
@@ -203,14 +204,16 @@ export default function RepassesPage() {
       });
 
       if (res.ok) {
+        toast.success("Baixa no repasse realizada com sucesso!");
         setShowBaixaModal(false);
         loadData();
       } else {
         const d = await res.json();
-        alert(d.error || "Erro ao dar baixa no repasse.");
+        toast.error(d.error || "Erro ao dar baixa no repasse.");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao dar baixa no repasse.");
     } finally {
       setBaixaSubmitting(false);
     }
@@ -268,13 +271,13 @@ export default function RepassesPage() {
       pdf.save(`Extrato_Repasse_${repasse.proprietario.nome.replace(/\s+/g, "_")}_${formattedMes.replace("/", "-")}.pdf`);
     } catch (err) {
       console.error("Erro ao gerar PDF de repasse:", err);
-      alert("Erro ao gerar PDF.");
+      toast.error("Erro ao gerar PDF.");
     }
   };
 
   const handleSendWhatsApp = async (repasse: Repasse) => {
     if (!repasse.proprietario.telefone) {
-      alert("Proprietário não possui telefone cadastrado.");
+      toast.warning("Proprietário não possui telefone cadastrado.");
       return;
     }
 
@@ -343,13 +346,13 @@ export default function RepassesPage() {
       );
 
       if (res.success) {
-        alert("✅ Extrato de repasse enviado com sucesso pelo WhatsApp!");
+        toast.success("Extrato de repasse enviado com sucesso pelo WhatsApp!");
       } else {
-        alert(`Não foi possível enviar: ${res.message || "Verifique a conexão da Evolution API"}`);
+        toast.error(`Não foi possível enviar: ${res.message || "Verifique a conexão da Evolution API"}`);
       }
     } catch (e: any) {
       console.error(e);
-      alert("Erro ao disparar mensagem no WhatsApp.");
+      toast.error("Erro ao disparar mensagem no WhatsApp.");
     } finally {
       setSendingWhatsId(null);
     }
@@ -376,14 +379,16 @@ export default function RepassesPage() {
       });
 
       if (res.ok) {
+        toast.success("Repasse criado com sucesso!");
         setShowNewModal(false);
         loadData();
       } else {
         const d = await res.json();
-        alert(d.error || "Erro ao criar repasse.");
+        toast.error(d.error || "Erro ao criar repasse.");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao criar repasse.");
     } finally {
       setNewSubmitting(false);
     }

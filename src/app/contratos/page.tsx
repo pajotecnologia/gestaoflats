@@ -5,6 +5,7 @@ import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
 import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera, Calendar, CalendarCheck, CalendarX, Clock } from "lucide-react";
+import { toast } from "@/components/ui";
 
 export default function ContratosPage() {
   const [contratos, setContratos] = useState<any[]>([]);
@@ -251,8 +252,8 @@ export default function ContratosPage() {
     const flatSelected = flats.find((f) => f.id === selectedFlatId);
     if (flatSelected) {
       if (flatSelected.status === "MANUTENCAO") {
-        alert(
-          `⚠️ NÃO É POSSÍVEL EMITIR CONTRATO\n\nO imóvel "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente em MANUTENÇÃO.\n\nAltere o status do imóvel para DISPONÍVEL no cadastro de imóveis antes de emitir o contrato.`
+        toast.error(
+          `O imóvel "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente em MANUTENÇÃO. Altere o status para DISPONÍVEL antes de emitir contrato.`
         );
         setFlatId("");
         setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
@@ -269,7 +270,7 @@ export default function ContratosPage() {
 
   const handleAbrirVistoria = () => {
     if (!flatId) {
-      alert("Selecione um flat primeiro para realizar a vistoria.");
+      toast.warning("Selecione um flat primeiro para realizar a vistoria.");
       return;
     }
     const flatSelected = flats.find((f) => f.id === flatId);
@@ -282,7 +283,9 @@ export default function ContratosPage() {
   const handleEmitirContrato = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel) {
-      setErrorMsg(disponibilidadeInfo.mensagem || "O período selecionado está indisponível na agenda.");
+      const msg = disponibilidadeInfo.mensagem || "O período selecionado está indisponível na agenda.";
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
 
@@ -318,10 +321,12 @@ export default function ContratosPage() {
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || "Erro ao emitir contrato.");
+        toast.error(data.error || "Erro ao emitir contrato.");
         setSubmitting(false);
         return;
       }
 
+      toast.success("Contrato emitido com sucesso!");
       setShowModal(false);
       setLocatarioId("");
       setFlatId("");
@@ -329,6 +334,7 @@ export default function ContratosPage() {
       loadData();
     } catch (err) {
       setErrorMsg("Erro de rede ao conectar ao servidor.");
+      toast.error("Erro de rede ao conectar ao servidor.");
     } finally {
       setSubmitting(false);
     }
