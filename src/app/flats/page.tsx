@@ -30,7 +30,7 @@ import {
 import Link from "next/link";
 import UpgradeModal from "@/components/plans/UpgradeModal";
 import PlanUsageWidget from "@/components/plans/PlanUsageWidget";
-import { toast } from "@/components/ui";
+import { toast, ConfirmDialog } from "@/components/ui";
 
 export default function FlatsPage() {
   const [locais, setLocais] = useState<any[]>([]);
@@ -57,6 +57,48 @@ export default function FlatsPage() {
   // Modal Comercial de Upgrade ao Atingir Quota
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
+
+  // Dialog de Confirmação de Exclusão (Flats & Condomínios)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [deleteType, setDeleteType] = useState<"flat" | "local">("flat");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleOpenDeleteFlat = (flat: any) => {
+    setItemToDelete(flat);
+    setDeleteType("flat");
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleOpenDeleteLocal = (local: any) => {
+    setItemToDelete(local);
+    setDeleteType("local");
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/flats?type=${deleteType}&id=${itemToDelete.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Erro ao excluir registro.");
+        setDeleting(false);
+        return;
+      }
+      toast.success(deleteType === "flat" ? "Imóvel/Flat excluído com sucesso!" : "Condomínio excluído com sucesso!");
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
+      loadData();
+    } catch (err) {
+      toast.error("Erro de conexão ao excluir.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleOpenVistoriaFlat = async (flat: any) => {
     setSelectedChecklistFlat(flat);
@@ -376,6 +418,13 @@ export default function FlatsPage() {
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => handleOpenDeleteLocal(local)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                          title="Excluir Condomínio"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-1 mt-0.5">
                         <MapPin className="w-3.5 h-3.5 text-blue-500" />
@@ -552,25 +601,35 @@ export default function FlatsPage() {
 
                             {/* 3 Botões de Ação Organizados */}
                             <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-1.5">
-                              <div className="grid grid-cols-2 gap-1.5">
+                              <div className="grid grid-cols-3 gap-1.5">
                                 {/* Botão Visualizar */}
                                 <button
                                   onClick={() => handleOpenDetailModal(flat)}
-                                  className="py-1.5 px-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow-sm"
+                                  className="py-1.5 px-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center space-x-1 transition shadow-sm"
                                   title="Ver Detalhes e Fotos"
                                 >
-                                  <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                  <span>Visualizar</span>
+                                  <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                  <span className="truncate">Ver</span>
                                 </button>
 
                                 {/* Botão Editar & Fotos */}
                                 <button
                                   onClick={() => handleOpenEditFlat(flat)}
-                                  className="py-1.5 px-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow-sm"
+                                  className="py-1.5 px-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center space-x-1 transition shadow-sm"
                                   title="Editar Flat e Fotos"
                                 >
-                                  <Edit3 className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>Editar</span>
+                                  <Edit3 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                  <span className="truncate">Editar</span>
+                                </button>
+
+                                {/* Botão Excluir */}
+                                <button
+                                  onClick={() => handleOpenDeleteFlat(flat)}
+                                  className="py-1.5 px-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-semibold flex items-center justify-center space-x-1 transition shadow-sm"
+                                  title="Excluir Imóvel"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="truncate">Excluir</span>
                                 </button>
                               </div>
 
@@ -1139,6 +1198,26 @@ export default function FlatsPage() {
           limitKey="properties"
           currentPlan={upgradeModalData?.currentPlan}
           nextPlan={upgradeModalData?.nextPlan}
+        />
+
+        {/* Modal de Confirmação de Exclusão */}
+        <ConfirmDialog
+          isOpen={deleteConfirmOpen}
+          title={deleteType === "flat" ? "Excluir Imóvel / Flat" : "Excluir Condomínio / Local"}
+          description={
+            deleteType === "flat"
+              ? `Tem certeza que deseja excluir o imóvel "${itemToDelete?.numero}"? Esta ação removerá a unidade do sistema.`
+              : `Tem certeza que deseja excluir o condomínio "${itemToDelete?.nome}"? Todos os flats vinculados a este local precisam ser removidos ou transferidos antes.`
+          }
+          confirmText="Sim, Excluir"
+          cancelText="Cancelar"
+          variant="danger"
+          isLoading={deleting}
+          onConfirm={handleConfirmDelete}
+          onClose={() => {
+            setDeleteConfirmOpen(false);
+            setItemToDelete(null);
+          }}
         />
       </div>
     </Shell>
