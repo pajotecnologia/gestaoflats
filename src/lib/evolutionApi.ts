@@ -50,6 +50,20 @@ export async function checkEvolutionStatus(config: EvolutionConfig): Promise<{
     );
 
     if (!response.ok) {
+      if (response.status === 404) {
+        return {
+          connected: false,
+          status: "NAO_ENCONTRADA",
+          message: `Instância "${evolutionInstance}" ainda não existe no servidor Evolution (404). Clique no botão "Criar Instância" para registrá-la.`,
+        };
+      }
+      if (response.status === 401 || response.status === 403) {
+        return {
+          connected: false,
+          status: "NAO_AUTORIZADO",
+          message: `Chave de acesso (API Key) inválida ou não autorizada (${response.status}). Verifique o campo "API Key Global".`,
+        };
+      }
       return {
         connected: false,
         status: "ERRO",
@@ -223,6 +237,18 @@ export async function getEvolutionQRCode(config: EvolutionConfig): Promise<{
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok && !data.base64 && !data.code && !data.qrcode) {
+      if (response.status === 404) {
+        return {
+          success: false,
+          message: `Instância "${evolutionInstance}" não encontrada no servidor (404). Clique em "Criar Instância" para cadastrá-la.`,
+        };
+      }
+      if (response.status === 401 || response.status === 403) {
+        return {
+          success: false,
+          message: `Chave de acesso (API Key) inválida (${response.status}). Verifique a sua API Key Global da Evolution API.`,
+        };
+      }
       const detailed = extractEvolutionErrorMessage(data, response.statusText);
       return {
         success: false,
