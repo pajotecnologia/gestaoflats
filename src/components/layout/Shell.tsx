@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import FloatingAlertsHub from "@/components/alertas/FloatingAlertsHub";
+import { TenantSelector } from "@/components/tenants/TenantSelector";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -236,28 +237,8 @@ function ShellContent({ children }: ShellProps) {
       {/* Sidebar Desktop (Inspirado no estilo Profound / SaaSFrame) */}
       <aside className="hidden md:flex flex-col w-64 h-full border-r border-slate-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl p-3.5 space-y-3 flex-shrink-0 select-none">
         
-        {/* Workspace Card Header */}
-        <div className="flex items-center space-x-3 p-2.5 rounded-2xl bg-slate-50 dark:bg-zinc-900/90 border border-slate-200/60 dark:border-zinc-800/80 shadow-xs dark:shadow-black/40">
-          {user?.logomarcaUrl ? (
-            <img
-              src={getMediaUrl(user.logomarcaUrl)}
-              alt="Logo"
-              className="w-9 h-9 rounded-xl object-cover border border-slate-300 dark:border-zinc-700 shadow-xs shrink-0"
-            />
-          ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 flex items-center justify-center font-black text-white shadow-md shadow-indigo-500/25 text-sm shrink-0">
-              {user?.empresaNome ? user.empresaNome.charAt(0).toUpperCase() : "P"}
-            </div>
-          )}
-          <div className="overflow-hidden min-w-0">
-            <h1 className="font-bold text-slate-900 dark:text-zinc-100 text-xs leading-tight truncate">
-              {user?.empresaNome || "Prime Flats"}
-            </h1>
-            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase block truncate">
-              Locações & Temporadas
-            </span>
-          </div>
-        </div>
+        {/* Seletor de Organizações Multitenant */}
+        <TenantSelector />
 
         <nav className="flex-1 space-y-4 overflow-y-auto pr-1 text-xs">
           {navSections.map((section, idx) => (
@@ -546,6 +527,11 @@ function ShellContent({ children }: ShellProps) {
         {/* Drawer Mobile */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-zinc-800 p-4 space-y-3 z-40 max-h-[80vh] overflow-y-auto">
+            {/* Seletor Multitenant Mobile */}
+            <div className="pb-3 border-b border-slate-200/80 dark:border-zinc-800/80">
+              <TenantSelector />
+            </div>
+
             {navSections.map((section, idx) => (
               <div key={idx} className="space-y-1">
                 <span className="text-[10px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase px-3">

@@ -46,6 +46,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "@/components/ui/Toast";
+import { TenantProvider } from "@/contexts/TenantContext";
 
 export default function RootLayout({
   children,
@@ -76,9 +77,12 @@ export default function RootLayout({
         <meta name="title" content="Gestão de Imóveis para Locação SaaS" />
       </head>
       <body className={`${inter.className} ${inter.variable} antialiased min-h-screen selection:bg-blue-600 selection:text-white transition-colors duration-200`}>
-        {children}
+        <TenantProvider>
+          {children}
+        </TenantProvider>
         <Toaster />
       </body>
     </html>
   );
 }
+
