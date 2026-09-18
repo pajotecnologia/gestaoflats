@@ -232,28 +232,28 @@ function ShellContent({ children }: ShellProps) {
   const breadcrumb = getPageTitle();
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 transition-colors duration-200">
       {/* Sidebar Desktop (Inspirado no estilo Profound / SaaSFrame) */}
-      <aside className="hidden md:flex flex-col w-64 h-full border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/95 backdrop-blur p-3.5 space-y-3 flex-shrink-0 select-none">
+      <aside className="hidden md:flex flex-col w-64 h-full border-r border-slate-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl p-3.5 space-y-3 flex-shrink-0 select-none">
         
         {/* Workspace Card Header */}
-        <div className="flex items-center space-x-3 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/50 shadow-xs">
+        <div className="flex items-center space-x-3 p-2.5 rounded-2xl bg-slate-50 dark:bg-zinc-900/90 border border-slate-200/60 dark:border-zinc-800/80 shadow-xs dark:shadow-black/40">
           {user?.logomarcaUrl ? (
             <img
               src={getMediaUrl(user.logomarcaUrl)}
               alt="Logo"
-              className="w-9 h-9 rounded-xl object-cover border border-slate-300 dark:border-slate-600 shadow-xs shrink-0"
+              className="w-9 h-9 rounded-xl object-cover border border-slate-300 dark:border-zinc-700 shadow-xs shrink-0"
             />
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white shadow-md shadow-blue-500/20 text-sm shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 flex items-center justify-center font-black text-white shadow-md shadow-indigo-500/25 text-sm shrink-0">
               {user?.empresaNome ? user.empresaNome.charAt(0).toUpperCase() : "P"}
             </div>
           )}
           <div className="overflow-hidden min-w-0">
-            <h1 className="font-bold text-slate-900 dark:text-slate-100 text-xs leading-tight truncate">
+            <h1 className="font-bold text-slate-900 dark:text-zinc-100 text-xs leading-tight truncate">
               {user?.empresaNome || "Prime Flats"}
             </h1>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase block truncate">
+            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase block truncate">
               Locações & Temporadas
             </span>
           </div>
@@ -262,7 +262,7 @@ function ShellContent({ children }: ShellProps) {
         <nav className="flex-1 space-y-4 overflow-y-auto pr-1 text-xs">
           {navSections.map((section, idx) => (
             <div key={idx} className="space-y-1">
-              <span className="text-[9px] font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2.5">
+              <span className="text-[9px] font-extrabold tracking-wider text-slate-400 dark:text-zinc-500 uppercase px-2.5">
                 {section.title}
               </span>
               <div className="space-y-0.5 pt-0.5">
@@ -277,18 +277,18 @@ function ShellContent({ children }: ShellProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                         isActive
-                          ? "bg-blue-600/10 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold border-l-[3px] border-blue-600 shadow-xs"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                          ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold border-l-[3px] border-indigo-600 dark:border-indigo-500 shadow-xs shadow-indigo-500/10"
+                          : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                       }`}
                     >
                       <div className="flex items-center space-x-2.5">
-                        <Icon className={`w-4 h-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-400"}`} />
+                        <Icon className={`w-4 h-4 transition-colors ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-zinc-500"}`} />
                         <span>{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80">
                           {item.badge}
                         </span>
                       )}
@@ -300,8 +300,8 @@ function ShellContent({ children }: ShellProps) {
           ))}
 
           {/* SEÇÃO CONFIGURAÇÕES & RELATÓRIOS (Colapsáveis por padrão) */}
-          <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-            <span className="text-[9px] font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase px-2.5">
+          <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-zinc-800/80">
+            <span className="text-[9px] font-extrabold tracking-wider text-slate-400 dark:text-zinc-500 uppercase px-2.5">
               RELATÓRIOS & CONFIGURAÇÃO
             </span>
 
@@ -310,25 +310,25 @@ function ShellContent({ children }: ShellProps) {
               <button
                 type="button"
                 onClick={() => setRelatoriosExpanded(!relatoriosExpanded)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                   isRelatoriosActive
-                    ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border-l-[3px] border-blue-600"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                    ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold border-l-[3px] border-indigo-600 dark:border-indigo-500"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                 }`}
               >
                 <div className="flex items-center space-x-2.5">
-                  <BarChart3 className={`w-4 h-4 ${isRelatoriosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                  <BarChart3 className={`w-4 h-4 ${isRelatoriosActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-zinc-500"}`} />
                   <span>Relatórios</span>
                 </div>
                 {relatoriosExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                 )}
               </button>
 
               {relatoriosExpanded && (
-                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-slate-800 mt-1 space-y-0.5">
+                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-zinc-800 mt-1 space-y-0.5">
                   {relatoriosSubItems.map((sub) => {
                     const SubIcon = sub.icon;
                     const isSubActive = isRelatoriosActive && currentAba === sub.aba;
@@ -337,13 +337,13 @@ function ShellContent({ children }: ShellProps) {
                         key={sub.href}
                         href={sub.href}
                         onClick={() => setCurrentAba(sub.aba)}
-                        className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                        className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
                           isSubActive
-                            ? "bg-blue-600 text-white font-bold shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                            ? "bg-indigo-600 text-white font-bold shadow-xs"
+                            : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                         }`}
                       >
-                        <SubIcon className={`w-3 h-3 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                        <SubIcon className={`w-3 h-3 ${isSubActive ? "text-white" : "text-slate-400 dark:text-zinc-500"}`} />
                         <span className="truncate">{sub.label}</span>
                       </Link>
                     );
@@ -357,25 +357,25 @@ function ShellContent({ children }: ShellProps) {
               <button
                 type="button"
                 onClick={() => setParametrosExpanded(!parametrosExpanded)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                   isParametrosActive
-                    ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-bold border-l-[3px] border-blue-600"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                    ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold border-l-[3px] border-indigo-600 dark:border-indigo-500"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                 }`}
               >
                 <div className="flex items-center space-x-2.5">
-                  <SlidersHorizontal className={`w-4 h-4 ${isParametrosActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                  <SlidersHorizontal className={`w-4 h-4 ${isParametrosActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-zinc-500"}`} />
                   <span>Parâmetros</span>
                 </div>
                 {parametrosExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
                 )}
               </button>
 
               {parametrosExpanded && (
-                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-slate-800 mt-1 space-y-0.5">
+                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-zinc-800 mt-1 space-y-0.5">
                   {parametrosSubItems.map((sub) => {
                     const SubIcon = sub.icon;
                     const isSubActive = isParametrosActive && currentParametrosAba === sub.aba;
@@ -384,13 +384,13 @@ function ShellContent({ children }: ShellProps) {
                         key={sub.href}
                         href={sub.href}
                         onClick={() => setCurrentParametrosAba(sub.aba)}
-                        className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                        className={`flex items-center space-x-2 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
                           isSubActive
-                            ? "bg-blue-600 text-white font-bold shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                            ? "bg-indigo-600 text-white font-bold shadow-xs"
+                            : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                         }`}
                       >
-                        <SubIcon className={`w-3 h-3 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                        <SubIcon className={`w-3 h-3 ${isSubActive ? "text-white" : "text-slate-400 dark:text-zinc-500"}`} />
                         <span className="truncate">{sub.label}</span>
                       </Link>
                     );
@@ -399,11 +399,10 @@ function ShellContent({ children }: ShellProps) {
               )}
             </div>
 
-
             {user?.isSuperAdmin && (
               <Link
                 href="/parametros?aba=saas"
-                className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all"
+                className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all duration-200"
               >
                 <Zap className="w-4 h-4 text-amber-500" />
                 <span>⚡ Gestão SaaS</span>
@@ -413,12 +412,12 @@ function ShellContent({ children }: ShellProps) {
         </nav>
 
         {/* Rodapé do Menu Lateral: Mestre Vitalício / Status do Plano & Versão */}
-        <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2 select-none">
+        <div className="pt-2 border-t border-slate-200/80 dark:border-zinc-800/80 space-y-2 select-none">
           {statusAcesso && (
             statusAcesso.isMestre || user?.isSuperAdmin ? (
               <Link
                 href="/parametros?aba=saas"
-                className="flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition shadow-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 hover:bg-amber-500/20"
+                className="flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shadow-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 hover:bg-amber-500/20"
                 title="Empresa Mestre - Acesso Vitalício Irrestrito (Gerenciamento do SaaS)"
               >
                 <div className="flex items-center space-x-2 min-w-0">
@@ -433,11 +432,11 @@ function ShellContent({ children }: ShellProps) {
             ) : (
               <Link
                 href="/renovar"
-                className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition shadow-xs ${
+                className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shadow-xs ${
                   statusAcesso.isExpirado
                     ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
                     : statusAcesso.isTrial
-                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                    ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20"
                     : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
                 }`}
                 title="Clique para gerenciar sua assinatura e ver planos"
@@ -466,12 +465,12 @@ function ShellContent({ children }: ShellProps) {
           )}
 
           {/* Badge de Versão Oficial no Rodapé do Menu */}
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 text-[10px] font-semibold">
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-zinc-900/80 border border-slate-200/60 dark:border-zinc-800/80 text-slate-500 dark:text-zinc-400 text-[10px] font-semibold">
             <span className="flex items-center space-x-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Versão do Sistema</span>
             </span>
-            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{SYSTEM_VERSION}</span>
+            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{SYSTEM_VERSION}</span>
           </div>
         </div>
       </aside>
@@ -479,18 +478,18 @@ function ShellContent({ children }: ShellProps) {
       {/* Area Conteúdo Mobile Header + Topbar + Main */}
       <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-hidden">
         {/* Topbar Estilo Profound (Breadcrumbs + Action Hub) */}
-        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200/80 dark:border-slate-800/80">
+        <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800/80">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="md:hidden p-2 rounded-xl text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="flex items-center space-x-1.5 text-xs">
-              <span className="text-slate-400 font-medium hidden sm:inline">{breadcrumb.section}</span>
-              <span className="text-slate-400 hidden sm:inline">/</span>
-              <span className="font-bold text-slate-800 dark:text-slate-100">{breadcrumb.page}</span>
+              <span className="text-slate-400 dark:text-zinc-500 font-medium hidden sm:inline">{breadcrumb.section}</span>
+              <span className="text-slate-400 dark:text-zinc-600 hidden sm:inline">/</span>
+              <span className="font-bold text-slate-800 dark:text-zinc-100">{breadcrumb.page}</span>
             </div>
           </div>
 
@@ -498,7 +497,7 @@ function ShellContent({ children }: ShellProps) {
             {/* Botão de Ajuda / Manual (?) no Topo */}
             <Link
               href="/ajuda"
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 transition"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-900/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200/60 dark:border-zinc-800/80 hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-all duration-200"
               title="Manual do Sistema e Ajuda (?)"
             >
               <HelpCircle className="w-4 h-4" />
@@ -507,35 +506,35 @@ function ShellContent({ children }: ShellProps) {
             {/* Central de Alertas e Notificações (Topbar Bell) */}
             <button
               onClick={() => setAlertasOpen(true)}
-              className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              className="relative p-2 rounded-xl bg-slate-100 dark:bg-zinc-900/80 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-800/80 transition-all duration-200"
               title="Abrir Central de Alertas e Notificações"
             >
               <Bell className="w-4 h-4 text-amber-500" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse ring-2 ring-zinc-950" />
             </button>
 
             {/* Alternar Tema Escuro / Claro */}
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-900/80 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-800/80 transition-all duration-200"
               title={darkMode ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
             </button>
 
             {/* Perfil do Usuário */}
-            <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+            <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900/80 border border-slate-200/60 dark:border-zinc-800/80">
+              <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shadow-sm shadow-indigo-500/20">
                 {user?.nome ? user.nome.charAt(0).toUpperCase() : "U"}
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
+              <span className="text-xs font-semibold text-slate-700 dark:text-zinc-200 max-w-[100px] truncate">
                 {user?.nome || "Carregando..."}
               </span>
             </div>
 
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-300 text-xs font-semibold transition shrink-0"
+              className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-300 text-xs font-semibold transition-all duration-200 shrink-0"
               title="Encerrar Sessão"
             >
               <LogOut className="w-4 h-4" />
@@ -546,10 +545,10 @@ function ShellContent({ children }: ShellProps) {
 
         {/* Drawer Mobile */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 space-y-3 z-40 max-h-[80vh] overflow-y-auto">
+          <div className="md:hidden bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-zinc-800 p-4 space-y-3 z-40 max-h-[80vh] overflow-y-auto">
             {navSections.map((section, idx) => (
               <div key={idx} className="space-y-1">
-                <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase px-3">
+                <span className="text-[10px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase px-3">
                   {section.title}
                 </span>
                 <div className="space-y-1">
@@ -565,10 +564,10 @@ function ShellContent({ children }: ShellProps) {
                         key={item.href}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium ${
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                           isActive
-                            ? "bg-blue-600 text-white font-bold"
-                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            ? "bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/20"
+                            : "text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                         }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -579,8 +578,8 @@ function ShellContent({ children }: ShellProps) {
                           <span
                             className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md ${
                               isActive
-                                ? "bg-blue-700 text-white"
-                                : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
+                                ? "bg-indigo-700 text-white"
+                                : "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
                             }`}
                           >
                             {item.badge}
@@ -593,8 +592,8 @@ function ShellContent({ children }: ShellProps) {
               </div>
             ))}
 
-            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase px-3">Relatórios:</span>
+            <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase px-3">Relatórios:</span>
               {relatoriosSubItems.map((sub) => {
                 const SubIcon = sub.icon;
                 const isSubActive = isRelatoriosActive && currentAba === sub.aba;
@@ -606,10 +605,10 @@ function ShellContent({ children }: ShellProps) {
                       setCurrentAba(sub.aba);
                       setMobileMenuOpen(false);
                     }}
-                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium ${
+                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                       isSubActive
-                        ? "bg-blue-600 text-white font-bold"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "bg-indigo-600 text-white font-bold"
+                        : "text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                     }`}
                   >
                     <SubIcon className="w-4 h-4" />
@@ -619,8 +618,8 @@ function ShellContent({ children }: ShellProps) {
               })}
             </div>
 
-            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase px-3">Parâmetros do Sistema:</span>
+            <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase px-3">Parâmetros do Sistema:</span>
               {parametrosSubItems.map((sub) => {
                 const SubIcon = sub.icon;
                 const isSubActive = isParametrosActive && currentParametrosAba === sub.aba;
@@ -632,10 +631,10 @@ function ShellContent({ children }: ShellProps) {
                       setCurrentParametrosAba(sub.aba);
                       setMobileMenuOpen(false);
                     }}
-                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium ${
+                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                       isSubActive
-                        ? "bg-blue-600 text-white font-bold"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "bg-indigo-600 text-white font-bold"
+                        : "text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
                     }`}
                   >
                     <SubIcon className="w-4 h-4" />
@@ -646,13 +645,13 @@ function ShellContent({ children }: ShellProps) {
             </div>
 
             {/* Rodapé do Menu Mobile: Mestre / Status & Versão */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 select-none">
+            <div className="pt-3 border-t border-slate-200 dark:border-zinc-800 space-y-2 select-none">
               {statusAcesso && (
                 statusAcesso.isMestre || user?.isSuperAdmin ? (
                   <Link
                     href="/parametros?aba=saas"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25"
                   >
                     <div className="flex items-center space-x-2">
                       <Sparkles className="w-4 h-4 text-amber-500" />
@@ -664,7 +663,7 @@ function ShellContent({ children }: ShellProps) {
                   <Link
                     href="/renovar"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
                   >
                     <div className="flex items-center space-x-2">
                       <Zap className="w-4 h-4" />
@@ -676,21 +675,21 @@ function ShellContent({ children }: ShellProps) {
                   </Link>
                 )
               )}
-              <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-semibold">
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-900/80 text-slate-500 dark:text-zinc-400 text-[10px] font-semibold border border-slate-200/60 dark:border-zinc-800/80">
                 <span>Versão do Sistema</span>
-                <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{SYSTEM_VERSION}</span>
+                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{SYSTEM_VERSION}</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Conteúdo Principal */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 bg-slate-50 dark:bg-zinc-950 flex flex-col justify-between">
           <div className="max-w-7xl w-full mx-auto">{children}</div>
 
           {/* RODAPÉ DAS TELAS APÓS LOGIN */}
-          <footer className="mt-8 pt-4 text-center text-xs font-medium text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
-            Desenvolvimento: <a href="https://pajotecnologia.com.br" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">pajotecnologia.com.br</a> (87)996540551
+          <footer className="mt-8 pt-4 text-center text-xs font-medium text-slate-500 dark:text-zinc-400 border-t border-slate-200 dark:border-zinc-800/80">
+            Desenvolvimento: <a href="https://pajotecnologia.com.br" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">pajotecnologia.com.br</a> (87)996540551
           </footer>
         </main>
       </div>
@@ -707,7 +706,7 @@ function ShellContent({ children }: ShellProps) {
 
 export default function Shell({ children }: ShellProps) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4">{children}</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-100 dark:bg-zinc-950 p-4">{children}</div>}>
       <ShellContent>{children}</ShellContent>
     </Suspense>
   );
