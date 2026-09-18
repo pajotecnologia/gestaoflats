@@ -46,18 +46,27 @@ Para que seus contratos, recibos e laudos de vistoria sejam gerados com a identi
 
 ## Passo 2: Conexão com o WhatsApp (Evolution API)
 
-O sistema envia PDFs de contratos, cobranças, laudos de vistoria e recibos diretamente pelo WhatsApp:
+O sistema envia automaticamente PDFs de contratos, links de assinatura digital, cobranças com Bolepix, laudos periciais de vistoria e recibos pelo WhatsApp:
 
-1. No menu **⚙️ Parâmetros**, clique na aba **WhatsApp (Evolution API)**.
-2. Informe:
-   * **URL da Evolution API** (Ex: `https://api.whatsapp.suaempresa.com.br`).
-   * **API Key Global**.
-   * **Nome da Instância**.
-3. Clique em **Salvar Parâmetros**.
-4. Clique em **📱 Conectar / Gerar QR Code**:
-   * Abra o WhatsApp no celular → **Aparelhos Conectados** → **Conectar um Aparelho**.
-   * Aponte a câmera para o QR Code exibido na tela.
-5. O status mudará para **🟢 CONECTADO**.
+### 🔹 Para Clientes e Imobiliárias (Conexão 1-Clique):
+1. No menu lateral, acesse **⚙️ Parâmetros** → Aba **WhatsApp (Evolution API)**.
+2. Clique no botão verde de destaque: **📲 Conectar WhatsApp (QR Code)**.
+   * *O sistema cria automaticamente uma instância isolada e segura para sua empresa em background.*
+3. Abra o aplicativo do **WhatsApp no seu celular**:
+   * Toque nos **três pontinhos** (ou em *Configurações*) → **Aparelhos Conectados** → **Conectar um Aparelho**.
+   * Aponte a câmera para o **QR Code** exibido na tela do computador.
+4. O sistema reconhecerá a leitura em tempo real e o status mudará para **🟢 CONECTADO**.
+5. *(Opcional)*: Use o campo **Teste Imediato de Disparo** digitando seu número com DDD para receber uma mensagem de teste.
+
+### 🔹 Para o Administrador do Servidor / SaaS Super Admin (Coolify / VPS):
+Para que todos os seus clientes usufruam da conexão 1-clique sem precisarem de chaves técnicas, declare no arquivo `.env` do servidor:
+```env
+EVOLUTION_API_URL=https://evolution.pajotech.com.br
+EVOLUTION_GLOBAL_API_KEY=sua_chave_global_da_evolution
+```
+
+### 🔹 Configuração Avançada (BYOS - Servidor Próprio Dedicado):
+Se um cliente corporativo possuir um servidor Evolution API próprio, basta expandir **"⚙️ Configurações Avançadas de Servidor"**, preencher a URL e API Key próprias e clicar em **Salvar Configurações Customizadas**.
 
 ---
 
