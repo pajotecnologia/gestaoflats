@@ -815,11 +815,11 @@ export default function ContasReceberPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 self-start sm:self-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handleSincronizarInter}
               disabled={syncingInter}
-              className="py-2.5 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 font-bold text-orange-700 dark:text-orange-300 text-xs border border-orange-200 dark:border-orange-800/50 flex items-center space-x-2 transition shadow-xs disabled:opacity-50"
+              className="w-full sm:w-auto min-h-[44px] py-2.5 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 font-bold text-orange-700 dark:text-orange-300 text-xs border border-orange-200 dark:border-orange-800/50 flex items-center justify-center space-x-2 transition shadow-xs disabled:opacity-50"
               title="Sincronizar e conciliar status com o Banco Inter"
             >
               <RefreshCw className={`w-4 h-4 text-orange-600 dark:text-orange-400 ${syncingInter ? "animate-spin" : ""}`} />
@@ -828,7 +828,7 @@ export default function ContasReceberPage() {
 
             <button
               onClick={handleOpenNewModal}
-              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-white text-xs shadow-md flex items-center space-x-2 transition"
+              className="w-full sm:w-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
             >
               <Plus className="w-4 h-4" />
               <span>Nova Receita Avulsa</span>

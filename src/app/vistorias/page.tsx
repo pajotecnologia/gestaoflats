@@ -408,7 +408,7 @@ export default function VistoriasPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="w-full sm:w-auto">
             <button
               type="button"
               onClick={() => {
@@ -418,7 +418,7 @@ export default function VistoriasPage() {
                 setSelectedTipoVistoria("ENTRADA");
                 setShowWizardModal(true);
               }}
-              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md shadow-blue-500/20 flex items-center space-x-2 transition"
+              className="w-full sm:w-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Nova Vistoria / Checklist</span>

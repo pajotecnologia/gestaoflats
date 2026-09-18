@@ -314,10 +314,10 @@ export default function FlatsPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handleOpenNewLocal}
-              className="py-2.5 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center space-x-2 transition shadow-sm"
+              className="w-full sm:w-auto min-h-[44px] py-2.5 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-center space-x-2 transition shadow-sm"
             >
               <Plus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>Novo Condomínio/Edifício</span>
@@ -325,7 +325,7 @@ export default function FlatsPage() {
 
             <button
               onClick={() => handleOpenNewFlat()}
-              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center space-x-2 transition"
+              className="w-full sm:w-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
             >
               <Plus className="w-4 h-4" />
               <span>Novo Flat</span>

@@ -424,7 +424,7 @@ export default function ContasPagarPage() {
 
           <button
             onClick={handleOpenNewModal}
-            className="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 font-semibold text-white text-xs shadow-md flex items-center space-x-2 transition self-start sm:self-auto"
+            className="w-full sm:w-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Lançar Nova Despesa</span>

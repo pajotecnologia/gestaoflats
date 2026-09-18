@@ -564,7 +564,7 @@ function ShellContent({ children }: ShellProps) {
                         key={item.href}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                        className={`flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-medium transition-all duration-200 ${
                           isActive
                             ? "bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/20"
                             : "text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
@@ -605,7 +605,7 @@ function ShellContent({ children }: ShellProps) {
                       setCurrentAba(sub.aba);
                       setMobileMenuOpen(false);
                     }}
-                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-2.5 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-medium transition-all duration-200 ${
                       isSubActive
                         ? "bg-indigo-600 text-white font-bold"
                         : "text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
@@ -631,7 +631,7 @@ function ShellContent({ children }: ShellProps) {
                       setCurrentParametrosAba(sub.aba);
                       setMobileMenuOpen(false);
                     }}
-                    className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-2.5 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-medium transition-all duration-200 ${
                       isSubActive
                         ? "bg-indigo-600 text-white font-bold"
                         : "text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900/80"
@@ -651,7 +651,7 @@ function ShellContent({ children }: ShellProps) {
                   <Link
                     href="/parametros?aba=saas"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25"
+                    className="flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all duration-200 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25"
                   >
                     <div className="flex items-center space-x-2">
                       <Sparkles className="w-4 h-4 text-amber-500" />
@@ -663,7 +663,7 @@ function ShellContent({ children }: ShellProps) {
                   <Link
                     href="/renovar"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
+                    className="flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all duration-200 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
                   >
                     <div className="flex items-center space-x-2">
                       <Zap className="w-4 h-4" />

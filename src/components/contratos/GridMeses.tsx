@@ -774,7 +774,7 @@ export default function GridMeses({
           Grid Visual de Meses / Linha do Tempo:
         </p>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-2">
           {parcelas.map((p) => {
             const isPago = p.status === "PAGO";
             const isAtrasado = p.status === "ATRASADO";
