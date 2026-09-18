@@ -8,6 +8,18 @@ export interface EvolutionConfig {
   evolutionInstance?: string | null;
 }
 
+/**
+ * Sanitiza a URL da Evolution API, garantindo https:// e removendo rotas do painel web (/manager)
+ */
+export function sanitizeEvolutionUrl(url?: string | null): string {
+  if (!url) return "";
+  let clean = url.trim();
+  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+    clean = `https://${clean}`;
+  }
+  return clean.replace(/\/manager\/?$/i, "").replace(/\/+$/, "");
+}
+
 export async function checkEvolutionStatus(config: EvolutionConfig): Promise<{
   connected: boolean;
   status: string;
@@ -24,7 +36,7 @@ export async function checkEvolutionStatus(config: EvolutionConfig): Promise<{
   }
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
     const response = await fetch(
       `${cleanUrl}/instance/connectionState/${encodeURIComponent(evolutionInstance)}`,
       {
@@ -105,7 +117,7 @@ export async function createEvolutionInstance(config: EvolutionConfig): Promise<
   }
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
     const response = await fetch(`${cleanUrl}/instance/create`, {
       method: "POST",
       headers: {
@@ -180,7 +192,7 @@ export async function getEvolutionQRCode(config: EvolutionConfig): Promise<{
   }
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
     let response = await fetch(
       `${cleanUrl}/instance/connect/${encodeURIComponent(evolutionInstance.trim())}`,
       {
@@ -275,7 +287,7 @@ export async function logoutEvolutionInstance(config: EvolutionConfig): Promise<
   }
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
     const response = await fetch(
       `${cleanUrl}/instance/logout/${encodeURIComponent(evolutionInstance.trim())}`,
       {
@@ -313,7 +325,7 @@ export async function restartEvolutionInstance(config: EvolutionConfig): Promise
   }
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
     let response = await fetch(
       `${cleanUrl}/instance/restart/${encodeURIComponent(evolutionInstance.trim())}`,
       {
@@ -383,7 +395,7 @@ export async function sendWhatsAppMessage(
   const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
 
     const response = await fetch(
       `${cleanUrl}/message/sendText/${encodeURIComponent(evolutionInstance)}`,
@@ -440,7 +452,7 @@ export async function sendWhatsAppDocument(
   const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
   try {
-    const cleanUrl = evolutionApiUrl.replace(/\/$/, "");
+    const cleanUrl = sanitizeEvolutionUrl(evolutionApiUrl);
 
     // Tratamento e higienização da mídia para a Evolution API:
     // A Evolution API exige que a propriedade 'media' seja uma URL direta (http/https) OU uma string Base64 PURA (sem prefixos como data:application/pdf;base64,).
