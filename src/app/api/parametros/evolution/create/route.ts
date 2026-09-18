@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createEvolutionInstance } from "@/lib/evolutionApi";
+import { createEvolutionInstance, getEffectiveEvolutionConfig } from "@/lib/evolutionApi";
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -10,52 +10,43 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  let { evolutionApiUrl, evolutionApiKey, evolutionInstance } = body;
+  const effectiveConfig = await getEffectiveEvolutionConfig(session.empresaId, body);
 
-  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
-    const config = await prisma.configuracaoParametros.findUnique({
-      where: { empresaId: session.empresaId },
-    });
-    if (config) {
-      evolutionApiUrl = evolutionApiUrl || config.evolutionApiUrl;
-      evolutionApiKey = evolutionApiKey || config.evolutionApiKey;
-      evolutionInstance = evolutionInstance || config.evolutionInstance;
-    }
-  }
-
-  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+  if (!effectiveConfig.evolutionApiUrl || !effectiveConfig.evolutionApiKey || !effectiveConfig.evolutionInstance) {
     return NextResponse.json(
-      { error: "Informe a URL da Evolution API, API Key Global e o Nome da Instância." },
+      { error: "Credenciais da Evolution API não encontradas no servidor nem no cadastro da empresa." },
       { status: 400 }
     );
   }
 
-  const result = await createEvolutionInstance({
-    evolutionApiUrl,
-    evolutionApiKey,
-    evolutionInstance,
-  });
+  const result = await createEvolutionInstance(effectiveConfig);
 
   if (result.success) {
-    // Salva as credenciais no banco de dados
-    await prisma.configuracaoParametros.upsert({
-      where: { empresaId: session.empresaId },
-      update: {
-        evolutionApiUrl: evolutionApiUrl.trim(),
-        evolutionApiKey: evolutionApiKey.trim(),
-        evolutionInstance: evolutionInstance.trim(),
-      },
-      create: {
-        empresaId: session.empresaId,
-        evolutionApiUrl: evolutionApiUrl.trim(),
-        evolutionApiKey: evolutionApiKey.trim(),
-        evolutionInstance: evolutionInstance.trim(),
-        statusConexao: "DESCONECTADO",
-      },
-    });
+    // Salva o nome da instância e, caso o usuário tenha informado explicitamente chaves próprias (BYOS), salva-as também
+    if (session.empresaId) {
+      await prisma.configuracaoParametros.upsert({
+        where: { empresaId: session.empresaId },
+        update: {
+          evolutionInstance: effectiveConfig.evolutionInstance,
+          ...(body.evolutionApiUrl ? { evolutionApiUrl: body.evolutionApiUrl.trim() } : {}),
+          ...(body.evolutionApiKey ? { evolutionApiKey: body.evolutionApiKey.trim() } : {}),
+        },
+        create: {
+          empresaId: session.empresaId,
+          evolutionInstance: effectiveConfig.evolutionInstance,
+          evolutionApiUrl: body.evolutionApiUrl ? body.evolutionApiUrl.trim() : null,
+          evolutionApiKey: body.evolutionApiKey ? body.evolutionApiKey.trim() : null,
+          statusConexao: "DESCONECTADO",
+        },
+      });
+    }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      instanceName: effectiveConfig.evolutionInstance,
+    });
   }
 
   return NextResponse.json(result, { status: 400 });
 }
+

@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
 
     let whatsAppResult = null;
     if (enviarWhatsApp && conta.locatario.telefone) {
-      const config = conta.empresa.configuracaoParametros;
+      const { getEffectiveEvolutionConfig } = await import("@/lib/evolutionApi");
+      const config = await getEffectiveEvolutionConfig(conta.empresaId);
       if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
         const msg = `*RECIBO DE PAGAMENTO* - ${conta.empresa.nomeFantasia}\n\nOlá *${conta.locatario.nome}*,\nConfirmamos o recebimento do valor de *R$ ${parseFloat(valorPago).toFixed(2)}* via *${formaPagamento}* referente ao aluguel do *${conta.contrato?.flat.numero || "Flat"}* (Ref: ${formatMesReferencia(conta.mesReferencia)}).\n\nObrigado!`;
         

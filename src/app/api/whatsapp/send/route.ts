@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { sendWhatsAppMessage, sendWhatsAppDocument } from "@/lib/evolutionApi";
+import {
+  sendWhatsAppMessage,
+  sendWhatsAppDocument,
+  getEffectiveEvolutionConfig,
+} from "@/lib/evolutionApi";
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -16,15 +19,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Telefone de destino é obrigatório." }, { status: 400 });
     }
 
-    const config = await prisma.configuracaoParametros.findUnique({
-      where: { empresaId: session.empresaId },
-    });
+    const config = await getEffectiveEvolutionConfig(session.empresaId);
 
     if (!config || !config.evolutionApiUrl || !config.evolutionApiKey || !config.evolutionInstance) {
       return NextResponse.json(
         {
           error:
-            "Evolution API não está totalmente configurada em Parâmetros. Acesse o menu Parâmetros para conectar o WhatsApp.",
+            "Evolution API não está configurada. Acesse o menu Parâmetros para conectar o WhatsApp da sua empresa.",
         },
         { status: 400 }
       );

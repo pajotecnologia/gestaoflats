@@ -20,6 +20,100 @@ export function sanitizeEvolutionUrl(url?: string | null): string {
   return clean.replace(/\/manager\/?$/i, "").replace(/\/+$/, "");
 }
 
+/**
+ * Gera um identificador padronizado e seguro para instâncias da Evolution API
+ */
+export function generateDefaultInstanceName(nomeEmpresa?: string | null, empresaId?: string | null): string {
+  const cleanName = (nomeEmpresa || "imob")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 15);
+  const shortId = empresaId ? empresaId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6) : "padrao";
+  return `imob_${cleanName || "empresa"}_${shortId}`;
+}
+
+/**
+ * Resolve as credenciais da Evolution API de forma inteligente e segura (SaaS Multi-tenant):
+ * 1. Se a empresa possui configuração própria customizada (BYOS), prioriza os dados dela.
+ * 2. Se não possuir, busca da Empresa Mestre ou das variáveis de ambiente globais do servidor.
+ * 3. Garante que nenhum cliente precise conhecer a Global API Key para conectar seu WhatsApp.
+ */
+export async function getEffectiveEvolutionConfig(
+  empresaId?: string | null,
+  providedConfig?: EvolutionConfig
+): Promise<EvolutionConfig> {
+  let apiUrl = providedConfig?.evolutionApiUrl?.trim() || "";
+  let apiKey = providedConfig?.evolutionApiKey?.trim() || "";
+  let instance = providedConfig?.evolutionInstance?.trim() || "";
+
+  if (empresaId) {
+    try {
+      const { prisma } = await import("@/lib/prisma");
+      const [param, emp] = await Promise.all([
+        prisma.configuracaoParametros.findUnique({
+          where: { empresaId },
+        }),
+        prisma.empresa.findUnique({
+          where: { id: empresaId },
+          select: { id: true, nomeFantasia: true, isMestre: true },
+        }),
+      ]);
+
+      if (param?.evolutionApiUrl) apiUrl = apiUrl || param.evolutionApiUrl.trim();
+      if (param?.evolutionApiKey) apiKey = apiKey || param.evolutionApiKey.trim();
+      if (param?.evolutionInstance) instance = instance || param.evolutionInstance.trim();
+
+      // Se ainda não tem instância, gera nome automático único
+      if (!instance && emp) {
+        instance = generateDefaultInstanceName(emp.nomeFantasia, emp.id);
+      }
+
+      // Se não tem URL ou Chave própria, busca da Empresa Mestre (se esta não for a Mestre)
+      if ((!apiUrl || !apiKey) && !emp?.isMestre) {
+        const mestreParam = await prisma.configuracaoParametros.findFirst({
+          where: { empresa: { isMestre: true } },
+        });
+        if (mestreParam?.evolutionApiUrl) apiUrl = apiUrl || mestreParam.evolutionApiUrl.trim();
+        if (mestreParam?.evolutionApiKey) apiKey = apiKey || mestreParam.evolutionApiKey.trim();
+      }
+    } catch (e) {
+      console.error("[Evolution API] Erro ao consultar credenciais do banco:", e);
+    }
+  }
+
+  // Fallback para variáveis de ambiente globais do servidor
+  if (!apiUrl) {
+    apiUrl =
+      process.env.EVOLUTION_API_URL ||
+      process.env.NEXT_PUBLIC_EVOLUTION_API_URL ||
+      "https://evolution.pajotech.com.br";
+  }
+
+  if (!apiKey) {
+    apiKey =
+      process.env.EVOLUTION_GLOBAL_API_KEY ||
+      process.env.EVOLUTION_API_KEY ||
+      process.env.AUTHENTICATION_API_KEY ||
+      "";
+  }
+
+  if (!instance) {
+    instance = empresaId
+      ? generateDefaultInstanceName("empresa", empresaId)
+      : "imob_instancia_padrao";
+  }
+
+  return {
+    evolutionApiUrl: sanitizeEvolutionUrl(apiUrl),
+    evolutionApiKey: apiKey,
+    evolutionInstance: instance,
+  };
+}
+
 export async function checkEvolutionStatus(config: EvolutionConfig): Promise<{
   connected: boolean;
   status: string;

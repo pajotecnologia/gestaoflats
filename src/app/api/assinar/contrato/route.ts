@@ -246,9 +246,8 @@ export async function POST(request: NextRequest) {
 
         // Enviar cópia por WhatsApp
         if (contrato.locatario.telefone) {
-          const config = await prisma.configuracaoParametros.findUnique({
-            where: { empresaId: contrato.empresaId },
-          });
+          const { getEffectiveEvolutionConfig } = await import("@/lib/evolutionApi");
+          const config = await getEffectiveEvolutionConfig(contrato.empresaId);
 
           if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
             const fileName = `Contrato_Assinado_Flat_${contrato.flat.numero}.pdf`;

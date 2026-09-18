@@ -313,9 +313,8 @@ export async function POST(request: NextRequest) {
 
             // Notificar via WhatsApp
             if (fullVistoria.locatario?.telefone) {
-              const config = await prisma.configuracaoParametros.findUnique({
-                where: { empresaId: fullVistoria.empresaId },
-              });
+              const { getEffectiveEvolutionConfig } = await import("@/lib/evolutionApi");
+              const config = await getEffectiveEvolutionConfig(fullVistoria.empresaId);
 
               if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
                 const fileName = `Laudo_Vistoria_${fullVistoria.tipoVistoria}_Flat_${fullVistoria.flat.numero}.pdf`;

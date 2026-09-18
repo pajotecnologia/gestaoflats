@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getEvolutionQRCode } from "@/lib/evolutionApi";
+import {
+  getEvolutionQRCode,
+  createEvolutionInstance,
+  getEffectiveEvolutionConfig,
+} from "@/lib/evolutionApi";
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -10,31 +14,43 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  let { evolutionApiUrl, evolutionApiKey, evolutionInstance } = body;
+  const effectiveConfig = await getEffectiveEvolutionConfig(session.empresaId, body);
 
-  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
-    const config = await prisma.configuracaoParametros.findUnique({
-      where: { empresaId: session.empresaId },
-    });
-    if (config) {
-      evolutionApiUrl = evolutionApiUrl || config.evolutionApiUrl;
-      evolutionApiKey = evolutionApiKey || config.evolutionApiKey;
-      evolutionInstance = evolutionInstance || config.evolutionInstance;
-    }
-  }
-
-  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+  if (!effectiveConfig.evolutionApiUrl || !effectiveConfig.evolutionApiKey || !effectiveConfig.evolutionInstance) {
     return NextResponse.json(
-      { error: "Informe a URL da Evolution API, API Key Global e o Nome da Instância." },
+      { error: "Credenciais da Evolution API não encontradas no servidor nem no cadastro da empresa." },
       { status: 400 }
     );
   }
 
-  const result = await getEvolutionQRCode({
-    evolutionApiUrl,
-    evolutionApiKey,
-    evolutionInstance,
-  });
+  // Tenta buscar o QR Code
+  let result = await getEvolutionQRCode(effectiveConfig);
 
-  return NextResponse.json(result);
+  // Se a instância ainda não existia no servidor (404), cria automaticamente e refaz a busca do QR Code
+  if (!result.success && result.message.includes("404")) {
+    const createRes = await createEvolutionInstance(effectiveConfig);
+    if (createRes.success) {
+      if (session.empresaId) {
+        await prisma.configuracaoParametros.upsert({
+          where: { empresaId: session.empresaId },
+          update: { evolutionInstance: effectiveConfig.evolutionInstance },
+          create: {
+            empresaId: session.empresaId,
+            evolutionInstance: effectiveConfig.evolutionInstance,
+            statusConexao: "DESCONECTADO",
+          },
+        });
+      }
+
+      // Pequeno delay para a Evolution inicializar os sockets da instância
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      result = await getEvolutionQRCode(effectiveConfig);
+    }
+  }
+
+  return NextResponse.json({
+    ...result,
+    instanceName: effectiveConfig.evolutionInstance,
+  });
 }
+

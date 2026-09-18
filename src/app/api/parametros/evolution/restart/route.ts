@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { restartEvolutionInstance } from "@/lib/evolutionApi";
+import { restartEvolutionInstance, getEffectiveEvolutionConfig } from "@/lib/evolutionApi";
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -10,31 +9,17 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  let { evolutionApiUrl, evolutionApiKey, evolutionInstance } = body;
+  const effectiveConfig = await getEffectiveEvolutionConfig(session.empresaId, body);
 
-  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
-    const config = await prisma.configuracaoParametros.findUnique({
-      where: { empresaId: session.empresaId },
-    });
-    if (config) {
-      evolutionApiUrl = evolutionApiUrl || config.evolutionApiUrl;
-      evolutionApiKey = evolutionApiKey || config.evolutionApiKey;
-      evolutionInstance = evolutionInstance || config.evolutionInstance;
-    }
-  }
-
-  if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
+  if (!effectiveConfig.evolutionApiUrl || !effectiveConfig.evolutionApiKey || !effectiveConfig.evolutionInstance) {
     return NextResponse.json(
       { error: "Credenciais da Evolution API incompletas." },
       { status: 400 }
     );
   }
 
-  const result = await restartEvolutionInstance({
-    evolutionApiUrl,
-    evolutionApiKey,
-    evolutionInstance,
-  });
+  const result = await restartEvolutionInstance(effectiveConfig);
 
   return NextResponse.json(result);
 }
+
