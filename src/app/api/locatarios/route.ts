@@ -113,3 +113,40 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const session = await getAuthSessionOrFallback();
+  if (!session) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "ID do locatário é obrigatório." }, { status: 400 });
+    }
+
+    // Verificar se possui contratos vinculados
+    const contratosCount = await prisma.contrato.count({
+      where: { locatarioId: id, empresaId: session.empresaId },
+    });
+
+    if (contratosCount > 0) {
+      return NextResponse.json(
+        { error: `Este locatário possui ${contratosCount} contrato(s) vinculados e não pode ser excluído.` },
+        { status: 400 }
+      );
+    }
+
+    await prisma.locatario.delete({
+      where: { id, empresaId: session.empresaId },
+    });
+
+    return NextResponse.json({ success: true, message: "Locatário excluído com sucesso." });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
