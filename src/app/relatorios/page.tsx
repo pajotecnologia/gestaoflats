@@ -66,14 +66,15 @@ function RelatoriosContent() {
   const [receberDataFim, setReceberDataFim] = useState(lastDayOfMonth);
   const [receberLocatarioId, setReceberLocatarioId] = useState("");
   const [receberLocalId, setReceberLocalId] = useState("");
+  const [receberFlatId, setReceberFlatId] = useState("");
   const [receberStatus, setReceberStatus] = useState("");
 
   // ESTADOS DA ABA 3: Contas a Pagar (Filtros)
   const [pagarDataInicio, setPagarDataInicio] = useState(firstDayOfMonth);
   const [pagarDataFim, setPagarDataFim] = useState(lastDayOfMonth);
   const [pagarFornecedorId, setPagarFornecedorId] = useState("");
-  const [pagarFlatId, setPagarFlatId] = useState("");
   const [pagarLocalId, setPagarLocalId] = useState("");
+  const [pagarFlatId, setPagarFlatId] = useState("");
   const [pagarStatus, setPagarStatus] = useState("");
 
   // ESTADOS DA ABA 4: Fluxo de Caixa Diário (Filtros)
@@ -85,11 +86,12 @@ function RelatoriosContent() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [resEmpresa, resLoc, resForn, resFlats, resRec, resPag, resContratos] = await Promise.all([
+        const [resEmpresa, resLoc, resForn, resFlats, resLocais, resRec, resPag, resContratos] = await Promise.all([
           fetch("/api/empresa").then((r) => r.json()).catch(() => ({})),
           fetch("/api/locatarios").then((r) => r.json()).catch(() => ({ locatarios: [] })),
           fetch("/api/fornecedores").then((r) => r.json()).catch(() => ({ fornecedores: [] })),
           fetch("/api/flats").then((r) => r.json()).catch(() => ({ flats: [] })),
+          fetch("/api/locais").then((r) => r.json()).catch(() => ({ locais: [] })),
           fetch("/api/financeiro/receber").then((r) => r.json()).catch(() => ({ contas: [] })),
           fetch("/api/financeiro/pagar").then((r) => r.json()).catch(() => ({ contas: [] })),
           fetch("/api/contratos").then((r) => r.json()).catch(() => ({ contratos: [] })),
@@ -102,12 +104,17 @@ function RelatoriosContent() {
         if (resFlats?.flats) {
           setFlats(resFlats.flats);
           const uniqueLocaisMap = new Map();
+          if (resLocais?.locais) {
+            resLocais.locais.forEach((l: any) => uniqueLocaisMap.set(l.id, l));
+          }
           resFlats.flats.forEach((f: any) => {
             if (f.local && !uniqueLocaisMap.has(f.local.id)) {
               uniqueLocaisMap.set(f.local.id, f.local);
             }
           });
           setLocais(Array.from(uniqueLocaisMap.values()));
+        } else if (resLocais?.locais) {
+          setLocais(resLocais.locais);
         }
 
         if (resRec?.contas) setContasReceberList(resRec.contas);
@@ -206,7 +213,14 @@ function RelatoriosContent() {
       if (venc > receberDataFim) return false;
     }
     if (receberLocatarioId && c.locatarioId !== receberLocatarioId) return false;
-    if (receberLocalId && c.contrato?.flat?.localId !== receberLocalId) return false;
+    if (receberLocalId) {
+      const itemLocalId = c.contrato?.flat?.localId || c.flat?.localId || c.localId;
+      if (itemLocalId !== receberLocalId) return false;
+    }
+    if (receberFlatId) {
+      const itemFlatId = c.contrato?.flatId || c.flatId;
+      if (itemFlatId !== receberFlatId) return false;
+    }
     if (receberStatus && c.status !== receberStatus) return false;
     return true;
   });
@@ -224,10 +238,12 @@ function RelatoriosContent() {
   const handleImprimirReceberPDF = () => {
     const selLoc = locatarios.find((l) => l.id === receberLocatarioId);
     const selLocal = locais.find((l) => l.id === receberLocalId);
+    const selFlat = flats.find((f) => f.id === receberFlatId);
 
     const filtrosArr = [];
     if (selLoc) filtrosArr.push(`Locatário: ${selLoc.nome}`);
     if (selLocal) filtrosArr.push(`Condomínio: ${selLocal.nome}`);
+    if (selFlat) filtrosArr.push(`Flat: ${selFlat.numero}`);
     if (receberStatus) filtrosArr.push(`Status: ${receberStatus}`);
     const filtrosTexto = filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Lançamentos";
 
@@ -244,8 +260,8 @@ function RelatoriosContent() {
       totais: receberTotais,
       itens: filteredReceber.map((c) => ({
         locatarioNome: c.locatario?.nome || "Locatário Não Informado",
-        flatNumero: c.contrato?.flat?.numero || "-",
-        condominioNome: c.contrato?.flat?.local?.nome || "",
+        flatNumero: c.contrato?.flat?.numero || (c.flat?.numero ? `${c.flat.numero}` : "-"),
+        condominioNome: c.contrato?.flat?.local?.nome || c.flat?.local?.nome || c.local?.nome || "",
         mesReferencia: formatMesReferencia(c.mesReferencia),
         numeroParcela: c.numeroParcela || 1,
         dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString("pt-BR") : "-",
@@ -268,8 +284,11 @@ function RelatoriosContent() {
       if (venc > pagarDataFim) return false;
     }
     if (pagarFornecedorId && c.fornecedorId !== pagarFornecedorId) return false;
+    if (pagarLocalId) {
+      const itemLocalId = c.localId || c.flat?.localId;
+      if (itemLocalId !== pagarLocalId) return false;
+    }
     if (pagarFlatId && c.flatId !== pagarFlatId) return false;
-    if (pagarLocalId && c.localId !== pagarLocalId) return false;
     if (pagarStatus && c.status !== pagarStatus) return false;
     return true;
   });
@@ -286,13 +305,13 @@ function RelatoriosContent() {
   // Imprimir Relatório de Contas a Pagar PDF
   const handleImprimirPagarPDF = () => {
     const selForn = fornecedores.find((f) => f.id === pagarFornecedorId);
-    const selFlat = flats.find((f) => f.id === pagarFlatId);
     const selLocal = locais.find((l) => l.id === pagarLocalId);
+    const selFlat = flats.find((f) => f.id === pagarFlatId);
 
     const filtrosArr = [];
     if (selForn) filtrosArr.push(`Fornecedor: ${selForn.nome}`);
-    if (selFlat) filtrosArr.push(`Flat: ${selFlat.numero}`);
     if (selLocal) filtrosArr.push(`Condomínio: ${selLocal.nome}`);
+    if (selFlat) filtrosArr.push(`Flat: ${selFlat.numero}`);
     if (pagarStatus) filtrosArr.push(`Status: ${pagarStatus}`);
     const filtrosTexto = filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Lançamentos";
 
@@ -459,9 +478,9 @@ function RelatoriosContent() {
                   : activeTab === "checklist"
                   ? "Ficha impressa por tópicos com marcação e observação manual para vistorias"
                   : activeTab === "receber"
-                  ? "Relatório financeiro de recebimentos filtrado por período, locatário e condomínio"
+                  ? "Relatório financeiro de recebimentos filtrado por período, locatário, condomínio e flat"
                   : activeTab === "pagar"
-                  ? "Relatório financeiro de contas a pagar filtrado por período, fornecedor, flat e condomínio"
+                  ? "Relatório financeiro de contas a pagar filtrado por período, fornecedor, condomínio e flat"
                   : "Demonstrativo diário de entradas (recebimentos) x saídas (despesas) com apuração de saldo e acumulado"}
               </p>
             </div>
@@ -793,7 +812,7 @@ function RelatoriosContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Data Inicial (Vencimento)
@@ -802,7 +821,7 @@ function RelatoriosContent() {
                     type="date"
                     value={receberDataInicio}
                     onChange={(e) => setReceberDataInicio(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
 
@@ -814,7 +833,7 @@ function RelatoriosContent() {
                     type="date"
                     value={receberDataFim}
                     onChange={(e) => setReceberDataFim(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
 
@@ -825,7 +844,7 @@ function RelatoriosContent() {
                   <select
                     value={receberLocatarioId}
                     onChange={(e) => setReceberLocatarioId(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">-- Todos os Locatários --</option>
                     {locatarios.map((l) => (
@@ -843,7 +862,7 @@ function RelatoriosContent() {
                   <select
                     value={receberLocalId}
                     onChange={(e) => setReceberLocalId(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">-- Todos os Condomínios --</option>
                     {locais.map((l) => (
@@ -856,12 +875,32 @@ function RelatoriosContent() {
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Flat / Imóvel
+                  </label>
+                  <select
+                    value={receberFlatId}
+                    onChange={(e) => setReceberFlatId(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-- Todos os Flats --</option>
+                    {flats
+                      .filter((f) => !receberLocalId || f.localId === receberLocalId || f.local?.id === receberLocalId)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          Flat {f.numero} {f.local?.nome ? `(${f.local.nome})` : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Status
                   </label>
                   <select
                     value={receberStatus}
                     onChange={(e) => setReceberStatus(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">-- Todos os Status --</option>
                     <option value="PENDENTE">Pendente</option>
@@ -998,7 +1037,7 @@ function RelatoriosContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Data Inicial (Vencimento)
@@ -1007,7 +1046,7 @@ function RelatoriosContent() {
                     type="date"
                     value={pagarDataInicio}
                     onChange={(e) => setPagarDataInicio(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
 
@@ -1019,7 +1058,7 @@ function RelatoriosContent() {
                     type="date"
                     value={pagarDataFim}
                     onChange={(e) => setPagarDataFim(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
 
@@ -1030,7 +1069,7 @@ function RelatoriosContent() {
                   <select
                     value={pagarFornecedorId}
                     onChange={(e) => setPagarFornecedorId(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   >
                     <option value="">-- Todos os Fornecedores --</option>
                     {fornecedores.map((f) => (
@@ -1043,30 +1082,12 @@ function RelatoriosContent() {
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Flat
-                  </label>
-                  <select
-                    value={pagarFlatId}
-                    onChange={(e) => setPagarFlatId(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">-- Todos os Flats --</option>
-                    {flats.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        Flat {f.numero}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Condomínio (Local)
                   </label>
                   <select
                     value={pagarLocalId}
                     onChange={(e) => setPagarLocalId(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   >
                     <option value="">-- Todos os Condomínios --</option>
                     {locais.map((l) => (
@@ -1079,12 +1100,32 @@ function RelatoriosContent() {
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Flat / Imóvel
+                  </label>
+                  <select
+                    value={pagarFlatId}
+                    onChange={(e) => setPagarFlatId(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    <option value="">-- Todos os Flats --</option>
+                    {flats
+                      .filter((f) => !pagarLocalId || f.localId === pagarLocalId || f.local?.id === pagarLocalId)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          Flat {f.numero} {f.local?.nome ? `(${f.local.nome})` : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Status
                   </label>
                   <select
                     value={pagarStatus}
                     onChange={(e) => setPagarStatus(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
                   >
                     <option value="">-- Todos os Status --</option>
                     <option value="PENDENTE">Pendente</option>

@@ -1,4 +1,4 @@
-export const SYSTEM_VERSION = "v2.11";
+export const SYSTEM_VERSION = "v2.12";
 export const SYSTEM_BUILD_DATE = "2026-09-20";
-export const SYSTEM_CHANGELOG = "Versão 2.11: Exibição direta dos botões 'Criar Instância' e 'Conectar (QR Code)' com editor inline de nome de instância no painel de WhatsApp.";
+export const SYSTEM_CHANGELOG = "Versão 2.12: Filtros avançados por Condomínio e Flat/Imóvel nos relatórios de Contas a Receber e Contas a Pagar, com impressão e cabeçalho dinâmico em PDF.";
 
