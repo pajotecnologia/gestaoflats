@@ -24,6 +24,12 @@ import {
   FileText,
   ShieldCheck,
   Lock,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Layers,
+  CreditCard,
 } from "lucide-react";
 import { generateBlankChecklistPDF, defaultBlankChecklistCategories } from "@/lib/blankChecklistPdfGenerator";
 import { generateContasReceberPDFReport, generateContasPagarPDFReport, generateFluxoCaixaPDFReport, generateContratosPDFReport } from "@/lib/reportsPdfGenerator";
@@ -80,6 +86,10 @@ function RelatoriosContent() {
   // ESTADOS DA ABA 4: Fluxo de Caixa Diário (Filtros)
   const [fluxoDataInicio, setFluxoDataInicio] = useState(firstDayOfMonth);
   const [fluxoDataFim, setFluxoDataFim] = useState(lastDayOfMonth);
+  const [fluxoLocalId, setFluxoLocalId] = useState("");
+  const [fluxoFlatId, setFluxoFlatId] = useState("");
+  const [fluxoTipoLancamento, setFluxoTipoLancamento] = useState<"TODOS" | "ENTRADAS" | "SAIDAS">("TODOS");
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -345,47 +355,83 @@ function RelatoriosContent() {
   const filteredFluxoDiario = React.useMemo(() => {
     const dailyMap = new Map<string, { entradas: number; saidas: number; detalhes: any[] }>();
 
-    // 1. Processar Contas a Receber Pagas
-    contasReceberList.forEach((c) => {
-      if (c.status !== "PAGO") return;
-      const dateStr = c.dataPagamento ? c.dataPagamento.split("T")[0] : (c.dataVencimento ? c.dataVencimento.split("T")[0] : "");
-      if (!dateStr) return;
+    // 1. Processar Contas a Receber Pagas (se não estiver filtrando apenas saídas)
+    if (fluxoTipoLancamento !== "SAIDAS") {
+      contasReceberList.forEach((c) => {
+        if (c.status !== "PAGO") return;
+        const dateStr = c.dataPagamento ? c.dataPagamento.split("T")[0] : (c.dataVencimento ? c.dataVencimento.split("T")[0] : "");
+        if (!dateStr) return;
 
-      if (fluxoDataInicio && dateStr < fluxoDataInicio) return;
-      if (fluxoDataFim && dateStr > fluxoDataFim) return;
+        if (fluxoDataInicio && dateStr < fluxoDataInicio) return;
+        if (fluxoDataFim && dateStr > fluxoDataFim) return;
 
-      const val = c.valorPago || c.valor || 0;
-      const existing = dailyMap.get(dateStr) || { entradas: 0, saidas: 0, detalhes: [] };
-      existing.entradas += val;
-      existing.detalhes.push({
-        tipo: "ENTRADA",
-        descricao: c.locatario?.nome ? `Aluguel / Receita - ${c.locatario.nome}` : c.observacao || "Receita",
-        valor: val,
-        referencia: c.contrato?.flat?.numero ? `Flat ${c.contrato.flat.numero}` : "-",
+        // Filtro de Condomínio / Local
+        const itemLocalId = c.contrato?.flat?.localId || c.flat?.localId || c.localId;
+        if (fluxoLocalId && itemLocalId !== fluxoLocalId) return;
+
+        // Filtro de Flat
+        const itemFlatId = c.contrato?.flatId || c.flatId;
+        if (fluxoFlatId && itemFlatId !== fluxoFlatId) return;
+
+        const val = c.valorPago || c.valor || 0;
+        const existing = dailyMap.get(dateStr) || { entradas: 0, saidas: 0, detalhes: [] };
+        existing.entradas += val;
+        existing.detalhes.push({
+          id: c.id,
+          tipo: "ENTRADA",
+          descricao: c.locatario?.nome ? `Aluguel / Receita - ${c.locatario.nome}` : c.observacao || "Receita de Aluguel",
+          origem: c.locatario?.nome || "Locatário",
+          condominioNome: c.contrato?.flat?.local?.nome || c.flat?.local?.nome || c.local?.nome || "-",
+          flatNumero: c.contrato?.flat?.numero || (c.flat?.numero ? `${c.flat.numero}` : "-"),
+          referencia: c.contrato?.flat?.numero
+            ? `Flat ${c.contrato.flat.numero}${c.contrato?.flat?.local?.nome ? ` (${c.contrato.flat.local.nome})` : ""}`
+            : (c.local?.nome ? `Condomínio ${c.local.nome}` : "-"),
+          formaPagamento: c.formaPagamento || "PIX",
+          dataPagamento: dateStr,
+          mesReferencia: c.mesReferencia ? formatMesReferencia(c.mesReferencia) : undefined,
+          valor: val,
+        });
+        dailyMap.set(dateStr, existing);
       });
-      dailyMap.set(dateStr, existing);
-    });
+    }
 
-    // 2. Processar Contas a Pagar Pagas
-    contasPagarList.forEach((c) => {
-      if (c.status !== "PAGO") return;
-      const dateStr = c.dataPagamento ? c.dataPagamento.split("T")[0] : (c.dataVencimento ? c.dataVencimento.split("T")[0] : "");
-      if (!dateStr) return;
+    // 2. Processar Contas a Pagar Pagas (se não estiver filtrando apenas entradas)
+    if (fluxoTipoLancamento !== "ENTRADAS") {
+      contasPagarList.forEach((c) => {
+        if (c.status !== "PAGO") return;
+        const dateStr = c.dataPagamento ? c.dataPagamento.split("T")[0] : (c.dataVencimento ? c.dataVencimento.split("T")[0] : "");
+        if (!dateStr) return;
 
-      if (fluxoDataInicio && dateStr < fluxoDataInicio) return;
-      if (fluxoDataFim && dateStr > fluxoDataFim) return;
+        if (fluxoDataInicio && dateStr < fluxoDataInicio) return;
+        if (fluxoDataFim && dateStr > fluxoDataFim) return;
 
-      const val = c.valor || 0;
-      const existing = dailyMap.get(dateStr) || { entradas: 0, saidas: 0, detalhes: [] };
-      existing.saidas += val;
-      existing.detalhes.push({
-        tipo: "SAIDA",
-        descricao: c.descricao || "Despesa",
-        valor: val,
-        referencia: c.fornecedor?.razaoSocial || (c.flat?.numero ? `Flat ${c.flat.numero}` : (c.local?.nome ? `Prédio ${c.local.nome}` : "-")),
+        // Filtro de Condomínio / Local
+        const itemLocalId = c.localId || c.flat?.localId;
+        if (fluxoLocalId && itemLocalId !== fluxoLocalId) return;
+
+        // Filtro de Flat
+        if (fluxoFlatId && c.flatId !== fluxoFlatId) return;
+
+        const val = c.valor || 0;
+        const existing = dailyMap.get(dateStr) || { entradas: 0, saidas: 0, detalhes: [] };
+        existing.saidas += val;
+        existing.detalhes.push({
+          id: c.id,
+          tipo: "SAIDA",
+          descricao: c.descricao || "Despesa Operacional",
+          origem: c.fornecedor?.nome || c.fornecedor?.razaoSocial || "Fornecedor / Despesa",
+          condominioNome: c.local?.nome || c.flat?.local?.nome || "-",
+          flatNumero: c.flat?.numero ? `${c.flat.numero}` : "-",
+          referencia: c.fornecedor?.nome || c.fornecedor?.razaoSocial
+            ? `${c.fornecedor.nome || c.fornecedor.razaoSocial}${c.flat?.numero ? ` (Flat ${c.flat.numero})` : (c.local?.nome ? ` - ${c.local.nome}` : "")}`
+            : (c.flat?.numero ? `Flat ${c.flat.numero}` : (c.local?.nome ? `Condomínio ${c.local.nome}` : "-")),
+          formaPagamento: c.formaPagamento || "Transferência",
+          dataPagamento: dateStr,
+          valor: val,
+        });
+        dailyMap.set(dateStr, existing);
       });
-      dailyMap.set(dateStr, existing);
-    });
+    }
 
     // 3. Ordenar por data cronológica crescente
     const sortedDates = Array.from(dailyMap.keys()).sort();
@@ -408,17 +454,38 @@ function RelatoriosContent() {
         detalhes: item.detalhes,
       };
     });
-  }, [contasReceberList, contasPagarList, fluxoDataInicio, fluxoDataFim]);
+  }, [contasReceberList, contasPagarList, fluxoDataInicio, fluxoDataFim, fluxoLocalId, fluxoFlatId, fluxoTipoLancamento]);
 
   const fluxoTotais = React.useMemo(() => {
     const totalEntradas = filteredFluxoDiario.reduce((acc, d) => acc + d.totalEntradas, 0);
     const totalSaidas = filteredFluxoDiario.reduce((acc, d) => acc + d.totalSaidas, 0);
     const saldoPeriodo = totalEntradas - totalSaidas;
-    return { totalEntradas, totalSaidas, saldoPeriodo, qtdDias: filteredFluxoDiario.length };
+    const totalLancamentos = filteredFluxoDiario.reduce((acc, d) => acc + (d.detalhes?.length || 0), 0);
+    const totalEntradasCount = filteredFluxoDiario.reduce((acc, d) => acc + (d.detalhes?.filter((x: any) => x.tipo === "ENTRADA").length || 0), 0);
+    const totalSaidasCount = filteredFluxoDiario.reduce((acc, d) => acc + (d.detalhes?.filter((x: any) => x.tipo === "SAIDA").length || 0), 0);
+    return {
+      totalEntradas,
+      totalSaidas,
+      saldoPeriodo,
+      qtdDias: filteredFluxoDiario.length,
+      totalLancamentos,
+      totalEntradasCount,
+      totalSaidasCount,
+    };
   }, [filteredFluxoDiario]);
 
   // Handler Imprimir PDF do Fluxo de Caixa Diário
   const handleImprimirFluxoCaixaPDF = () => {
+    const selLocal = locais.find((l) => l.id === fluxoLocalId);
+    const selFlat = flats.find((f) => f.id === fluxoFlatId);
+
+    const filtrosArr = [];
+    if (selLocal) filtrosArr.push(`Condomínio: ${selLocal.nome}`);
+    if (selFlat) filtrosArr.push(`Flat: ${selFlat.numero}`);
+    if (fluxoTipoLancamento === "ENTRADAS") filtrosArr.push("Apenas Receitas (Entradas)");
+    if (fluxoTipoLancamento === "SAIDAS") filtrosArr.push("Apenas Despesas (Saídas)");
+    filtrosArr.push("Lançamentos Efetivados/Pagos");
+
     generateFluxoCaixaPDFReport({
       empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
       empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
@@ -428,7 +495,7 @@ function RelatoriosContent() {
       empresaLogomarcaUrl: empresa?.logomarcaUrl,
       dataInicio: fluxoDataInicio ? new Date(fluxoDataInicio + "T00:00:00").toLocaleDateString("pt-BR") : "Início",
       dataFim: fluxoDataFim ? new Date(fluxoDataFim + "T00:00:00").toLocaleDateString("pt-BR") : "Fim",
-      filtrosTexto: "Lançamentos Efetivados/Pagos",
+      filtrosTexto: filtrosArr.join(" | "),
       totais: fluxoTotais,
       itens: filteredFluxoDiario.map((d) => ({
         data: d.data,
@@ -1236,11 +1303,11 @@ function RelatoriosContent() {
         )}
 
         {/* ========================================================================= */}
-        {/* ABA 4: FLUXO DE CAIXA DIÁRIO (ENTRADAS X SAÍDAS DIA A DIA)                */}
+        {/* ABA 4: FLUXO DE CAIXA DIÁRIO (ENTRADAS X SAÍDAS COM LANÇAMENTOS DETALHADOS) */}
         {/* ========================================================================= */}
         {activeTab === "fluxo" && (
           <div className="space-y-6 animate-in fade-in">
-            {/* Barra de Filtro de Período e Ação PDF */}
+            {/* Barra de Filtros Avançados: Período, Condomínio, Flat e Tipo */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
@@ -1249,20 +1316,20 @@ function RelatoriosContent() {
                     <span>Filtros do Fluxo de Caixa Diário</span>
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Selecione o período desejado para apuração diária de recebimentos e pagamentos efetivados.
+                    Selecione o período, condomínio e flat para apuração diária de recebimentos e pagamentos efetivados com extrato detalhado.
                   </p>
                 </div>
 
                 <button
                   onClick={handleImprimirFluxoCaixaPDF}
-                  className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-2 transition self-start sm:self-auto"
+                  className="py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-2 transition self-start sm:self-auto cursor-pointer"
                 >
                   <FileDown className="w-4 h-4" />
                   <span>Imprimir / Baixar Relatório PDF</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Data Inicial (De)
@@ -1271,7 +1338,7 @@ function RelatoriosContent() {
                     type="date"
                     value={fluxoDataInicio}
                     onChange={(e) => setFluxoDataInicio(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -1283,8 +1350,64 @@ function RelatoriosContent() {
                     type="date"
                     value={fluxoDataFim}
                     onChange={(e) => setFluxoDataFim(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Condomínio / Edifício
+                  </label>
+                  <select
+                    value={fluxoLocalId}
+                    onChange={(e) => {
+                      setFluxoLocalId(e.target.value);
+                      setFluxoFlatId("");
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Todos os Condomínios --</option>
+                    {locais.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Flat / Imóvel
+                  </label>
+                  <select
+                    value={fluxoFlatId}
+                    onChange={(e) => setFluxoFlatId(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Todos os Flats --</option>
+                    {flats
+                      .filter((f) => !fluxoLocalId || f.localId === fluxoLocalId || f.local?.id === fluxoLocalId)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          Flat {f.numero} {f.local?.nome ? `(${f.local.nome})` : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Tipo de Movimentação
+                  </label>
+                  <select
+                    value={fluxoTipoLancamento}
+                    onChange={(e) => setFluxoTipoLancamento(e.target.value as any)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="TODOS">Todas (Entradas & Saídas)</option>
+                    <option value="ENTRADAS">Apenas Receitas (Entradas)</option>
+                    <option value="SAIDAS">Apenas Despesas (Saídas)</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1296,6 +1419,9 @@ function RelatoriosContent() {
                 <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                   + R$ {fluxoTotais.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {fluxoTotais.totalEntradasCount} {fluxoTotais.totalEntradasCount === 1 ? "receita registrada" : "receitas registradas"}
+                </span>
               </div>
 
               <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-950/60 rounded-2xl p-4 shadow-lg space-y-1">
@@ -1303,6 +1429,9 @@ function RelatoriosContent() {
                 <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
                   - R$ {fluxoTotais.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {fluxoTotais.totalSaidasCount} {fluxoTotais.totalSaidasCount === 1 ? "despesa paga" : "despesas pagas"}
+                </span>
               </div>
 
               <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-950/60 rounded-2xl p-4 shadow-lg space-y-1">
@@ -1310,63 +1439,257 @@ function RelatoriosContent() {
                 <p className={`text-lg font-bold ${fluxoTotais.saldoPeriodo >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                   R$ {fluxoTotais.saldoPeriodo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Saldo Líquido no Período
+                </span>
               </div>
 
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-lg space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dias com Movimento</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Lançamentos & Dias</span>
                 <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {fluxoTotais.qtdDias} {fluxoTotais.qtdDias === 1 ? "dia" : "dias"}
+                  {fluxoTotais.totalLancamentos} {fluxoTotais.totalLancamentos === 1 ? "lançamento" : "lançamentos"}
                 </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  em {fluxoTotais.qtdDias} {fluxoTotais.qtdDias === 1 ? "dia movimentado" : "dias movimentados"}
+                </span>
               </div>
             </div>
 
-            {/* Tabela Demonstrativa do Fluxo de Caixa Diário */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-bold">
-                      <th className="py-2.5 px-3">Data do Fluxo</th>
-                      <th className="py-2.5 px-3">Entradas (R$)</th>
-                      <th className="py-2.5 px-3">Saídas (R$)</th>
-                      <th className="py-2.5 px-3">Resultado do Dia (R$)</th>
-                      <th className="py-2.5 px-3 text-right">Saldo Acumulado (R$)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {filteredFluxoDiario.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-xs text-slate-400 italic">
-                          Nenhuma movimentação financeira efetivada no período selecionado.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredFluxoDiario.map((item) => (
-                        <tr key={item.dateISO} className="hover:bg-slate-50 dark:hover:bg-slate-950 transition">
-                          <td className="py-3 px-3 font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                            <span>{item.data}</span>
-                          </td>
-                          <td className="py-3 px-3 font-semibold text-emerald-600 dark:text-emerald-400">
-                            {item.totalEntradas > 0 ? `+ R$ ${item.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}
-                          </td>
-                          <td className="py-3 px-3 font-semibold text-rose-600 dark:text-rose-400">
-                            {item.totalSaidas > 0 ? `- R$ ${item.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${item.saldoDia >= 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400" : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"}`}>
-                              R$ {item.saldoDia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-right font-bold text-blue-600 dark:text-blue-400 text-sm">
-                            R$ {item.saldoAcumulado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+            {/* Demonstrativo Analítico com Lançamentos Detalhados por Dia */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+                    <Layers className="w-4 h-4 text-blue-500" />
+                    <span>Lançamentos Analíticos do Fluxo de Caixa</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Extrato diário com cada receita e despesa discriminada por cliente, fornecedor, flat e forma de pagamento.
+                  </p>
+                </div>
+
+                {filteredFluxoDiario.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        const allExpanded: Record<string, boolean> = {};
+                        filteredFluxoDiario.forEach((d) => (allExpanded[d.dateISO] = true));
+                        setExpandedDays(allExpanded);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-300 transition"
+                    >
+                      Expandir Todos
+                    </button>
+                    <button
+                      onClick={() => {
+                        const allCollapsed: Record<string, boolean> = {};
+                        filteredFluxoDiario.forEach((d) => (allCollapsed[d.dateISO] = false));
+                        setExpandedDays(allCollapsed);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-300 transition"
+                    >
+                      Recolher Todos
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {filteredFluxoDiario.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-xl">
+                  <BarChart3 className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">
+                    Nenhuma movimentação financeira encontrada para os filtros selecionados.
+                  </p>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Verifique as datas, condomínio ou tipo de lançamento selecionados nos filtros acima.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredFluxoDiario.map((dayItem) => {
+                    const isExpanded = expandedDays[dayItem.dateISO] !== false;
+                    const detalhesCount = dayItem.detalhes?.length || 0;
+
+                    return (
+                      <div
+                        key={dayItem.dateISO}
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg overflow-hidden transition-all"
+                      >
+                        {/* Cabeçalho do Dia (Resumo Diário) */}
+                        <div
+                          onClick={() => {
+                            setExpandedDays((prev) => ({
+                              ...prev,
+                              [dayItem.dateISO]: !isExpanded,
+                            }));
+                          }}
+                          className="p-4 bg-slate-50/80 dark:bg-slate-950/60 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800/80"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                              <Calendar className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                                  {dayItem.data}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                  {detalhesCount} {detalhesCount === 1 ? "lançamento" : "lançamentos"}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-500">
+                                Saldo acumulado até a data: <strong className="text-blue-600 dark:text-blue-400">R$ {dayItem.saldoAcumulado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center flex-wrap gap-3">
+                            {dayItem.totalEntradas > 0 && (
+                              <div className="text-right">
+                                <span className="block text-[9px] uppercase font-bold text-slate-400">Entradas</span>
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                  + R$ {dayItem.totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            )}
+
+                            {dayItem.totalSaidas > 0 && (
+                              <div className="text-right">
+                                <span className="block text-[9px] uppercase font-bold text-slate-400">Saídas</span>
+                                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                                  - R$ {dayItem.totalSaidas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="text-right pl-2 border-l border-slate-200 dark:border-slate-800">
+                              <span className="block text-[9px] uppercase font-bold text-slate-400">Resultado do Dia</span>
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold inline-block ${
+                                  dayItem.saldoDia >= 0
+                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                    : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                                }`}
+                              >
+                                R$ {dayItem.saldoDia.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Lançamentos Detalhados do Dia */}
+                        {isExpanded && (
+                          <div className="overflow-x-auto p-2">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="text-slate-400 uppercase text-[9px] tracking-wider font-bold border-b border-slate-100 dark:border-slate-800/60">
+                                  <th className="py-2 px-3">Tipo</th>
+                                  <th className="py-2 px-3">Descrição / Finalidade</th>
+                                  <th className="py-2 px-3">Origem / Favorecido</th>
+                                  <th className="py-2 px-3">Condomínio & Flat</th>
+                                  <th className="py-2 px-3">Forma Pagto</th>
+                                  <th className="py-2 px-3 text-right">Valor (R$)</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                {dayItem.detalhes?.map((det: any, idx: number) => {
+                                  const isEntrada = det.tipo === "ENTRADA";
+                                  return (
+                                    <tr
+                                      key={det.id || idx}
+                                      className="hover:bg-slate-50/70 dark:hover:bg-slate-950/40 transition"
+                                    >
+                                      <td className="py-2.5 px-3">
+                                        <span
+                                          className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-black ${
+                                            isEntrada
+                                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300"
+                                              : "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300"
+                                          }`}
+                                        >
+                                          {isEntrada ? (
+                                            <ArrowUpRight className="w-3 h-3 text-emerald-600" />
+                                          ) : (
+                                            <ArrowDownRight className="w-3 h-3 text-rose-600" />
+                                          )}
+                                          <span>{isEntrada ? "RECEITA" : "DESPESA"}</span>
+                                        </span>
+                                      </td>
+
+                                      <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-slate-100">
+                                        {det.descricao}
+                                        {det.mesReferencia && (
+                                          <span className="ml-1.5 text-[10px] text-slate-400 font-normal">
+                                            ({det.mesReferencia})
+                                          </span>
+                                        )}
+                                      </td>
+
+                                      <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium">
+                                        <div className="flex items-center space-x-1.5">
+                                          {isEntrada ? (
+                                            <User className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                          ) : (
+                                            <Truck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                          )}
+                                          <span className="truncate max-w-[180px]">{det.origem}</span>
+                                        </div>
+                                      </td>
+
+                                      <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
+                                        <div className="flex items-center space-x-1.5">
+                                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                          <span>
+                                            {det.condominioNome !== "-" ? det.condominioNome : ""}
+                                            {det.flatNumero !== "-" ? ` • Flat ${det.flatNumero}` : ""}
+                                            {det.condominioNome === "-" && det.flatNumero === "-" ? "Geral / Adm" : ""}
+                                          </span>
+                                        </div>
+                                      </td>
+
+                                      <td className="py-2.5 px-3 text-slate-500">
+                                        <div className="flex items-center space-x-1">
+                                          <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+                                          <span>{det.formaPagamento || "PIX"}</span>
+                                        </div>
+                                      </td>
+
+                                      <td className="py-2.5 px-3 text-right">
+                                        <span
+                                          className={`font-black text-xs ${
+                                            isEntrada
+                                              ? "text-emerald-600 dark:text-emerald-400"
+                                              : "text-rose-600 dark:text-rose-400"
+                                          }`}
+                                        >
+                                          {isEntrada ? "+ " : "- "}
+                                          R$ {(det.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
