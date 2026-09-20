@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   PlusCircle,
   Save,
+  Calendar,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 
@@ -154,6 +155,75 @@ export default function GridMeses({
   const vistoriaSaida = vistoriasSaidaList.find((v: any) => v.statusAssinatura?.includes("ASSINADO"))
     || vistoriasSaidaList[vistoriasSaidaList.length - 1]
     || vistoriasSaidaList[0];
+
+  // Informações de Vencimento e Vigência do Contrato (Diário, Semanal, Mensal, Anual)
+  const vencimentoInfo = React.useMemo(() => {
+    const dataEmissaoRaw = contratoCompleto?.dataEmissao || contratoCompleto?.createdAt;
+    const dataFinalRaw = contratoCompleto?.dataFinal;
+
+    const parseDateOnly = (dStr?: string | Date | null) => {
+      if (!dStr) return null;
+      const str = typeof dStr === "string" ? dStr.split("T")[0] : new Date(dStr).toISOString().split("T")[0];
+      const parts = str.split("-");
+      if (parts.length === 3) {
+        return {
+          formatted: `${parts[2]}/${parts[1]}/${parts[0]}`,
+          date: new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])),
+        };
+      }
+      return {
+        formatted: new Date(dStr).toLocaleDateString("pt-BR"),
+        date: new Date(dStr),
+      };
+    };
+
+    const emissaoParsed = parseDateOnly(dataEmissaoRaw);
+    let finalParsed = parseDateOnly(dataFinalRaw);
+
+    // Se não tiver dataFinal persistida, calcular dinamicamente a partir da emissão e validade
+    if (!finalParsed && emissaoParsed) {
+      const dt = new Date(emissaoParsed.date.getTime());
+      if (tipoValidade === "DIAS") {
+        const d = Number(validadeDias || validadeMeses || 1);
+        dt.setDate(dt.getDate() + d);
+      } else {
+        const m = Number(validadeMeses || 12);
+        dt.setMonth(dt.getMonth() + m);
+      }
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const d = String(dt.getDate()).padStart(2, "0");
+      finalParsed = {
+        formatted: `${d}/${m}/${y}`,
+        date: dt,
+      };
+    }
+
+    let tipoLabel = "";
+    if (tipoValidade === "DIAS") {
+      const d = Number(validadeDias || validadeMeses || 1);
+      if (d === 1) tipoLabel = "Diário (1 Dia)";
+      else if (d === 7) tipoLabel = "Semanal (7 Dias)";
+      else if (d === 14 || d === 15) tipoLabel = "Quinzenal (15 Dias)";
+      else if (d === 30) tipoLabel = "Mensal (30 Dias)";
+      else tipoLabel = `${d} Dias (Temporada)`;
+    } else {
+      const m = Number(validadeMeses || 12);
+      if (m === 1) tipoLabel = "Mensal (1 Mês)";
+      else if (m === 3) tipoLabel = "Trimestral (3 Meses)";
+      else if (m === 6) tipoLabel = "Semestral (6 Meses)";
+      else if (m === 12) tipoLabel = "Anual (12 Meses)";
+      else if (m === 24) tipoLabel = "Bianual (24 Meses)";
+      else tipoLabel = `${m} Meses`;
+    }
+
+    return {
+      dataEmissao: emissaoParsed?.formatted || "-",
+      dataVencimento: finalParsed?.formatted || "-",
+      tipoLabel,
+      diaVencimento: contratoCompleto?.diaVencimento ? `Todo dia ${contratoCompleto.diaVencimento}` : undefined,
+    };
+  }, [contratoCompleto, tipoValidade, validadeDias, validadeMeses]);
 
   const handleOpenModal = (parcela: ParcelaItem) => {
     setSelectedParcela(parcela);
@@ -613,6 +683,27 @@ export default function GridMeses({
                 {tipoValidade === "DIAS" ? `☀️ ${validadeDias || validadeMeses} dias (Temporada)` : `📅 ${validadeMeses || 12} meses`}
               </span>
             </p>
+
+            {/* Linha com a Data de Vencimento do Contrato (Diário, Semanal, Mensal, Anual, etc.) */}
+            <div className="flex flex-wrap items-center gap-2 pt-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-900 text-blue-900 dark:text-blue-200 font-bold text-xs shadow-2xs">
+                <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span>
+                  Vencimento do Contrato: <strong className="text-blue-700 dark:text-blue-300 font-black">{vencimentoInfo.dataVencimento}</strong>
+                </span>
+                <span className="text-[11px] font-normal text-blue-600/80 dark:text-blue-400/80">
+                  (Início: {vencimentoInfo.dataEmissao})
+                </span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium">
+                <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span>Modalidade: <strong>{vencimentoInfo.tipoLabel}</strong></span>
+                {vencimentoInfo.diaVencimento && (
+                  <span className="text-slate-500 dark:text-slate-400">({vencimentoInfo.diaVencimento})</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
