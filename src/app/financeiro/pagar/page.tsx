@@ -48,6 +48,8 @@ export default function ContasPagarPage() {
   // Filtros Dinâmicos e Quebras
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("TODOS");
+  const [filterLocalId, setFilterLocalId] = useState("");
+  const [filterFlatId, setFilterFlatId] = useState("");
   const [filterDateInicio, setFilterDateInicio] = useState("");
   const [filterDateFim, setFilterDateFim] = useState("");
   const [quebraPor, setQuebraPor] = useState<"NENHUM" | "MES_VENCIMENTO" | "FORNECEDOR" | "IMOVEL">("NENHUM");
@@ -60,15 +62,30 @@ export default function ContasPagarPage() {
 
   const loadData = async () => {
     try {
-      const [resContas, resFornecedores, resFlats] = await Promise.all([
+      const [resContas, resFornecedores, resFlats, resLocais] = await Promise.all([
         fetch("/api/financeiro/pagar").then((r) => r.json()),
         fetch("/api/fornecedores").then((r) => r.json()),
         fetch("/api/flats").then((r) => r.json()),
+        fetch("/api/locais").then((r) => r.json()).catch(() => ({ locais: [] })),
       ]);
       setContas(resContas.contas || []);
       setFornecedores(resFornecedores.fornecedores || []);
-      setLocais(resFlats.locais || []);
       setFlats(resFlats.flats || []);
+      const uniqueLocaisMap = new Map();
+      if (resLocais?.locais) {
+        resLocais.locais.forEach((l: any) => uniqueLocaisMap.set(l.id, l));
+      }
+      if (resFlats?.locais) {
+        resFlats.locais.forEach((l: any) => uniqueLocaisMap.set(l.id, l));
+      }
+      if (resFlats?.flats) {
+        resFlats.flats.forEach((f: any) => {
+          if (f.local && !uniqueLocaisMap.has(f.local.id)) {
+            uniqueLocaisMap.set(f.local.id, f.local);
+          }
+        });
+      }
+      setLocais(Array.from(uniqueLocaisMap.values()));
     } catch (err) {
       console.error(err);
     } finally {
@@ -203,6 +220,13 @@ export default function ContasPagarPage() {
   const contasFiltradas = contas.filter((c) => {
     if (filterStatus !== "TODOS" && c.status !== filterStatus) return false;
 
+    if (filterLocalId) {
+      const itemLocalId = c.localId || c.flat?.localId;
+      if (itemLocalId !== filterLocalId) return false;
+    }
+
+    if (filterFlatId && c.flatId !== filterFlatId) return false;
+
     if (filterDateInicio) {
       const venc = c.dataVencimento ? c.dataVencimento.split("T")[0] : "";
       if (venc < filterDateInicio) return false;
@@ -323,6 +347,8 @@ export default function ContasPagarPage() {
   const resetFilters = () => {
     setSearchTerm("");
     setFilterStatus("TODOS");
+    setFilterLocalId("");
+    setFilterFlatId("");
     setFilterDateInicio("");
     setFilterDateFim("");
     setQuebraPor("NENHUM");
@@ -436,23 +462,63 @@ export default function ContasPagarPage() {
 
         {/* BARRA DE FILTROS E BUSCA DINÂMICA */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
             {/* Busca por Texto */}
             <div className="relative">
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Buscar Despesa</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Buscar Lançamento</label>
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Descrição, fornecedor ou flat..."
+                  placeholder="Descrição, fornecedor..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
+            </div>
+
+            {/* Condomínio */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Condomínio</label>
+              <select
+                value={filterLocalId}
+                onChange={(e) => {
+                  setFilterLocalId(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              >
+                <option value="">Todos os Condomínios</option>
+                {locais.map((l) => (
+                  <option key={l.id} value={l.id}>{l.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Flat */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Flat / Imóvel</label>
+              <select
+                value={filterFlatId}
+                onChange={(e) => {
+                  setFilterFlatId(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              >
+                <option value="">Todos os Flats</option>
+                {flats
+                  .filter((f) => !filterLocalId || f.localId === filterLocalId || f.local?.id === filterLocalId)
+                  .map((f) => (
+                    <option key={f.id} value={f.id}>
+                      Flat {f.numero} {f.local?.nome ? `(${f.local.nome})` : ""}
+                    </option>
+                  ))}
+              </select>
             </div>
 
             {/* Filtro por Status */}
@@ -464,7 +530,7 @@ export default function ContasPagarPage() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500"
               >
                 <option value="TODOS">Todos os Status</option>
                 <option value="PENDENTE">Pendentes</option>
@@ -477,7 +543,7 @@ export default function ContasPagarPage() {
             <div>
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center space-x-1">
                 <Layers className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                <span>Quebra / Agrupar Por</span>
+                <span>Quebra / Agrupar</span>
               </label>
               <select
                 value={quebraPor}
@@ -485,7 +551,7 @@ export default function ContasPagarPage() {
                   setQuebraPor(e.target.value as any);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
               >
                 <option value="NENHUM">Sem Quebra (Lista Geral)</option>
                 <option value="MES_VENCIMENTO">📅 Mês de Vencimento</option>
@@ -496,7 +562,7 @@ export default function ContasPagarPage() {
 
             {/* Período de Vencimento (Início) */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento De</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Inicial</label>
               <input
                 type="date"
                 value={filterDateInicio}
@@ -504,13 +570,13 @@ export default function ContasPagarPage() {
                   setFilterDateInicio(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
               />
             </div>
 
             {/* Período de Vencimento (Fim) */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Até</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Vencimento Final</label>
               <input
                 type="date"
                 value={filterDateFim}
@@ -518,12 +584,12 @@ export default function ContasPagarPage() {
                   setFilterDateFim(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
               />
             </div>
           </div>
 
-          {(searchTerm || filterStatus !== "TODOS" || filterDateInicio || filterDateFim || quebraPor !== "NENHUM") && (
+          {(searchTerm || filterStatus !== "TODOS" || filterLocalId || filterFlatId || filterDateInicio || filterDateFim || quebraPor !== "NENHUM") && (
             <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800/60">
               <span className="text-[11px] text-slate-500 font-medium">
                 {quebraPor !== "NENHUM" ? (
