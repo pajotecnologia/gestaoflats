@@ -2052,38 +2052,77 @@ function ParametrosContent() {
                       Conecte o WhatsApp da sua Imobiliária
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Basta clicar no botão abaixo para gerar o QR Code. Abra o WhatsApp no seu celular, acesse <strong>Aparelhos Conectados</strong> e aponte a câmera para ler o código na tela.
+                      Crie sua instância exclusiva e abra o QR Code para conectar com o WhatsApp do seu celular com 1 clique.
                     </p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCreateInstance}
+                      disabled={creatingInstance}
+                      className="px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition shadow-md shadow-indigo-600/20 disabled:opacity-50"
+                      title="Registrar esta instância no servidor da Evolution API"
+                    >
+                      <Plus className={`w-4 h-4 ${creatingInstance ? "animate-spin" : ""}`} />
+                      <span>{creatingInstance ? "Criando..." : "1. Criar Instância"}</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleOpenQrModal}
                       disabled={loadingQrCode}
-                      className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center justify-center space-x-2.5 transition shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center space-x-2 transition shadow-md shadow-emerald-600/25 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      title="Gerar QR Code na tela para escanear com o WhatsApp"
                     >
-                      <QrCode className={`w-5 h-5 ${loadingQrCode ? "animate-spin" : ""}`} />
-                      <span>{loadingQrCode ? "Gerando QR Code..." : "Conectar WhatsApp (QR Code)"}</span>
+                      <QrCode className={`w-4 h-4 ${loadingQrCode ? "animate-spin" : ""}`} />
+                      <span>{loadingQrCode ? "Gerando QR..." : "2. Conectar (QR Code)"}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={handleTestEvolution}
                       disabled={testingEvolution}
-                      className="px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center justify-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                      className="px-3.5 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center justify-center space-x-1.5 transition shadow-sm disabled:opacity-50"
+                      title="Verificar status da conexão"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${testingEvolution ? "animate-spin text-emerald-500" : ""}`} />
-                      <span>{testingEvolution ? "Verificando..." : "Verificar Status"}</span>
+                      <span>{testingEvolution ? "..." : "Status"}</span>
                     </button>
                   </div>
                 </div>
 
-                {evolutionInstance && (
-                  <div className="pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>Instância reservada para esta empresa: <strong className="font-mono text-indigo-600 dark:text-indigo-400">{evolutionInstance}</strong></span>
+                {/* Bloco de Definição do Nome da Instância da Empresa */}
+                <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/60 dark:bg-slate-900/60 p-3.5 rounded-xl border">
+                  <div className="flex-1 max-w-md space-y-1">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                      Nome da Instância Exclusiva da Empresa:
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={evolutionInstance}
+                        onChange={(e) => setEvolutionInstance(e.target.value)}
+                        placeholder="Ex: imob_minhaempresa"
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-mono font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSuggestInstanceName}
+                        className="shrink-0 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 text-xs font-semibold flex items-center space-x-1 border border-indigo-200 dark:border-indigo-800 transition"
+                        title="Gerar nome padronizado automático para esta empresa"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>Sugerir Nome</span>
+                      </button>
+                    </div>
                   </div>
-                )}
+
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 sm:text-right">
+                    <p>Cada empresa possui seu próprio nome de instância isolado.</p>
+                    <p className="text-emerald-600 dark:text-emerald-400 font-semibold">Sem compartilhamento entre clientes.</p>
+                  </div>
+                </div>
               </div>
             )}
 
