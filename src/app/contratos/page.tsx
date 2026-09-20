@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
@@ -340,6 +341,9 @@ export default function ContratosPage() {
     }
   };
 
+  const contratosAtivos = contratos.filter((c) => c.status !== "FINALIZADO");
+  const contratosEncerradosCount = contratos.filter((c) => c.status === "FINALIZADO").length;
+
   return (
     <Shell>
       <div className="space-y-6">
@@ -350,7 +354,7 @@ export default function ContratosPage() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Gestão de Contratos e Aluguéis</h1>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Gestão de Contratos de Locação (Ativos)</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 flex-wrap mt-0.5">
                 <span className="text-blue-600 dark:text-blue-400 font-bold">Fluxo:</span>
                 <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">1º Vistoria de Entrada</span>
@@ -371,20 +375,47 @@ export default function ContratosPage() {
           </button>
         </div>
 
-        {/* Lista de Contratos */}
+        {/* Abas de Navegação entre Contratos Ativos e Encerrados */}
+        <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <Link
+            href="/contratos"
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Contratos Ativos</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-black">
+              {contratosAtivos.length}
+            </span>
+          </Link>
+
+          <Link
+            href="/contratos/encerrados"
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <span>Contratos Encerrados</span>
+            {contratosEncerradosCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
+                {contratosEncerradosCount}
+              </span>
+            )}
+          </Link>
+        </div>
+
+        {/* Lista de Contratos Ativos */}
         {loading ? (
-          <div className="text-center py-12 text-xs text-slate-500 dark:text-slate-400">Carregando contratos...</div>
-        ) : contratos.length === 0 ? (
+          <div className="text-center py-12 text-xs text-slate-500 dark:text-slate-400">Carregando contratos ativos...</div>
+        ) : contratosAtivos.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-sm">
             <FileText className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">Nenhum contrato cadastrado ainda.</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">Nenhum contrato ativo no momento.</p>
             <p className="text-xs text-slate-500">
               Clique em "Emitir Novo Contrato" acima para iniciar a gestão de um flat.
             </p>
           </div>
         ) : (
           <div className="space-y-6">
-            {contratos.map((contrato) => (
+            {contratosAtivos.map((contrato) => (
               <GridMeses
                 key={contrato.id}
                 contratoId={contrato.id}

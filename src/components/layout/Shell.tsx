@@ -37,6 +37,7 @@ import {
   Calendar,
   Bell,
   HelpCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import FloatingAlertsHub from "@/components/alertas/FloatingAlertsHub";
@@ -174,6 +175,7 @@ function ShellContent({ children }: ShellProps) {
         { label: "Modelos de Checklist", href: "/checklists", icon: SlidersHorizontal },
         { label: "Vistorias & Checklists", href: "/vistorias", icon: ClipboardCheck },
         { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
+        { label: "Contratos Encerrados", href: "/contratos/encerrados", icon: CheckCircle2 },
       ],
     },
     {
@@ -220,6 +222,7 @@ function ShellContent({ children }: ShellProps) {
     if (pathname === "/proprietarios") return { section: "Cadastros", page: "Gestão de Proprietários (Locadores)" };
     if (pathname === "/fornecedores") return { section: "Cadastros", page: "Gestão de Fornecedores" };
     if (pathname === "/contratos/modelos") return { section: "Contratos", page: "Modelos de Contrato" };
+    if (pathname === "/contratos/encerrados") return { section: "Contratos", page: "Contratos Encerrados (Histórico)" };
     if (pathname === "/contratos") return { section: "Contratos", page: "Gestão de Contratos e Aluguéis" };
     if (pathname === "/financeiro/receber") return { section: "Financeiro", page: "Contas a Receber" };
     if (pathname === "/financeiro/pagar") return { section: "Financeiro", page: "Contas a Pagar" };
