@@ -28,6 +28,7 @@ import {
   PlusCircle,
   Save,
   Calendar,
+  Pencil,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 
@@ -72,6 +73,7 @@ export interface GridMesesProps {
   modeloContratoHtml?: string | null;
   contratoCompleto?: any;
   onBaixaSucesso?: () => void;
+  onEditarContrato?: (contrato: any) => void;
 }
 
 export default function GridMeses({
@@ -94,6 +96,7 @@ export default function GridMeses({
   modeloContratoHtml,
   contratoCompleto,
   onBaixaSucesso,
+  onEditarContrato,
 }: GridMesesProps) {
   const [selectedParcela, setSelectedParcela] = useState<ParcelaItem | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -811,17 +814,31 @@ export default function GridMeses({
             )}
           </div>
 
-          {/* LINHA 4: ENCERRAMENTO DE CONTRATO */}
-          {contratoCompleto?.status !== "FINALIZADO" && (
-            <button
-              type="button"
-              onClick={handleAbrirModalEncerramento}
-              className="py-1 px-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center space-x-1.5 transition shadow-xs w-full sm:w-auto justify-center sm:justify-start mt-0.5"
-            >
-              <XCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>Encerrar Contrato / Desocupar</span>
-            </button>
-          )}
+          {/* LINHA 4: EDITAR CONTRATO & ENCERRAMENTO */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            {onEditarContrato && (
+              <button
+                type="button"
+                onClick={() => onEditarContrato(contratoCompleto)}
+                className="py-1 px-3 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center space-x-1.5 transition shadow-xs flex-1 sm:flex-initial justify-center sm:justify-start"
+                title="Editar Condições do Contrato"
+              >
+                <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Editar Contrato</span>
+              </button>
+            )}
+
+            {contratoCompleto?.status !== "FINALIZADO" && (
+              <button
+                type="button"
+                onClick={handleAbrirModalEncerramento}
+                className="py-1 px-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center space-x-1.5 transition shadow-xs flex-1 sm:flex-initial justify-center sm:justify-start"
+              >
+                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                <span>Encerrar / Desocupar</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -875,7 +892,7 @@ export default function GridMeses({
               <button
                 key={p.id}
                 onClick={() => handleOpenModal(p)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border font-semibold text-xs transition-all transform hover:-translate-y-0.5 shadow-sm ${
+                className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl border font-semibold text-xs transition-all transform hover:-translate-y-0.5 shadow-xs ${
                   isPago
                     ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
                     : isAtrasado
@@ -887,6 +904,11 @@ export default function GridMeses({
                   {p.numeroParcela === 0 ? "🛡️ Caução" : `#${p.numeroParcela}`}
                 </span>
                 <span className="text-xs font-bold my-0.5">{getMonthAbbrev(p.mesReferencia)}</span>
+
+                {/* Valor da Parcela Pequeno e Discreto */}
+                <span className="text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 tracking-tight my-0.5 opacity-90">
+                  R$ {(p.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
 
                 <div className="flex items-center space-x-1 mt-1 text-[10px]">
                   {isPago ? (

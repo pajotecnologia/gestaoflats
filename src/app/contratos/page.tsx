@@ -17,6 +17,7 @@ export default function ContratosPage() {
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingContrato, setEditingContrato] = useState<any | null>(null);
 
   // Modal de Vistoria Aberto a partir da Emissão de Contrato
   const [showChecklistModal, setShowChecklistModal] = useState(false);
@@ -269,6 +270,52 @@ export default function ContratosPage() {
     }
   };
 
+  const handleOpenNewContrato = () => {
+    setEditingContrato(null);
+    setLocatarioId("");
+    setFlatId("");
+    setModeloContratoId("");
+    setDataEmissao(new Date().toISOString().split("T")[0]);
+    setTipoValidade("MESES");
+    setValidadeValor("12");
+    setValorMensal("");
+    setDiaVencimento("5");
+    setFormaPagamento("PIX");
+    setBancoNome("");
+    setBancoDadosConta("");
+    setMultaAtrasoPercentual("2.0");
+    setJurosAtrasoPercentual("1.0");
+    setValorCaucao("0.00");
+    setCaucaoParcelas("0");
+    setMultaRescisaoMeses("3");
+    setSelectedVistoriaId("");
+    setErrorMsg("");
+    setShowModal(true);
+  };
+
+  const handleOpenEditContrato = (contrato: any) => {
+    setEditingContrato(contrato);
+    setLocatarioId(contrato.locatarioId || "");
+    setFlatId(contrato.flatId || "");
+    setModeloContratoId(contrato.modeloContratoId || "");
+    setDataEmissao(contrato.dataEmissao ? contrato.dataEmissao.split("T")[0] : new Date().toISOString().split("T")[0]);
+    setTipoValidade(contrato.tipoValidade || "MESES");
+    setValidadeValor(String(contrato.validadeDias || contrato.validadeMeses || 12));
+    setValorMensal(String(contrato.valorMensal || ""));
+    setDiaVencimento(String(contrato.diaVencimento || 5));
+    setFormaPagamento(contrato.formaPagamento || "PIX");
+    setBancoNome(contrato.bancoNome || "");
+    setBancoDadosConta(contrato.bancoDadosConta || "");
+    setMultaAtrasoPercentual(String(contrato.multaAtrasoPercentual ?? 2.0));
+    setJurosAtrasoPercentual(String(contrato.jurosAtrasoPercentual ?? 1.0));
+    setValorCaucao(String(contrato.valorCaucao ?? "0.00"));
+    setCaucaoParcelas(String(contrato.caucaoParcelas ?? 0));
+    setMultaRescisaoMeses(String(contrato.multaRescisaoMeses ?? 3));
+    setSelectedVistoriaId("");
+    setErrorMsg("");
+    setShowModal(true);
+  };
+
   const handleAbrirVistoria = () => {
     if (!flatId) {
       toast.warning("Selecione um flat primeiro para realizar a vistoria.");
@@ -283,7 +330,9 @@ export default function ContratosPage() {
 
   const handleEmitirContrato = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel) {
+    const isEditing = Boolean(editingContrato?.id);
+
+    if (!isEditing && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel) {
       const msg = disponibilidadeInfo.mensagem || "O período selecionado está indisponível na agenda.";
       setErrorMsg(msg);
       toast.error(msg);
@@ -294,13 +343,15 @@ export default function ContratosPage() {
     setErrorMsg("");
 
     try {
+      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/contratos", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editingContrato?.id,
           locatarioId,
           flatId,
-          modeloContratoId,
+          modeloContratoId: modeloContratoId || null,
           dataEmissao,
           tipoValidade,
           validadeValor,
@@ -316,19 +367,21 @@ export default function ContratosPage() {
           caucaoParcelas: parseInt(caucaoParcelas, 10),
           multaRescisaoMeses: parseInt(multaRescisaoMeses, 10),
           vistoriaEntradaId: selectedVistoriaId || null,
+          atualizarParcelasPendentes: true,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data.error || "Erro ao emitir contrato.");
-        toast.error(data.error || "Erro ao emitir contrato.");
+        setErrorMsg(data.error || (isEditing ? "Erro ao salvar contrato." : "Erro ao emitir contrato."));
+        toast.error(data.error || (isEditing ? "Erro ao salvar contrato." : "Erro ao emitir contrato."));
         setSubmitting(false);
         return;
       }
 
-      toast.success("Contrato emitido com sucesso!");
+      toast.success(isEditing ? "Contrato atualizado com sucesso!" : "Contrato emitido com sucesso!");
       setShowModal(false);
+      setEditingContrato(null);
       setLocatarioId("");
       setFlatId("");
       setValorMensal("");
@@ -367,7 +420,7 @@ export default function ContratosPage() {
           </div>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenNewContrato}
             className="w-full sm:w-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -437,19 +490,20 @@ export default function ContratosPage() {
                 modeloContratoHtml={contrato.modeloContrato?.conteudoHtml}
                 contratoCompleto={contrato}
                 onBaixaSucesso={loadData}
+                onEditarContrato={handleOpenEditContrato}
               />
             ))}
           </div>
         )}
 
-        {/* Modal Emissão de Contrato com Anexo de Fotos */}
+        {/* Modal Emissão / Edição de Contrato */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span>Emissão de Novo Contrato de Aluguel</span>
+                  <span>{editingContrato ? "Editar Contrato de Locação" : "Emissão de Novo Contrato de Aluguel"}</span>
                 </h3>
                 <button
                   onClick={() => setShowModal(false)}
@@ -495,16 +549,17 @@ export default function ContratosPage() {
                     onChange={(e) => handleFlatChange(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium"
                   >
-                    <option value="">-- Escolha o Flat (Apenas Imóveis Disponíveis) --</option>
+                    <option value="">-- Escolha o Flat --</option>
                     {flats.map((flat) => {
-                      const isAvailable = flat.status === "DISPONIVEL";
+                      const isCurrentEditingFlat = editingContrato && editingContrato.flatId === flat.id;
+                      const isAvailable = flat.status === "DISPONIVEL" || isCurrentEditingFlat;
                       return (
                         <option
                           key={flat.id}
                           value={flat.id}
                           className={isAvailable ? "font-bold text-emerald-600" : "text-slate-400"}
                         >
-                          {flat.local?.nome} - {flat.numero} ({isAvailable ? "🟢 DISPONÍVEL" : flat.status === "OCUPADO" ? "🔵 OCUPADO (Indisponível)" : "🟡 MANUTENÇÃO (Indisponível)"})
+                          {flat.local?.nome} - {flat.numero} ({isCurrentEditingFlat ? "🔵 IMÓVEL DESTE CONTRATO" : isAvailable ? "🟢 DISPONÍVEL" : flat.status === "OCUPADO" ? "🔵 OCUPADO (Indisponível)" : "🟡 MANUTENÇÃO (Indisponível)"})
                         </option>
                       );
                     })}
@@ -923,18 +978,20 @@ export default function ContratosPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting || (disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel)}
+                  disabled={submitting || (!editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel)}
                   className={`w-full py-2.5 rounded-xl font-semibold text-white text-xs shadow-md transition flex items-center justify-center space-x-2 ${
-                    disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
+                    !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
                       ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70"
-                      : "bg-blue-600 hover:bg-blue-500"
+                      : "bg-blue-600 hover:bg-blue-500 cursor-pointer"
                   }`}
                 >
                   <span>
                     {submitting
-                      ? "Gerando..."
-                      : disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
+                      ? "Salvando..."
+                      : !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
                       ? "❌ Período Indisponível na Agenda (Altere as Datas)"
+                      : editingContrato
+                      ? "Salvar Alterações do Contrato"
                       : "Emitir Contrato & Gerar Link de Assinatura"}
                   </span>
                 </button>

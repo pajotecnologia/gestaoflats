@@ -315,3 +315,143 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  const session = await getAuthSessionOrFallback();
+  if (!session) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const {
+      id,
+      locatarioId,
+      flatId,
+      modeloContratoId,
+      dataEmissao,
+      tipoValidade = "MESES",
+      validadeValor,
+      validadeMeses,
+      validadeDias,
+      valorMensal,
+      diaVencimento,
+      formaPagamento,
+      bancoNome,
+      bancoDadosConta,
+      multaAtrasoPercentual,
+      jurosAtrasoPercentual,
+      valorCaucao,
+      caucaoParcelas,
+      multaRescisaoMeses,
+      atualizarParcelasPendentes = true,
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID do contrato é obrigatório." }, { status: 400 });
+    }
+
+    const existingContrato = await prisma.contrato.findFirst({
+      where: { id, empresaId: session.empresaId },
+      include: { contasReceber: true },
+    });
+
+    if (!existingContrato) {
+      return NextResponse.json({ error: "Contrato não encontrado." }, { status: 404 });
+    }
+
+    const isDias = tipoValidade === "DIAS";
+    const duracaoValor = parseInt(validadeValor || validadeDias || validadeMeses || (isDias ? "30" : "12"), 10);
+    const mesesInt = isDias ? Math.max(1, Math.ceil(duracaoValor / 30)) : duracaoValor;
+    const diasInt: number | null = isDias ? duracaoValor : null;
+
+    let dtEmissao = existingContrato.dataEmissao;
+    if (dataEmissao) {
+      const [anoE, mesE, diaE] = String(dataEmissao).split("T")[0].split("-").map(Number);
+      dtEmissao = new Date(anoE, mesE - 1, diaE, 0, 0, 0, 0);
+    }
+
+    const dtFinal = new Date(dtEmissao.getTime());
+    if (isDias) {
+      dtFinal.setDate(dtFinal.getDate() + duracaoValor);
+    } else {
+      dtFinal.setMonth(dtFinal.getMonth() + duracaoValor);
+    }
+
+    const vlrMensalNum = valorMensal !== undefined && valorMensal !== null ? parseFloat(String(valorMensal)) : existingContrato.valorMensal;
+    const diaVencNum = diaVencimento !== undefined && diaVencimento !== null ? parseInt(String(diaVencimento), 10) : existingContrato.diaVencimento;
+    const multaNum = multaAtrasoPercentual !== undefined && multaAtrasoPercentual !== null ? parseFloat(String(multaAtrasoPercentual)) : existingContrato.multaAtrasoPercentual;
+    const jurosNum = jurosAtrasoPercentual !== undefined && jurosAtrasoPercentual !== null ? parseFloat(String(jurosAtrasoPercentual)) : existingContrato.jurosAtrasoPercentual;
+    const caucaoNum = valorCaucao !== undefined && valorCaucao !== null ? parseFloat(String(valorCaucao)) : existingContrato.valorCaucao;
+    const caucaoParcNum = caucaoParcelas !== undefined && caucaoParcelas !== null ? parseInt(String(caucaoParcelas), 10) : existingContrato.caucaoParcelas;
+    const multaRescisaoNum = multaRescisaoMeses !== undefined && multaRescisaoMeses !== null ? parseInt(String(multaRescisaoMeses), 10) : existingContrato.multaRescisaoMeses;
+
+    const updatedContrato = await prisma.contrato.update({
+      where: { id },
+      data: {
+        locatarioId: locatarioId || existingContrato.locatarioId,
+        flatId: flatId || existingContrato.flatId,
+        modeloContratoId: modeloContratoId !== undefined ? (modeloContratoId || null) : existingContrato.modeloContratoId,
+        dataEmissao: dtEmissao,
+        tipoValidade: isDias ? "DIAS" : "MESES",
+        validadeMeses: mesesInt,
+        validadeDias: diasInt,
+        dataFinal: dtFinal,
+        valorMensal: vlrMensalNum,
+        diaVencimento: diaVencNum,
+        formaPagamento: formaPagamento || existingContrato.formaPagamento,
+        bancoNome: bancoNome !== undefined ? (bancoNome || null) : existingContrato.bancoNome,
+        bancoDadosConta: bancoDadosConta !== undefined ? (bancoDadosConta || null) : existingContrato.bancoDadosConta,
+        multaAtrasoPercentual: multaNum,
+        jurosAtrasoPercentual: jurosNum,
+        valorCaucao: caucaoNum,
+        caucaoParcelas: caucaoParcNum,
+        multaRescisaoMeses: multaRescisaoNum,
+      },
+      include: {
+        locatario: true,
+        flat: { include: { local: true } },
+        modeloContrato: true,
+        contasReceber: { orderBy: { numeroParcela: "asc" } },
+        vistoriasChecklist: true,
+      },
+    });
+
+    // Se o valor do contrato ou locatário foi alterado e atualizarParcelasPendentes está ativo:
+    if (atualizarParcelasPendentes) {
+      // Atualizar parcelas de aluguel que continuam PENDENTES (não mexe nas que já estão PAGAS ou caução número 0)
+      const parcelasPendentes = await prisma.contaReceber.findMany({
+        where: {
+          contratoId: id,
+          status: "PENDENTE",
+          numeroParcela: { gt: 0 },
+        },
+      });
+
+      for (const p of parcelasPendentes) {
+        const updateData: any = {
+          valor: vlrMensalNum,
+          locatarioId: locatarioId || existingContrato.locatarioId,
+        };
+
+        // Se o dia de vencimento mudou, ajusta a dataVencimento da parcela pendente mantendo mês/ano
+        if (diaVencNum && diaVencNum >= 1 && diaVencNum <= 31) {
+          const currentVenc = new Date(p.dataVencimento);
+          currentVenc.setDate(Math.min(diaVencNum, 28));
+          updateData.dataVencimento = currentVenc;
+        }
+
+        await prisma.contaReceber.update({
+          where: { id: p.id },
+          data: updateData,
+        });
+      }
+    }
+
+    return NextResponse.json({ success: true, contrato: updatedContrato });
+  } catch (error: any) {
+    console.error("Erro ao atualizar contrato:", error);
+    return NextResponse.json({ error: error.message || "Erro ao atualizar contrato." }, { status: 500 });
+  }
+}
+
