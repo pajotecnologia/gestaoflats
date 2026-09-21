@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import SignaturePad from "@/components/common/SignaturePad";
 import { generateReciboPDF } from "@/lib/pdfGenerator";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { replaceContractVariables } from "@/lib/validation";
 import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
 import { getAppBaseUrl } from "@/lib/baseUrl";
@@ -68,13 +69,15 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
       ? new Date(contrato.dataFinal).toLocaleDateString("pt-BR")
       : "";
 
+    const headerInfo = resolveHeaderData(contrato.flat?.local, contrato.empresa);
+
     const pdfBase64 = await getContratoPDFBase64({
-      empresaNome: contrato.empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: contrato.empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: contrato.empresa?.endereco,
-      empresaTelefone: contrato.empresa?.telefone,
-      empresaEmail: contrato.empresa?.email,
-      empresaLogomarcaUrl: contrato.empresa?.logomarcaUrl,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       empresaAssinaturaUrl: contrato.empresa?.assinaturaUrl,
       locatarioNome: contrato.locatario?.nome || "Locatário",
       locatarioCpf: contrato.locatario?.cpf || "000.000.000-00",
@@ -247,6 +250,7 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
   }
 
   const fotosList: string[] = contrato.fotosAnexadasUrl ? JSON.parse(contrato.fotosAnexadasUrl) : [];
+  const headerData = resolveHeaderData(contrato?.flat?.local, contrato?.empresa);
 
   return (
     <div className="min-h-screen bg-slate-200 dark:bg-slate-950 p-4 sm:p-8 flex justify-center text-slate-900 dark:text-slate-100 font-sans print:p-0 print:bg-white print:text-black">
@@ -328,83 +332,77 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
 
         {/* DOCUMENTO OFICIAL DO CONTRATO (FOLHA FORMAL A4) */}
         <div className="bg-white dark:bg-slate-900 print:bg-white print:text-black border border-slate-300 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none p-6 sm:p-12 print:p-6 shadow-2xl print:shadow-none space-y-6">
-          
-          {/* CABEÇALHO OFICIAL DA EMPRESA NO TOPO DO CONTRATO */}
+          {/* CABEÇALHO OFICIAL DO CONDOMÍNIO / EMPRESA NO TOPO DO CONTRATO */}
           <div className="border-b-2 border-slate-800 print:border-black pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              {contrato.empresa?.logomarcaUrl ? (
-                <img
-                  src={contrato.empresa.logomarcaUrl}
-                  alt={contrato.empresa.nomeFantasia || "Logo Empresa"}
-                  className="w-16 h-16 object-contain rounded-xl border border-slate-200 print:border-none"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-xl bg-blue-600 print:bg-black text-white font-bold flex items-center justify-center text-xl">
-                  {contrato.empresa?.nomeFantasia?.[0] || "P"}
+                <div className="flex items-center space-x-4">
+                  {headerData.logomarcaUrl ? (
+                    <img
+                      src={headerData.logomarcaUrl}
+                      alt={headerData.nome || "Logomarca"}
+                      className="w-16 h-16 object-contain rounded-xl border border-slate-200 print:border-none"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-blue-600 print:bg-black text-white font-bold flex items-center justify-center text-xl">
+                      {headerData.nome?.[0] || "P"}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900 print:text-black uppercase tracking-tight">
+                      {headerData.nome}
+                    </h2>
+                    <p className="text-[11px] text-slate-500 print:text-gray-600">
+                      {headerData.cnpj && <span>CNPJ: {headerData.cnpj} • </span>}
+                      {headerData.telefone && <span>Tel: {headerData.telefone} • </span>}
+                      {headerData.email && <span>E-mail: {headerData.email}</span>}
+                    </p>
+                    {headerData.endereco && (
+                      <p className="text-[10px] text-slate-400 print:text-gray-500">{headerData.endereco}</p>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div>
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 print:text-black uppercase tracking-tight">
-                  {contrato.empresa?.nomeFantasia || "PRIME GESTÃO IMOBILIÁRIA"}
-                </h2>
-                {contrato.empresa?.razaoSocial && (
-                  <p className="text-xs text-slate-600 print:text-gray-700 font-medium">
-                    {contrato.empresa.razaoSocial}
+
+                <div className="text-right sm:text-right w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
+                  <span className="inline-block px-3 py-1 bg-slate-100 print:bg-gray-100 rounded-lg text-xs font-bold text-slate-800 print:text-black uppercase">
+                    {contrato.modeloContrato?.titulo || "Contrato de Locação"}
+                  </span>
+                  <p className="text-[11px] text-slate-500 print:text-gray-600 mt-1 font-semibold">
+                    Vigência: {contrato.tipoValidade === "DIAS" ? `${contrato.validadeDias || contrato.validadeMeses} dias (Temporada)` : `${contrato.validadeMeses || 12} meses`}
                   </p>
-                )}
-                <p className="text-[11px] text-slate-500 print:text-gray-600">
-                  {contrato.empresa?.cnpj && <span>CNPJ: {contrato.empresa.cnpj} • </span>}
-                  {contrato.empresa?.telefone && <span>Tel: {contrato.empresa.telefone} • </span>}
-                  {contrato.empresa?.email && <span>E-mail: {contrato.empresa.email}</span>}
-                </p>
-                {contrato.empresa?.endereco && (
-                  <p className="text-[10px] text-slate-400 print:text-gray-500">{contrato.empresa.endereco}</p>
-                )}
+                </div>
               </div>
-            </div>
 
-            <div className="text-right sm:text-right w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
-              <span className="inline-block px-3 py-1 bg-slate-100 print:bg-gray-100 rounded-lg text-xs font-bold text-slate-800 print:text-black uppercase">
-                {contrato.modeloContrato?.titulo || "Contrato de Locação"}
-              </span>
-              <p className="text-[11px] text-slate-500 print:text-gray-600 mt-1 font-semibold">
-                Vigência: {contrato.tipoValidade === "DIAS" ? `${contrato.validadeDias || contrato.validadeMeses} dias (Temporada)` : `${contrato.validadeMeses || 12} meses`}
-              </p>
-            </div>
-          </div>
+              {/* TÍTULO DO DOCUMENTO */}
+              <div className="text-center py-2">
+                <h1 className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 print:text-black underline underline-offset-4">
+                  {contrato.modeloContrato?.titulo ? contrato.modeloContrato.titulo.toUpperCase() : "CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL"}
+                </h1>
+              </div>
 
-          {/* TÍTULO DO DOCUMENTO */}
-          <div className="text-center py-2">
-            <h1 className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-900 print:text-black underline underline-offset-4">
-              {contrato.modeloContrato?.titulo ? contrato.modeloContrato.titulo.toUpperCase() : "CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL"}
-            </h1>
-          </div>
-
-          {/* QUADRO RESUMO: DADOS DAS PARTES E DO IMÓVEL */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-950/80 print:bg-gray-50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 print:border-gray-300 text-xs">
-            <div className="space-y-0.5">
-              <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">LOCADOR(A):</span>
-              <strong className="text-slate-900 print:text-black block text-xs">{contrato.empresa?.nomeFantasia}</strong>
-              <span className="block text-[10px] text-slate-500 print:text-gray-600">CNPJ: {contrato.empresa?.cnpj || "Não Informado"}</span>
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">LOCATÁRIO(A):</span>
-              <strong className="text-slate-900 print:text-black block text-xs">{contrato.locatario?.nome}</strong>
-              <span className="block text-[10px] text-slate-500 print:text-gray-600">CPF: {contrato.locatario?.cpf}</span>
-              {contrato.locatario?.telefone && (
-                <span className="block text-[10px] text-slate-500 print:text-gray-600">Tel: {contrato.locatario.telefone}</span>
-              )}
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">IMÓVEL / UNIDADE:</span>
-              <strong className="text-slate-900 print:text-black block text-xs">
-                {contrato.flat?.local?.nome} - Flat {contrato.flat?.numero}
-              </strong>
-              <span className="block text-[10px] text-slate-500 print:text-gray-600">
-                Valor: R$ {Number(contrato.valorMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} {contrato.tipoValidade === "DIAS" ? "(Total Período)" : "/mês"}
-              </span>
-            </div>
-          </div>
+              {/* QUADRO RESUMO: DADOS DAS PARTES E DO IMÓVEL */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-950/80 print:bg-gray-50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 print:border-gray-300 text-xs">
+                <div className="space-y-0.5">
+                  <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">LOCADOR(A):</span>
+                  <strong className="text-slate-900 print:text-black block text-xs">{headerData.nome}</strong>
+                  <span className="block text-[10px] text-slate-500 print:text-gray-600">CNPJ: {headerData.cnpj || "Não Informado"}</span>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">LOCATÁRIO(A):</span>
+                  <strong className="text-slate-900 print:text-black block text-xs">{contrato.locatario?.nome}</strong>
+                  <span className="block text-[10px] text-slate-500 print:text-gray-600">CPF: {contrato.locatario?.cpf}</span>
+                  {contrato.locatario?.telefone && (
+                    <span className="block text-[10px] text-slate-500 print:text-gray-600">Tel: {contrato.locatario.telefone}</span>
+                  )}
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-slate-400 print:text-gray-500 block text-[10px] font-bold uppercase">IMÓVEL / UNIDADE:</span>
+                  <strong className="text-slate-900 print:text-black block text-xs">
+                    {contrato.flat?.local?.nome ? `${contrato.flat.local.nome} - ` : ""}Flat {contrato.flat?.numero}
+                  </strong>
+                  <span className="block text-[10px] text-slate-500 print:text-gray-600">
+                    Valor: R$ {Number(contrato.valorMensal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} {contrato.tipoValidade === "DIAS" ? "(Total Período)" : "/mês"}
+                  </span>
+                </div>
+              </div>
 
           {/* CONTEÚDO / CLÁUSULAS DO CONTRATO COM VARIÁVEIS SUBSTITUÍDAS */}
           <div
@@ -512,37 +510,37 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
             className="bg-white dark:bg-slate-900 print:bg-white print:text-black border border-slate-300 dark:border-slate-800 print:border-none rounded-2xl print:rounded-none p-6 sm:p-12 print:p-8 shadow-2xl print:shadow-none space-y-6 mt-8 print:mt-0 break-before-page print:break-before-page"
             style={{ pageBreakBefore: "always", breakBefore: "page" }}
           >
-            {/* CABEÇALHO DO ANEXO I */}
-            <div className="border-b-2 border-slate-800 print:border-black pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                {contrato.empresa?.logomarcaUrl ? (
-                  <img
-                    src={contrato.empresa.logomarcaUrl}
-                    alt={contrato.empresa.nomeFantasia || "Logo Empresa"}
-                    className="w-16 h-16 object-contain rounded-xl border border-slate-200 print:border-none"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-xl bg-blue-600 print:bg-black text-white font-bold flex items-center justify-center text-xl">
-                    {contrato.empresa?.nomeFantasia?.[0] || "P"}
+              {/* CABEÇALHO DO ANEXO I */}
+              <div className="border-b-2 border-slate-800 print:border-black pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                  {headerData.logomarcaUrl ? (
+                    <img
+                      src={headerData.logomarcaUrl}
+                      alt={headerData.nome || "Logomarca"}
+                      className="w-16 h-16 object-contain rounded-xl border border-slate-200 print:border-none"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-blue-600 print:bg-black text-white font-bold flex items-center justify-center text-xl">
+                      {headerData.nome?.[0] || "P"}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-base sm:text-lg font-extrabold text-slate-900 print:text-black uppercase tracking-tight">
+                      {headerData.nome}
+                    </h2>
+                    <p className="text-[11px] text-slate-500 print:text-gray-600">
+                      {headerData.cnpj && <span>CNPJ: {headerData.cnpj} • </span>}
+                      {headerData.telefone && <span>Tel: {headerData.telefone}</span>}
+                    </p>
                   </div>
-                )}
-                <div>
-                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 print:text-black uppercase tracking-tight">
-                    {contrato.empresa?.nomeFantasia || "PRIME GESTÃO IMOBILIÁRIA"}
-                  </h2>
-                  <p className="text-[11px] text-slate-500 print:text-gray-600">
-                    {contrato.empresa?.cnpj && <span>CNPJ: {contrato.empresa.cnpj} • </span>}
-                    {contrato.empresa?.telefone && <span>Tel: {contrato.empresa.telefone}</span>}
-                  </p>
+                </div>
+
+                <div className="text-right sm:text-right w-full sm:w-auto">
+                  <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-950/60 print:bg-gray-100 rounded-lg text-xs font-bold text-blue-800 dark:text-blue-300 print:text-black uppercase border border-blue-200 dark:border-blue-800 print:border-none">
+                    ANEXO I AO CONTRATO DE LOCAÇÃO
+                  </span>
                 </div>
               </div>
-
-              <div className="text-right sm:text-right w-full sm:w-auto">
-                <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-950/60 print:bg-gray-100 rounded-lg text-xs font-bold text-blue-800 dark:text-blue-300 print:text-black uppercase border border-blue-200 dark:border-blue-800 print:border-none">
-                  ANEXO I AO CONTRATO DE LOCAÇÃO
-                </span>
-              </div>
-            </div>
 
             {/* TÍTULO DO ANEXO I */}
             <div className="text-center py-1">

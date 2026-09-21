@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateSha256, stampDocumentHash } from "@/lib/opentimestamps";
 import { getChecklistPDFBase64 } from "@/lib/checklistPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import { sendWhatsAppDocument, sendWhatsAppMessage } from "@/lib/evolutionApi";
 import crypto from "crypto";
@@ -260,7 +261,13 @@ export async function POST(request: NextRequest) {
         try {
           const fullVistoria = await prisma.vistoriaChecklist.findUnique({
             where: { id: vistoria.id },
-            include: { empresa: true, locatario: true, flat: true },
+            include: {
+              empresa: true,
+              locatario: true,
+              flat: {
+                include: { local: true },
+              },
+            },
           });
 
           if (fullVistoria) {
@@ -269,17 +276,20 @@ export async function POST(request: NextRequest) {
               qrCodeDataUrl = await QRCode.toDataURL(validationUrl, { margin: 1, width: 100 });
             } catch (e) {}
 
+            const headerInfo = resolveHeaderData(fullVistoria.flat?.local, fullVistoria.empresa);
+            const flatDisplay = fullVistoria.flat?.local?.nome ? `${fullVistoria.flat.local.nome} - Flat ${fullVistoria.flat.numero}` : `Flat ${fullVistoria.flat.numero}`;
+
             const pdfBase64DataUri = await getChecklistPDFBase64({
               tipoVistoria: fullVistoria.tipoVistoria as any,
-              empresaNome: fullVistoria.empresa.nomeFantasia,
-              empresaCnpj: fullVistoria.empresa.cnpj,
-              empresaEndereco: fullVistoria.empresa.endereco,
-              empresaTelefone: fullVistoria.empresa.telefone,
-              empresaEmail: fullVistoria.empresa.email,
-              empresaLogomarcaUrl: fullVistoria.empresa.logomarcaUrl || undefined,
+              empresaNome: headerInfo.nome,
+              empresaCnpj: headerInfo.cnpj,
+              empresaEndereco: headerInfo.endereco,
+              empresaTelefone: headerInfo.telefone,
+              empresaEmail: headerInfo.email,
+              empresaLogomarcaUrl: headerInfo.logomarcaUrl,
               locatarioNome: fullVistoria.locatario?.nome || "Locatário",
               locatarioCpf: fullVistoria.locatario?.cpf || "-",
-              flatNumero: fullVistoria.flat.numero,
+              flatNumero: flatDisplay,
               dataVistoria: fullVistoria.dataVistoria.toLocaleDateString("pt-BR"),
               responsavelVistoria: fullVistoria.responsavelVistoria,
               itens: itemsArray,

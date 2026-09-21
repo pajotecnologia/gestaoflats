@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { generateChecklistPDF, getChecklistPDFBase64, ChecklistItem } from "@/lib/checklistPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import { getMediaUrl } from "@/lib/media";
 import {
@@ -73,8 +74,9 @@ export default function ChecklistVistoriaViewModal({
   }
 
   const activeEmpresa = liveEmpresaData || vistoria.empresa || empresaData || {};
+  const headerInfo = resolveHeaderData(vistoria.flat?.local, activeEmpresa);
   const tipoVistoria = vistoria.tipoVistoria || "ENTRADA";
-  const flatNumero = vistoria.flat?.numero || "Flat";
+  const flatNumero = vistoria.flat?.local?.nome ? `${vistoria.flat.local.nome} - Flat ${vistoria.flat.numero}` : `Flat ${vistoria.flat?.numero || ""}`;
   const locatarioNome = vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário Não Informado";
   const locatarioCpf = vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "";
   const locatarioTelefone = vistoria.locatario?.telefone || vistoria.contrato?.locatario?.telefone || "";
@@ -86,12 +88,12 @@ export default function ChecklistVistoriaViewModal({
   const handlePrintPDF = async () => {
     await generateChecklistPDF({
       tipoVistoria,
-      empresaNome: activeEmpresa.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: activeEmpresa.cnpj || "00.000.000/0001-00",
-      empresaEndereco: activeEmpresa.endereco,
-      empresaTelefone: activeEmpresa.telefone,
-      empresaEmail: activeEmpresa.email,
-      empresaLogomarcaUrl: activeEmpresa.logomarcaUrl,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       locatarioNome,
       locatarioCpf,
       flatNumero,
@@ -117,12 +119,12 @@ export default function ChecklistVistoriaViewModal({
     try {
       const pdfBase64 = await getChecklistPDFBase64({
         tipoVistoria,
-        empresaNome: activeEmpresa.nomeFantasia || "Prime Gestão Imobiliária",
-        empresaCnpj: activeEmpresa.cnpj || "00.000.000/0001-00",
-        empresaEndereco: activeEmpresa.endereco,
-        empresaTelefone: activeEmpresa.telefone,
-        empresaEmail: activeEmpresa.email,
-        empresaLogomarcaUrl: activeEmpresa.logomarcaUrl,
+        empresaNome: headerInfo.nome,
+        empresaCnpj: headerInfo.cnpj,
+        empresaEndereco: headerInfo.endereco,
+        empresaTelefone: headerInfo.telefone,
+        empresaEmail: headerInfo.email,
+        empresaLogomarcaUrl: headerInfo.logomarcaUrl,
         locatarioNome,
         locatarioCpf,
         flatNumero,

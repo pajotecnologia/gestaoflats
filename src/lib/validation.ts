@@ -320,15 +320,88 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "flat.valorPadrao": formatCurrency(Number(flat.valorPadrao || 0)),
     "flat_valor_padrao": formatCurrency(Number(flat.valorPadrao || 0)),
 
+    // CONDOMÍNIO / LOCAL COMPLETO
     "local.nome": local.nome || "",
     "local_nome": local.nome || "",
+    "condominio.nome": local.nome || "",
     "condominio_nome": local.nome || "",
     "condominio": local.nome || "",
     "empreendimento": local.nome || "",
 
+    "local.razaoSocial": local.razaoSocial || local.nome || "",
+    "local_razao_social": local.razaoSocial || local.nome || "",
+    "condominio.razaoSocial": local.razaoSocial || local.nome || "",
+    "condominio_razao_social": local.razaoSocial || local.nome || "",
+    "razao_social_condominio": local.razaoSocial || local.nome || "",
+
+    "local.cnpj": local.cnpj || "",
+    "local_cnpj": local.cnpj || "",
+    "condominio.cnpj": local.cnpj || "",
+    "condominio_cnpj": local.cnpj || "",
+    "cnpj_condominio": local.cnpj || "",
+
+    "local.telefone": local.telefone || "",
+    "local_telefone": local.telefone || "",
+    "condominio.telefone": local.telefone || "",
+    "condominio_telefone": local.telefone || "",
+    "telefone_condominio": local.telefone || "",
+
+    "local.email": local.email || "",
+    "local_email": local.email || "",
+    "condominio.email": local.email || "",
+    "condominio_email": local.email || "",
+    "email_condominio": local.email || "",
+
     "local.endereco": local.endereco || "",
     "local_endereco": local.endereco || "",
+    "condominio.endereco": local.endereco || "",
     "condominio_endereco": local.endereco || "",
+    "endereco_condominio": local.endereco || "",
+
+    "local.bairro": local.bairro || "",
+    "local_bairro": local.bairro || "",
+    "condominio.bairro": local.bairro || "",
+    "condominio_bairro": local.bairro || "",
+
+    "local.cidade": local.cidade || "",
+    "local_cidade": local.cidade || "",
+    "condominio.cidade": local.cidade || "",
+    "condominio_cidade": local.cidade || "",
+
+    "local.estado": local.estado || "",
+    "local_estado": local.estado || "",
+    "condominio.estado": local.estado || "",
+    "condominio_estado": local.estado || "",
+
+    "local.cep": local.cep || "",
+    "local_cep": local.cep || "",
+    "condominio.cep": local.cep || "",
+    "condominio_cep": local.cep || "",
+
+    "local.enderecoCompleto": [
+      local.endereco,
+      local.bairro ? `Bairro ${local.bairro}` : "",
+      local.cidade && local.estado ? `${local.cidade}/${local.estado}` : local.cidade || local.estado || "",
+      local.cep ? `CEP ${local.cep}` : "",
+    ].filter(Boolean).join(", "),
+    "local_endereco_completo": [
+      local.endereco,
+      local.bairro ? `Bairro ${local.bairro}` : "",
+      local.cidade && local.estado ? `${local.cidade}/${local.estado}` : local.cidade || local.estado || "",
+      local.cep ? `CEP ${local.cep}` : "",
+    ].filter(Boolean).join(", "),
+    "condominio.enderecoCompleto": [
+      local.endereco,
+      local.bairro ? `Bairro ${local.bairro}` : "",
+      local.cidade && local.estado ? `${local.cidade}/${local.estado}` : local.cidade || local.estado || "",
+      local.cep ? `CEP ${local.cep}` : "",
+    ].filter(Boolean).join(", "),
+    "condominio_endereco_completo": [
+      local.endereco,
+      local.bairro ? `Bairro ${local.bairro}` : "",
+      local.cidade && local.estado ? `${local.cidade}/${local.estado}` : local.cidade || local.estado || "",
+      local.cep ? `CEP ${local.cep}` : "",
+    ].filter(Boolean).join(", "),
 
     // CONTRATO / GESTÃO DE CONTRATOS
     "contrato.id": contrato.id ? String(contrato.id).slice(0, 8).toUpperCase() : "",
@@ -442,22 +515,25 @@ export function replaceContractVariables(templateHtml: string, contrato: any): s
     "multa_rescisao": contrato.multaRescisaoMeses !== undefined && contrato.multaRescisaoMeses !== null ? `${contrato.multaRescisaoMeses}` : "3",
     "multa_cancelamento": contrato.multaRescisaoMeses !== undefined && contrato.multaRescisaoMeses !== null ? `${contrato.multaRescisaoMeses}` : "3",
 
-    // EMPRESA / LOCADORA
-    "empresa.nomeFantasia": empresa.nomeFantasia || "Locadora",
-    "empresa_nome": empresa.nomeFantasia || "Locadora",
-    "nome_empresa": empresa.nomeFantasia || "Locadora",
-    "locadora_nome": empresa.nomeFantasia || "Locadora",
-    "locador": empresa.nomeFantasia || "Locadora",
-    "locadora": empresa.nomeFantasia || "Locadora",
+    // EMPRESA / LOCADORA / CONDOMÍNIO (FALLBACK HARMONIOSO)
+    "empresa.nomeFantasia": empresa.nomeFantasia || local.nome || "Locadora",
+    "empresa_nome": empresa.nomeFantasia || local.nome || "Locadora",
+    "nome_empresa": empresa.nomeFantasia || local.nome || "Locadora",
+    "locadora_nome": empresa.nomeFantasia || local.nome || "Locadora",
+    "locador": local.razaoSocial || local.nome || empresa.nomeFantasia || "Locadora",
+    "locadora": local.razaoSocial || local.nome || empresa.nomeFantasia || "Locadora",
+    "locador_nome": local.razaoSocial || local.nome || empresa.nomeFantasia || "Locadora",
 
-    "empresa.razaoSocial": empresa.razaoSocial || empresa.nomeFantasia || "",
-    "empresa_razao_social": empresa.razaoSocial || empresa.nomeFantasia || "",
-    "razao_social": empresa.razaoSocial || empresa.nomeFantasia || "",
+    "empresa.razaoSocial": empresa.razaoSocial || local.razaoSocial || empresa.nomeFantasia || local.nome || "",
+    "empresa_razao_social": empresa.razaoSocial || local.razaoSocial || empresa.nomeFantasia || local.nome || "",
+    "razao_social": empresa.razaoSocial || local.razaoSocial || empresa.nomeFantasia || local.nome || "",
+    "razao_social_locador": local.razaoSocial || empresa.razaoSocial || local.nome || empresa.nomeFantasia || "",
 
-    "empresa.cnpj": empresa.cnpj || "",
-    "empresa_cnpj": empresa.cnpj || "",
-    "cnpj_empresa": empresa.cnpj || "",
-    "cnpj": empresa.cnpj || "",
+    "empresa.cnpj": empresa.cnpj || local.cnpj || "",
+    "empresa_cnpj": empresa.cnpj || local.cnpj || "",
+    "cnpj_empresa": empresa.cnpj || local.cnpj || "",
+    "cnpj": local.cnpj || empresa.cnpj || "",
+    "cnpj_locador": local.cnpj || empresa.cnpj || "",
 
     "empresa.telefone": empresa.telefone || "",
     "empresa_telefone": empresa.telefone || "",

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SignaturePad from "@/components/common/SignaturePad";
 import { generateChecklistPDF, getChecklistPDFBase64, ChecklistItem } from "@/lib/checklistPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import {
   ClipboardCheck,
@@ -313,18 +314,20 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
     const locSignature = v.assinaturaLocatarioUrl || vistoria?.assinaturaLocatarioUrl || assinaturaBase64;
     const ipAssinatura = v.ipAssinaturaLocatario || "127.0.0.1";
     const dataAssinatura = v.dataAssinaturaLocatario ? new Date(v.dataAssinaturaLocatario).toLocaleDateString("pt-BR") : new Date().toLocaleDateString("pt-BR");
+    const headerInfo = resolveHeaderData(v.flat?.local, v.empresa);
+    const flatDisplay = v.flat?.local?.nome ? `${v.flat.local.nome} - Flat ${v.flat.numero}` : `Flat ${v.flat?.numero || "Unidade"}`;
 
     generateChecklistPDF({
       tipoVistoria: v.tipoVistoria || "ENTRADA",
-      empresaNome: v.empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: v.empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: v.empresa?.endereco,
-      empresaTelefone: v.empresa?.telefone,
-      empresaEmail: v.empresa?.email,
-      empresaLogomarcaUrl: v.empresa?.logomarcaUrl,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       locatarioNome: v.locatario?.nome || v.contrato?.locatario?.nome || "Locatário",
       locatarioCpf: v.locatario?.cpf || v.contrato?.locatario?.cpf || "Não informado",
-      flatNumero: v.flat?.numero || "Unidade",
+      flatNumero: flatDisplay,
       dataVistoria: new Date(v.dataVistoria || v.createdAt || Date.now()).toLocaleDateString("pt-BR"),
       responsavelVistoria: v.responsavelVistoria || "Vistoriador Responsável",
       itens: items,
@@ -349,18 +352,20 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
     const locSignature = vistoria.assinaturaLocatarioUrl || assinaturaBase64;
     const ipAssinatura = vistoria.ipAssinaturaLocatario || "127.0.0.1";
     const dataAssinatura = vistoria.dataAssinaturaLocatario ? new Date(vistoria.dataAssinaturaLocatario).toLocaleDateString("pt-BR") : new Date().toLocaleDateString("pt-BR");
+    const headerInfo = resolveHeaderData(vistoria.flat?.local, vistoria.empresa);
+    const flatDisplay = vistoria.flat?.local?.nome ? `${vistoria.flat.local.nome} - Flat ${vistoria.flat.numero}` : `Flat ${vistoria.flat?.numero || ""}`;
 
     const pdfBase64 = await getChecklistPDFBase64({
       tipoVistoria: vistoria.tipoVistoria || "ENTRADA",
-      empresaNome: vistoria.empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: vistoria.empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: vistoria.empresa?.endereco,
-      empresaTelefone: vistoria.empresa?.telefone,
-      empresaEmail: vistoria.empresa?.email,
-      empresaLogomarcaUrl: vistoria.empresa?.logomarcaUrl,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       locatarioNome: vistoria.locatario?.nome || vistoria.contrato?.locatario?.nome || "Locatário",
       locatarioCpf: vistoria.locatario?.cpf || vistoria.contrato?.locatario?.cpf || "",
-      flatNumero: vistoria.flat?.numero || "Flat",
+      flatNumero: flatDisplay,
       dataVistoria: new Date(vistoria.dataVistoria || vistoria.createdAt || Date.now()).toLocaleDateString("pt-BR"),
       responsavelVistoria: vistoria.responsavelVistoria || "Vistoriador Responsável",
       itens: items,

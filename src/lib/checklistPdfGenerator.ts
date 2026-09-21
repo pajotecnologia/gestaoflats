@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
-import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
 import { getAppBaseUrl } from "./baseUrl";
 import { calculateSha256 } from "./cryptoUtils";
 
@@ -393,6 +393,9 @@ export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFDat
 
   if (logoUrl && !logoUrl.startsWith("data:image")) {
     logoUrl = await convertUrlToBase64(logoUrl);
+  }
+  if (logoUrl) {
+    logoUrl = (await ensurePngDataUrl(logoUrl)) || logoUrl;
   }
   if (assUrl && !assUrl.startsWith("data:image")) {
     assUrl = await convertUrlToBase64(assUrl);

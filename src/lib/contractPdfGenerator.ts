@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { formatCurrency } from "./validation";
-import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
 import { convertUrlToBase64, getAppBaseUrl } from "./baseUrl";
 import { calculateSha256 } from "./cryptoUtils";
 import { DEFAULT_CONTRATO_HTML } from "./defaultContractTemplate";
@@ -523,6 +523,9 @@ export async function prepareContratoDataWithBase64Images(data: ContratoPDFData)
 
   if (logoUrl && !logoUrl.startsWith("data:image")) {
     logoUrl = await convertUrlToBase64(logoUrl);
+  }
+  if (logoUrl) {
+    logoUrl = (await ensurePngDataUrl(logoUrl)) || logoUrl;
   }
   if (assUrl && !assUrl.startsWith("data:image")) {
     assUrl = await convertUrlToBase64(assUrl);

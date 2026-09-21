@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { formatCurrency, formatMesReferencia, replaceContractVariables } from "@/lib/validation";
 import { generateReciboPDF, getReciboPDFBase64 } from "@/lib/pdfGenerator";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
 import { getAppBaseUrl } from "@/lib/baseUrl";
@@ -416,19 +417,23 @@ export default function GridMeses({
       ? new Date(parcelas[parcelas.length - 1].dataVencimento)
       : new Date();
 
+    const flatLocal = contratoCompleto?.flat?.local || null;
+    const headerInfo = resolveHeaderData(flatLocal, empresaData);
+
     const pdfBase64 = await getContratoPDFBase64({
-      empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresaData?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresaData?.endereco || undefined,
-      empresaTelefone: empresaData?.telefone || undefined,
-      empresaEmail: empresaData?.email || undefined,
-      empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
       empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
       locatarioNome,
       locatarioCpf,
       locatarioTelefone,
       flatNumero,
+      localNome: flatLocal?.nome,
       valorMensal,
       tipoValidade: tipoValidade || "MESES",
       validadeMeses: validadeMeses || parcelas.length || 12,
@@ -440,7 +445,7 @@ export default function GridMeses({
         contratoCompleto || {
           id: contratoId,
           locatario: { nome: locatarioNome, cpf: locatarioCpf, telefone: locatarioTelefone },
-          flat: { numero: flatNumero },
+          flat: { numero: flatNumero, local: flatLocal },
           valorMensal,
           tipoValidade,
           validadeMeses,
@@ -532,14 +537,16 @@ export default function GridMeses({
     if (!selectedParcela) return;
 
     const formattedMesRef = formatMesReferencia(selectedParcela.mesReferencia);
+    const flatLocal = contratoCompleto?.flat?.local || null;
+    const headerInfo = resolveHeaderData(flatLocal, empresaData);
 
     generateReciboPDF({
-      empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresaData?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresaData?.endereco || undefined,
-      empresaTelefone: empresaData?.telefone || undefined,
-      empresaEmail: empresaData?.email || undefined,
-      empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
       empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
       locatarioNome,
@@ -565,14 +572,17 @@ export default function GridMeses({
     const formattedMesRef = formatMesReferencia(selectedParcela.mesReferencia);
     const isCaucaoItem = selectedParcela.numeroParcela === 0 || selectedParcela.observacao?.toLowerCase().includes("caução") || selectedParcela.observacao?.toLowerCase().includes("caucao");
 
+    const flatLocal = contratoCompleto?.flat?.local || null;
+    const headerInfo = resolveHeaderData(flatLocal, empresaData);
+
     if (selectedParcela.status === "PAGO") {
       pdfBase64 = await getReciboPDFBase64({
-        empresaNome: empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-        empresaCnpj: empresaData?.cnpj || "00.000.000/0001-00",
-        empresaEndereco: empresaData?.endereco || undefined,
-        empresaTelefone: empresaData?.telefone || undefined,
-        empresaEmail: empresaData?.email || undefined,
-        empresaLogomarcaUrl: empresaData?.logomarcaUrl || undefined,
+        empresaNome: headerInfo.nome,
+        empresaCnpj: headerInfo.cnpj,
+        empresaEndereco: headerInfo.endereco,
+        empresaTelefone: headerInfo.telefone,
+        empresaEmail: headerInfo.email,
+        empresaLogomarcaUrl: headerInfo.logomarcaUrl,
         usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
         empresaAssinaturaUrl: currentUser?.assinaturaUrl || empresaData?.assinaturaUrl || undefined,
         locatarioNome,

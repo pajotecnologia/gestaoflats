@@ -5,6 +5,7 @@ import Shell from "@/components/layout/Shell";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
 import ChecklistVistoriaViewModal from "@/components/flats/ChecklistVistoriaViewModal";
 import { generateChecklistPDF, getChecklistPDFBase64 } from "@/lib/checklistPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import {
   ClipboardCheck,
@@ -188,19 +189,22 @@ export default function VistoriasPage() {
       } catch (e) {}
     }
 
+    const headerInfo = resolveHeaderData(v.flat?.local, v.empresa || empresaData);
+    const flatDisplay = v.flat?.local?.nome ? `${v.flat.local.nome} - Flat ${v.flat.numero}` : `Flat ${v.flat?.numero || ""}`;
+
     await generateChecklistPDF({
       tipoVistoria: v.tipoVistoria,
-      empresaNome: v.empresa?.nomeFantasia || empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: v.empresa?.cnpj || empresaData?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: v.empresa?.endereco || empresaData?.endereco,
-      empresaTelefone: v.empresa?.telefone || empresaData?.telefone,
-      empresaEmail: v.empresa?.email || empresaData?.email,
-      empresaLogomarcaUrl: v.empresa?.logomarcaUrl || empresaData?.logomarcaUrl,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
       empresaAssinaturaUrl: currentUser?.assinaturaUrl || v.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
       locatarioNome: v.locatario?.nome || v.contrato?.locatario?.nome || "Locatário Não Informado",
       locatarioCpf: v.locatario?.cpf || v.contrato?.locatario?.cpf || "Não informado",
-      flatNumero: v.flat?.numero || "Flat",
+      flatNumero: flatDisplay,
       dataVistoria: new Date(v.dataVistoria || v.createdAt).toLocaleDateString("pt-BR"),
       responsavelVistoria: v.responsavelVistoria || "Vistoriador Responsável",
       itens: itemsList,
@@ -232,20 +236,23 @@ export default function VistoriasPage() {
       } catch (e) {}
     }
 
+    const headerInfo = resolveHeaderData(v.flat?.local, v.empresa || empresaData);
+    const flatDisplay = v.flat?.local?.nome ? `${v.flat.local.nome} - Flat ${v.flat.numero}` : `Flat ${v.flat?.numero || ""}`;
+
     try {
       const pdfBase64 = await getChecklistPDFBase64({
         tipoVistoria: v.tipoVistoria,
-        empresaNome: v.empresa?.nomeFantasia || empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-        empresaCnpj: v.empresa?.cnpj || empresaData?.cnpj || "00.000.000/0001-00",
-        empresaEndereco: v.empresa?.endereco || empresaData?.endereco,
-        empresaTelefone: v.empresa?.telefone || empresaData?.telefone,
-        empresaEmail: v.empresa?.email || empresaData?.email,
-        empresaLogomarcaUrl: v.empresa?.logomarcaUrl || empresaData?.logomarcaUrl,
+        empresaNome: headerInfo.nome,
+        empresaCnpj: headerInfo.cnpj,
+        empresaEndereco: headerInfo.endereco,
+        empresaTelefone: headerInfo.telefone,
+        empresaEmail: headerInfo.email,
+        empresaLogomarcaUrl: headerInfo.logomarcaUrl,
         usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
         empresaAssinaturaUrl: currentUser?.assinaturaUrl || v.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
         locatarioNome: v.locatario?.nome || v.contrato?.locatario?.nome || "Locatário",
         locatarioCpf: v.locatario?.cpf || v.contrato?.locatario?.cpf || "Não informado",
-        flatNumero: v.flat?.numero || "Flat",
+        flatNumero: flatDisplay,
         dataVistoria: new Date(v.dataVistoria || v.createdAt).toLocaleDateString("pt-BR"),
         responsavelVistoria: v.responsavelVistoria || "Vistoriador Responsável",
         itens: itemsList,
@@ -314,19 +321,22 @@ export default function VistoriasPage() {
         } catch (e) {}
       }
 
+      const headerInfo = resolveHeaderData(emailModalVistoria.flat?.local, emailModalVistoria.empresa || empresaData);
+      const flatDisplay = emailModalVistoria.flat?.local?.nome ? `${emailModalVistoria.flat.local.nome} - Flat ${emailModalVistoria.flat.numero}` : `Flat ${emailModalVistoria.flat?.numero || ""}`;
+
       const pdfBase64 = await getChecklistPDFBase64({
         tipoVistoria: emailModalVistoria.tipoVistoria,
-        empresaNome: emailModalVistoria.empresa?.nomeFantasia || empresaData?.nomeFantasia || "Prime Gestão Imobiliária",
-        empresaCnpj: emailModalVistoria.empresa?.cnpj || empresaData?.cnpj || "00.000.000/0001-00",
-        empresaEndereco: emailModalVistoria.empresa?.endereco || empresaData?.endereco,
-        empresaTelefone: emailModalVistoria.empresa?.telefone || empresaData?.telefone,
-        empresaEmail: emailModalVistoria.empresa?.email || empresaData?.email,
-        empresaLogomarcaUrl: emailModalVistoria.empresa?.logomarcaUrl || empresaData?.logomarcaUrl,
+        empresaNome: headerInfo.nome,
+        empresaCnpj: headerInfo.cnpj,
+        empresaEndereco: headerInfo.endereco,
+        empresaTelefone: headerInfo.telefone,
+        empresaEmail: headerInfo.email,
+        empresaLogomarcaUrl: headerInfo.logomarcaUrl,
         usuarioAssinaturaUrl: currentUser?.assinaturaUrl || undefined,
         empresaAssinaturaUrl: currentUser?.assinaturaUrl || emailModalVistoria.empresa?.assinaturaUrl || empresaData?.assinaturaUrl,
         locatarioNome: emailModalVistoria.locatario?.nome || "Locatário",
         locatarioCpf: emailModalVistoria.locatario?.cpf || "Não informado",
-        flatNumero: emailModalVistoria.flat?.numero || "Flat",
+        flatNumero: flatDisplay,
         dataVistoria: new Date(emailModalVistoria.dataVistoria || emailModalVistoria.createdAt).toLocaleDateString("pt-BR"),
         responsavelVistoria: emailModalVistoria.responsavelVistoria || "Vistoriador Responsável",
         itens: itemsList,

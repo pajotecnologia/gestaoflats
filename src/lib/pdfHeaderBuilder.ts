@@ -12,6 +12,87 @@ export interface PDFDocumentHeaderData {
   variant?: "blue" | "white";
 }
 
+export interface HeaderEntityData {
+  nome: string;
+  cnpj: string;
+  endereco?: string;
+  telefone?: string;
+  email?: string;
+  logomarcaUrl?: string;
+}
+
+/**
+ * Resolve os dados para cabeçalho do documento (PDF/Visualização),
+ * priorizando as informações e logomarca do Condomínio (Local) e aplicando fallback harmonioso na Empresa.
+ */
+export function resolveHeaderData(
+  local?: {
+    nome?: string | null;
+    razaoSocial?: string | null;
+    cnpj?: string | null;
+    endereco?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+    cep?: string | null;
+    telefone?: string | null;
+    email?: string | null;
+    logomarcaUrl?: string | null;
+  } | null,
+  empresa?: {
+    nomeFantasia?: string | null;
+    razaoSocial?: string | null;
+    cnpj?: string | null;
+    endereco?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+    cep?: string | null;
+    telefone?: string | null;
+    email?: string | null;
+    logomarcaUrl?: string | null;
+  } | null
+): HeaderEntityData {
+  const localLogomarca = local?.logomarcaUrl && local.logomarcaUrl.trim() ? local.logomarcaUrl.trim() : undefined;
+  const empresaLogomarca = empresa?.logomarcaUrl && empresa.logomarcaUrl.trim() ? empresa.logomarcaUrl.trim() : undefined;
+  const logomarcaUrl = localLogomarca || empresaLogomarca;
+
+  // Montagem do endereço formatado do condomínio
+  const localEnderecoCompleto = local?.endereco
+    ? [
+        local.endereco,
+        local.bairro ? `Bairro ${local.bairro}` : "",
+        local.cidade && local.estado ? `${local.cidade}/${local.estado}` : local.cidade || local.estado || "",
+        local.cep ? `CEP ${local.cep}` : "",
+      ].filter(Boolean).join(", ")
+    : undefined;
+
+  // Montagem do endereço formatado da empresa
+  const empresaEnderecoCompleto = empresa?.endereco
+    ? [
+        empresa.endereco,
+        empresa.bairro ? `Bairro ${empresa.bairro}` : "",
+        empresa.cidade && empresa.estado ? `${empresa.cidade}/${empresa.estado}` : empresa.cidade || empresa.estado || "",
+        empresa.cep ? `CEP ${empresa.cep}` : "",
+      ].filter(Boolean).join(", ")
+    : undefined;
+
+  const nome = (local?.razaoSocial || local?.nome || empresa?.nomeFantasia || empresa?.razaoSocial || "Gestão Imobiliária").trim();
+  const cnpj = (local?.cnpj || empresa?.cnpj || "00.000.000/0001-00").trim();
+  const endereco = localEnderecoCompleto || local?.endereco || empresaEnderecoCompleto || empresa?.endereco || undefined;
+  const telefone = local?.telefone || empresa?.telefone || undefined;
+  const email = local?.email || empresa?.email || undefined;
+
+  return {
+    nome,
+    cnpj,
+    endereco,
+    telefone,
+    email,
+    logomarcaUrl,
+  };
+}
+
 /**
  * Converte qualquer formato de imagem (WebP, JPEG, PNG, Data URI, URL)
  * para um Data URI PNG 100% compatível com o motor do jsPDF.

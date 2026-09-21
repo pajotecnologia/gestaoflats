@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateSha256, stampDocumentHash } from "@/lib/opentimestamps";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import { sendWhatsAppDocument, sendWhatsAppMessage } from "@/lib/evolutionApi";
 import { replaceContractVariables } from "@/lib/validation";
@@ -190,13 +191,15 @@ export async function POST(request: NextRequest) {
           console.warn("Erro ao gerar QR Code em background:", e);
         }
 
+        const headerInfo = resolveHeaderData(contrato.flat?.local, contrato.empresa);
+
         const pdfBase64DataUri = await getContratoPDFBase64({
-          empresaNome: contrato.empresa.nomeFantasia,
-          empresaCnpj: contrato.empresa.cnpj,
-          empresaEndereco: contrato.empresa.endereco,
-          empresaTelefone: contrato.empresa.telefone,
-          empresaEmail: contrato.empresa.email,
-          empresaLogomarcaUrl: contrato.empresa.logomarcaUrl || undefined,
+          empresaNome: headerInfo.nome,
+          empresaCnpj: headerInfo.cnpj,
+          empresaEndereco: headerInfo.endereco,
+          empresaTelefone: headerInfo.telefone,
+          empresaEmail: headerInfo.email,
+          empresaLogomarcaUrl: headerInfo.logomarcaUrl,
           empresaAssinaturaUrl: contrato.empresa.assinaturaUrl || undefined,
           locatarioNome: contrato.locatario.nome,
           locatarioCpf: contrato.locatario.cpf,

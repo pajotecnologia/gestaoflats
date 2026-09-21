@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { generateChecklistPDF, getChecklistPDFBase64, ChecklistItem } from "@/lib/checklistPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 import { getAppBaseUrl } from "@/lib/baseUrl";
 import {
   ClipboardCheck,
@@ -43,6 +44,7 @@ interface ChecklistVistoriaModalProps {
     logomarcaUrl?: string | null;
     assinaturaUrl?: string | null;
   };
+  localData?: any;
   onClose: () => void;
 }
 
@@ -73,6 +75,7 @@ export default function ChecklistVistoriaModal({
   initialTipoVistoria = "ENTRADA",
   responsavelDefault,
   empresaData,
+  localData,
   onClose,
 }: ChecklistVistoriaModalProps) {
   const [tipoVistoria, setTipoVistoria] = useState<"ENTRADA" | "SAIDA">(initialTipoVistoria);
@@ -119,9 +122,20 @@ export default function ChecklistVistoriaModal({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [liveEmpresaData, setLiveEmpresaData] = useState<any>(empresaData || null);
   const [locatariosList, setLocatariosList] = useState<any[]>([]);
+  const [flatLocal, setFlatLocal] = useState<any>(localData || null);
 
-  // Carregar dados da empresa atualizada, locatários e usuário logado
+  // Carregar dados da empresa atualizada, locatários, condomínio do flat e usuário logado
   useEffect(() => {
+    if (!localData && flatId && flatId !== "flat-geral") {
+      fetch("/api/flats")
+        .then((res) => res.json())
+        .then((data) => {
+          const found = (data.flats || []).find((f: any) => f.id === flatId);
+          if (found?.local) setFlatLocal(found.local);
+        })
+        .catch(() => {});
+    }
+
     fetch("/api/empresa")
       .then((res) => res.json())
       .then((data) => {
@@ -512,19 +526,21 @@ export default function ChecklistVistoriaModal({
     setWhatsAppFeedback(null);
 
     const emp = liveEmpresaData || empresaData;
+    const headerInfo = resolveHeaderData(localData || flatLocal, emp);
+    const flatDisplay = (localData?.nome || flatLocal?.nome) ? `${localData?.nome || flatLocal?.nome} - Flat ${flatNumero}` : `Flat ${flatNumero}`;
 
-    // Gerar PDF base64 do laudo de vistoria com dados atualizados da empresa e locatário
+    // Gerar PDF base64 do laudo de vistoria com dados atualizados do condomínio/empresa e locatário
     const pdfBase64 = await getChecklistPDFBase64({
       tipoVistoria,
-      empresaNome: emp?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: emp?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: emp?.endereco || undefined,
-      empresaTelefone: emp?.telefone || undefined,
-      empresaEmail: emp?.email || undefined,
-      empresaLogomarcaUrl: emp?.logomarcaUrl || undefined,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       locatarioNome: currentLocatarioNome || locatarioNome || "Locatário",
       locatarioCpf: currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado",
-      flatNumero,
+      flatNumero: flatDisplay,
       dataVistoria: new Date(dataVistoria).toLocaleDateString("pt-BR"),
       responsavelVistoria: responsavel,
       itens: items,
@@ -533,7 +549,7 @@ export default function ChecklistVistoriaModal({
       empresaAssinaturaUrl: currentUser?.assinaturaUrl || emp?.assinaturaUrl || undefined,
     });
 
-    const text = `*LAUDO DE VISTORIA DE ${tipoVistoria} DO FLAT (${flatNumero})*\n\nOlá *${currentLocatarioNome || locatarioNome || "Locatário"}*,\nSegue em anexo o laudo de vistoria em PDF.\n\n👉 *Clique no link abaixo para conferir e assinar digitalmente:*\n${linkAssinatura}`;
+    const text = `*LAUDO DE VISTORIA DE ${tipoVistoria} DO FLAT (${flatDisplay})*\n\nOlá *${currentLocatarioNome || locatarioNome || "Locatário"}*,\nSegue em anexo o laudo de vistoria em PDF.\n\n👉 *Clique no link abaixo para conferir e assinar digitalmente:*\n${linkAssinatura}`;
 
     try {
       const res = await fetch("/api/whatsapp/send", {
@@ -600,18 +616,20 @@ export default function ChecklistVistoriaModal({
   const handleGerarLaudoPDF = async () => {
     await handleSalvarVistoria();
     const emp = liveEmpresaData || empresaData;
+    const headerInfo = resolveHeaderData(localData || flatLocal, emp);
+    const flatDisplay = (localData?.nome || flatLocal?.nome) ? `${localData?.nome || flatLocal?.nome} - Flat ${flatNumero}` : `Flat ${flatNumero}`;
 
     await generateChecklistPDF({
       tipoVistoria,
-      empresaNome: emp?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: emp?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: emp?.endereco || undefined,
-      empresaTelefone: emp?.telefone || undefined,
-      empresaEmail: emp?.email || undefined,
-      empresaLogomarcaUrl: emp?.logomarcaUrl || undefined,
+      empresaNome: headerInfo.nome,
+      empresaCnpj: headerInfo.cnpj,
+      empresaEndereco: headerInfo.endereco,
+      empresaTelefone: headerInfo.telefone,
+      empresaEmail: headerInfo.email,
+      empresaLogomarcaUrl: headerInfo.logomarcaUrl,
       locatarioNome: currentLocatarioNome || locatarioNome || "Locatário",
       locatarioCpf: currentLocatarioCpf || (locatarioCpf !== "000.000.000-00" ? locatarioCpf : "") || "Não informado",
-      flatNumero,
+      flatNumero: flatDisplay,
       dataVistoria: new Date(dataVistoria).toLocaleDateString("pt-BR"),
       responsavelVistoria: responsavel,
       itens: items,
