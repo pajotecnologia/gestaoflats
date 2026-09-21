@@ -202,16 +202,25 @@ model Fornecedor {
 }
 
 model Local {
-  id          String       @id @default(uuid())
-  empresaId   String
-  empresa     Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  nome        String
-  endereco    String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id           String       @id @default(uuid())
+  empresaId    String
+  empresa      Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  nome         String       // Nome do Condomínio / Edifício / Nome Fantasia
+  razaoSocial  String?      // Razão Social (se houver CNPJ próprio do condomínio)
+  cnpj         String?      // CNPJ do Condomínio
+  email        String?      // E-mail de contato / administração do condomínio
+  telefone     String?      // Telefone do condomínio / portaria / síndico
+  endereco     String       // Endereço (Logradouro, número)
+  bairro       String?      // Bairro
+  cidade       String?      // Cidade
+  estado       String?      // UF
+  cep          String?      // CEP
+  logomarcaUrl String?      // Logomarca do condomínio (Base64 / WebP ou URL)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  flats       Flat[]
-  contasPagar ContaPagar[]
+  flats        Flat[]
+  contasPagar  ContaPagar[]
 }
 
 model Flat {

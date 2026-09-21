@@ -81,12 +81,33 @@ export async function POST(request: NextRequest) {
     const { type } = body;
 
     if (type === "local") {
-      const { nome, endereco } = body;
+      const {
+        nome,
+        razaoSocial,
+        cnpj,
+        email,
+        telefone,
+        endereco,
+        bairro,
+        cidade,
+        estado,
+        cep,
+        logomarcaUrl,
+      } = body;
       const newLocal = await prisma.local.create({
         data: {
           empresaId: session.empresaId,
-          nome,
-          endereco,
+          nome: (nome || "").trim(),
+          razaoSocial: razaoSocial ? razaoSocial.trim() : null,
+          cnpj: cnpj ? cnpj.trim() : null,
+          email: email ? email.trim() : null,
+          telefone: telefone ? telefone.trim() : null,
+          endereco: (endereco || "").trim(),
+          bairro: bairro ? bairro.trim() : null,
+          cidade: cidade ? cidade.trim() : null,
+          estado: estado ? estado.trim() : null,
+          cep: cep ? cep.trim() : null,
+          logomarcaUrl: logomarcaUrl || null,
         },
       });
       return NextResponse.json({ local: newLocal });
@@ -177,12 +198,33 @@ export async function PUT(request: NextRequest) {
     }
 
     if (type === "local") {
-      const { nome, endereco } = body;
+      const {
+        nome,
+        razaoSocial,
+        cnpj,
+        email,
+        telefone,
+        endereco,
+        bairro,
+        cidade,
+        estado,
+        cep,
+        logomarcaUrl,
+      } = body;
       const updatedLocal = await prisma.local.update({
         where: { id, empresaId: session.empresaId },
         data: {
-          nome,
-          endereco,
+          nome: nome ? nome.trim() : undefined,
+          razaoSocial: razaoSocial !== undefined ? (razaoSocial ? razaoSocial.trim() : null) : undefined,
+          cnpj: cnpj !== undefined ? (cnpj ? cnpj.trim() : null) : undefined,
+          email: email !== undefined ? (email ? email.trim() : null) : undefined,
+          telefone: telefone !== undefined ? (telefone ? telefone.trim() : null) : undefined,
+          endereco: endereco !== undefined ? (endereco ? endereco.trim() : "") : undefined,
+          bairro: bairro !== undefined ? (bairro ? bairro.trim() : null) : undefined,
+          cidade: cidade !== undefined ? (cidade ? cidade.trim() : null) : undefined,
+          estado: estado !== undefined ? (estado ? estado.trim() : null) : undefined,
+          cep: cep !== undefined ? (cep ? cep.trim() : null) : undefined,
+          logomarcaUrl: logomarcaUrl !== undefined ? (logomarcaUrl || null) : undefined,
         },
       });
       return NextResponse.json({ local: updatedLocal });

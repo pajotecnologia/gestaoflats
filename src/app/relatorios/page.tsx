@@ -140,20 +140,68 @@ function RelatoriosContent() {
     fetchData();
   }, []);
 
-  // Handler: Imprimir Ficha de Checklist em Branco
-  const handleImprimirChecklistEmBranco = () => {
-    const selFlat = flats.find((f) => f.id === selectedFlatId);
-    const selLoc = locatarios.find((l) => l.id === selectedLocatarioId);
+  // Resolvedor Dinâmico de Cabeçalho do Relatório (Condomínio vs Empresa)
+  const getDynamicReportHeader = (selectedLocalId?: string, selectedFlatId?: string) => {
+    let targetLocal: any = null;
+    if (selectedLocalId) {
+      targetLocal = locais.find((l) => l.id === selectedLocalId);
+    }
+    if (!targetLocal && selectedFlatId) {
+      const foundFlat = flats.find((f) => f.id === selectedFlatId);
+      if (foundFlat?.localId) {
+        targetLocal = locais.find((l) => l.id === foundFlat.localId) || foundFlat.local;
+      }
+    }
 
-    generateBlankChecklistPDF({
+    if (targetLocal) {
+      const enderecoCompletoCondominio = [
+        targetLocal.endereco,
+        targetLocal.bairro,
+        targetLocal.cidade ? `${targetLocal.cidade}${targetLocal.estado ? `/${targetLocal.estado}` : ""}` : "",
+        targetLocal.cep ? `CEP: ${targetLocal.cep}` : "",
+      ]
+        .filter(Boolean)
+        .join(" - ");
+
+      return {
+        empresaNome: targetLocal.razaoSocial || targetLocal.nome || empresa?.nomeFantasia || "Condomínio",
+        empresaCnpj: targetLocal.cnpj || empresa?.cnpj || "00.000.000/0001-00",
+        empresaEndereco: enderecoCompletoCondominio || empresa?.endereco || "",
+        empresaTelefone: targetLocal.telefone || empresa?.telefone || "",
+        empresaEmail: targetLocal.email || empresa?.email || "",
+        empresaLogomarcaUrl: targetLocal.logomarcaUrl || empresa?.logomarcaUrl || "",
+        condominioNome: targetLocal.nome,
+        isCustomCondominio: true,
+      };
+    }
+
+    return {
       empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
       empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
       empresaEndereco: empresa?.endereco,
       empresaTelefone: empresa?.telefone,
       empresaEmail: empresa?.email,
       empresaLogomarcaUrl: empresa?.logomarcaUrl,
+      condominioNome: undefined,
+      isCustomCondominio: false,
+    };
+  };
+
+  // Handler: Imprimir Ficha de Checklist em Branco
+  const handleImprimirChecklistEmBranco = () => {
+    const selFlat = flats.find((f) => f.id === selectedFlatId);
+    const selLoc = locatarios.find((l) => l.id === selectedLocatarioId);
+    const headerInfo = getDynamicReportHeader(selFlat?.localId, selectedFlatId);
+
+    generateBlankChecklistPDF({
+      empresaNome: headerInfo.empresaNome,
+      empresaCnpj: headerInfo.empresaCnpj,
+      empresaEndereco: headerInfo.empresaEndereco,
+      empresaTelefone: headerInfo.empresaTelefone,
+      empresaEmail: headerInfo.empresaEmail,
+      empresaLogomarcaUrl: headerInfo.empresaLogomarcaUrl,
       flatNumero: selFlat?.numero,
-      condominioNome: selFlat?.local?.nome,
+      condominioNome: selFlat?.local?.nome || headerInfo.condominioNome,
       locatarioNome: selLoc?.nome,
       locatarioCpf: selLoc?.cpf,
       responsavelVistoria: responsavelVistoria || undefined,
@@ -181,6 +229,7 @@ function RelatoriosContent() {
   const handleImprimirContratosPDF = () => {
     const selLoc = locatarios.find((l) => l.id === contratoLocatarioId);
     const selLocal = locais.find((l) => l.id === contratoLocalId);
+    const headerInfo = getDynamicReportHeader(contratoLocalId);
 
     const filtrosArr = [];
     if (selLoc) filtrosArr.push(`Locatário: ${selLoc.nome}`);
@@ -188,12 +237,12 @@ function RelatoriosContent() {
     if (contratoStatus) filtrosArr.push(`Status: ${contratoStatus}`);
 
     generateContratosPDFReport({
-      empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresa?.endereco,
-      empresaTelefone: empresa?.telefone,
-      empresaEmail: empresa?.email,
-      empresaLogomarcaUrl: empresa?.logomarcaUrl,
+      empresaNome: headerInfo.empresaNome,
+      empresaCnpj: headerInfo.empresaCnpj,
+      empresaEndereco: headerInfo.empresaEndereco,
+      empresaTelefone: headerInfo.empresaTelefone,
+      empresaEmail: headerInfo.empresaEmail,
+      empresaLogomarcaUrl: headerInfo.empresaLogomarcaUrl,
       filtrosTexto: filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Contratos",
       totais: contratosTotais,
       itens: filteredContratos.map((c) => ({
@@ -249,6 +298,7 @@ function RelatoriosContent() {
     const selLoc = locatarios.find((l) => l.id === receberLocatarioId);
     const selLocal = locais.find((l) => l.id === receberLocalId);
     const selFlat = flats.find((f) => f.id === receberFlatId);
+    const headerInfo = getDynamicReportHeader(receberLocalId, receberFlatId);
 
     const filtrosArr = [];
     if (selLoc) filtrosArr.push(`Locatário: ${selLoc.nome}`);
@@ -258,12 +308,12 @@ function RelatoriosContent() {
     const filtrosTexto = filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Lançamentos";
 
     generateContasReceberPDFReport({
-      empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresa?.endereco,
-      empresaTelefone: empresa?.telefone,
-      empresaEmail: empresa?.email,
-      empresaLogomarcaUrl: empresa?.logomarcaUrl,
+      empresaNome: headerInfo.empresaNome,
+      empresaCnpj: headerInfo.empresaCnpj,
+      empresaEndereco: headerInfo.empresaEndereco,
+      empresaTelefone: headerInfo.empresaTelefone,
+      empresaEmail: headerInfo.empresaEmail,
+      empresaLogomarcaUrl: headerInfo.empresaLogomarcaUrl,
       dataInicio: receberDataInicio ? new Date(receberDataInicio).toLocaleDateString("pt-BR") : "Início",
       dataFim: receberDataFim ? new Date(receberDataFim).toLocaleDateString("pt-BR") : "Fim",
       filtrosTexto,
@@ -317,6 +367,7 @@ function RelatoriosContent() {
     const selForn = fornecedores.find((f) => f.id === pagarFornecedorId);
     const selLocal = locais.find((l) => l.id === pagarLocalId);
     const selFlat = flats.find((f) => f.id === pagarFlatId);
+    const headerInfo = getDynamicReportHeader(pagarLocalId, pagarFlatId);
 
     const filtrosArr = [];
     if (selForn) filtrosArr.push(`Fornecedor: ${selForn.nome}`);
@@ -326,12 +377,12 @@ function RelatoriosContent() {
     const filtrosTexto = filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Lançamentos";
 
     generateContasPagarPDFReport({
-      empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresa?.endereco,
-      empresaTelefone: empresa?.telefone,
-      empresaEmail: empresa?.email,
-      empresaLogomarcaUrl: empresa?.logomarcaUrl,
+      empresaNome: headerInfo.empresaNome,
+      empresaCnpj: headerInfo.empresaCnpj,
+      empresaEndereco: headerInfo.empresaEndereco,
+      empresaTelefone: headerInfo.empresaTelefone,
+      empresaEmail: headerInfo.empresaEmail,
+      empresaLogomarcaUrl: headerInfo.empresaLogomarcaUrl,
       dataInicio: pagarDataInicio ? new Date(pagarDataInicio).toLocaleDateString("pt-BR") : "Início",
       dataFim: pagarDataFim ? new Date(pagarDataFim).toLocaleDateString("pt-BR") : "Fim",
       filtrosTexto,
@@ -478,6 +529,7 @@ function RelatoriosContent() {
   const handleImprimirFluxoCaixaPDF = () => {
     const selLocal = locais.find((l) => l.id === fluxoLocalId);
     const selFlat = flats.find((f) => f.id === fluxoFlatId);
+    const headerInfo = getDynamicReportHeader(fluxoLocalId, fluxoFlatId);
 
     const filtrosArr = [];
     if (selLocal) filtrosArr.push(`Condomínio: ${selLocal.nome}`);
@@ -487,12 +539,12 @@ function RelatoriosContent() {
     filtrosArr.push("Lançamentos Efetivados/Pagos");
 
     generateFluxoCaixaPDFReport({
-      empresaNome: empresa?.nomeFantasia || "Prime Gestão Imobiliária",
-      empresaCnpj: empresa?.cnpj || "00.000.000/0001-00",
-      empresaEndereco: empresa?.endereco,
-      empresaTelefone: empresa?.telefone,
-      empresaEmail: empresa?.email,
-      empresaLogomarcaUrl: empresa?.logomarcaUrl,
+      empresaNome: headerInfo.empresaNome,
+      empresaCnpj: headerInfo.empresaCnpj,
+      empresaEndereco: headerInfo.empresaEndereco,
+      empresaTelefone: headerInfo.empresaTelefone,
+      empresaEmail: headerInfo.empresaEmail,
+      empresaLogomarcaUrl: headerInfo.empresaLogomarcaUrl,
       dataInicio: fluxoDataInicio ? new Date(fluxoDataInicio + "T00:00:00").toLocaleDateString("pt-BR") : "Início",
       dataFim: fluxoDataFim ? new Date(fluxoDataFim + "T00:00:00").toLocaleDateString("pt-BR") : "Fim",
       filtrosTexto: filtrosArr.join(" | "),

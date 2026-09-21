@@ -26,6 +26,9 @@ import {
   MapPin,
   DollarSign,
   FileText,
+  Mail,
+  Phone,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import UpgradeModal from "@/components/plans/UpgradeModal";
@@ -119,9 +122,20 @@ export default function FlatsPage() {
     }
   };
 
-  // Form Local State
+  // Form Local State Completo
   const [nomeLocal, setNomeLocal] = useState("");
+  const [razaoSocialLocal, setRazaoSocialLocal] = useState("");
+  const [cnpjLocal, setCnpjLocal] = useState("");
+  const [emailLocal, setEmailLocal] = useState("");
+  const [telefoneLocal, setTelefoneLocal] = useState("");
   const [enderecoLocal, setEnderecoLocal] = useState("");
+  const [bairroLocal, setBairroLocal] = useState("");
+  const [cidadeLocal, setCidadeLocal] = useState("");
+  const [estadoLocal, setEstadoLocal] = useState("");
+  const [cepLocal, setCepLocal] = useState("");
+  const [logomarcaUrlLocal, setLogomarcaUrlLocal] = useState("");
+  const [uploadingLogoLocal, setUploadingLogoLocal] = useState(false);
+  const [buscandoCepLocal, setBuscandoCepLocal] = useState(false);
 
   // Form Flat State
   const [localIdSelected, setLocalIdSelected] = useState("");
@@ -166,15 +180,90 @@ export default function FlatsPage() {
   const handleOpenNewLocal = () => {
     setEditingLocal(null);
     setNomeLocal("");
+    setRazaoSocialLocal("");
+    setCnpjLocal("");
+    setEmailLocal("");
+    setTelefoneLocal("");
     setEnderecoLocal("");
+    setBairroLocal("");
+    setCidadeLocal("");
+    setEstadoLocal("");
+    setCepLocal("");
+    setLogomarcaUrlLocal("");
     setShowLocalModal(true);
   };
 
   const handleOpenEditLocal = (local: any) => {
     setEditingLocal(local);
-    setNomeLocal(local.nome);
-    setEnderecoLocal(local.endereco);
+    setNomeLocal(local.nome || "");
+    setRazaoSocialLocal(local.razaoSocial || "");
+    setCnpjLocal(local.cnpj || "");
+    setEmailLocal(local.email || "");
+    setTelefoneLocal(local.telefone || "");
+    setEnderecoLocal(local.endereco || "");
+    setBairroLocal(local.bairro || "");
+    setCidadeLocal(local.cidade || "");
+    setEstadoLocal(local.estado || "");
+    setCepLocal(local.cep || "");
+    setLogomarcaUrlLocal(local.logomarcaUrl || "");
     setShowLocalModal(true);
+  };
+
+  const handleUploadLogoLocal = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning("A logomarca deve ter no máximo 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setUploadingLogoLocal(true);
+    try {
+      const formData = new FormData();
+      formData.append("logoFile", file);
+
+      const res = await fetch("/api/locais/upload-logo", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.logomarcaUrl) {
+        setLogomarcaUrlLocal(data.logomarcaUrl);
+        toast.success("Logomarca do condomínio carregada com sucesso!");
+      } else {
+        toast.error(data.error || "Erro ao carregar logomarca.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro no envio da logomarca.");
+    } finally {
+      setUploadingLogoLocal(false);
+    }
+  };
+
+  const handleBuscarCepLocal = async (cepValue: string) => {
+    const cleanCep = cepValue.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+
+    setBuscandoCepLocal(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        if (data.logradouro) setEnderecoLocal(data.logradouro);
+        if (data.bairro) setBairroLocal(data.bairro);
+        if (data.localidade) setCidadeLocal(data.localidade);
+        if (data.uf) setEstadoLocal(data.uf);
+        toast.success("Endereço preenchido automaticamente pelo CEP!");
+      }
+    } catch (err) {
+      console.warn("Erro ao buscar CEP:", err);
+    } finally {
+      setBuscandoCepLocal(false);
+    }
   };
 
   const handleOpenNewFlat = (localIdDefault?: string) => {
@@ -274,27 +363,35 @@ export default function FlatsPage() {
 
     try {
       const method = editingLocal ? "PUT" : "POST";
-      const res = await fetch("/api/flats", {
+      const res = await fetch("/api/locais", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "local",
           id: editingLocal?.id,
           nome: nomeLocal,
+          razaoSocial: razaoSocialLocal,
+          cnpj: cnpjLocal,
+          email: emailLocal,
+          telefone: telefoneLocal,
           endereco: enderecoLocal,
+          bairro: bairroLocal,
+          cidade: cidadeLocal,
+          estado: estadoLocal,
+          cep: cepLocal,
+          logomarcaUrl: logomarcaUrlLocal,
         }),
       });
       if (res.ok) {
-        toast.success(editingLocal ? "Condomínio/Local atualizado com sucesso!" : "Condomínio/Local cadastrado com sucesso!");
+        toast.success(editingLocal ? "Condomínio atualizado com sucesso!" : "Condomínio cadastrado com sucesso!");
         setShowLocalModal(false);
         loadData();
       } else {
         const d = await res.json();
-        toast.error(d.error || "Erro ao salvar condomínio/local.");
+        toast.error(d.error || "Erro ao salvar condomínio.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao salvar condomínio/local.");
+      toast.error("Erro ao salvar condomínio.");
     } finally {
       setSubmitting(false);
     }
@@ -406,15 +503,29 @@ export default function FlatsPage() {
           <div className="space-y-6">
             {locais.map((local) => (
               <div key={local.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-3">
+                  <div className="flex items-center space-x-3">
+                    {local.logomarcaUrl ? (
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm shrink-0 flex items-center justify-center p-1">
+                        <img
+                          src={getMediaUrl(local.logomarcaUrl)}
+                          alt={local.nome}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+                        <Building2 className="w-6 h-6" />
+                      </div>
+                    )}
+
                     <div>
                       <div className="flex items-center space-x-2">
                         <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{local.nome}</h3>
                         <button
                           onClick={() => handleOpenEditLocal(local)}
                           className="p-1 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                          title="Editar Condomínio"
+                          title="Editar Condomínio e Logomarca"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
@@ -426,10 +537,31 @@ export default function FlatsPage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-1 mt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                        <span>{local.endereco}</span>
-                      </p>
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {local.cnpj && (
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            CNPJ: {local.cnpj}
+                          </span>
+                        )}
+                        {local.telefone && (
+                          <span className="flex items-center space-x-1">
+                            <Phone className="w-3 h-3 text-emerald-500 inline" />
+                            <span>{local.telefone}</span>
+                          </span>
+                        )}
+                        {local.endereco && (
+                          <span className="flex items-center space-x-1">
+                            <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0 inline" />
+                            <span>
+                              {local.endereco}
+                              {local.bairro ? ` - ${local.bairro}` : ""}
+                              {local.cidade ? `, ${local.cidade}` : ""}
+                              {local.estado ? `/${local.estado}` : ""}
+                            </span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -881,49 +1013,277 @@ export default function FlatsPage() {
           </div>
         )}
 
-        {/* Modal Novo / Editar Condomínio */}
+        {/* Modal Novo / Editar Condomínio Completo com Logomarca */}
         {showLocalModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                  {editingLocal ? "Editar Condomínio / Edifício" : "Novo Condomínio / Edifício"}
-                </h3>
-                <button onClick={() => setShowLocalModal(false)} className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {editingLocal ? "Editar Condomínio / Edifício" : "Novo Condomínio / Edifício"}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Cadastre os dados cadastrais e logomarca para emissão personalizada de relatórios.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowLocalModal(false)}
+                  className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveLocal} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Edifício</label>
-                  <input
-                    type="text"
-                    required
-                    value={nomeLocal}
-                    onChange={(e) => setNomeLocal(e.target.value)}
-                    placeholder="ex: Condomínio Edifício Mar Azul"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  />
+              {/* Seção 1: Logomarca do Condomínio */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                  <ImageIcon className="w-4 h-4 text-blue-600" />
+                  <span>Logomarca do Condomínio (Exibida nos Relatórios)</span>
+                </label>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                    {logomarcaUrlLocal ? (
+                      <img
+                        src={getMediaUrl(logomarcaUrlLocal)}
+                        alt="Logomarca do Condomínio"
+                        className="w-full h-full object-contain p-1"
+                      />
+                    ) : (
+                      <div className="text-center p-2 text-slate-400">
+                        <Building2 className="w-8 h-8 mx-auto mb-1 opacity-40" />
+                        <span className="text-[10px] block leading-tight">Sem Logo</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 flex-1 text-center sm:text-left">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Envie a logomarca do edifício em PNG, JPG ou WebP (máx. 5 MB). Sempre que gerar um relatório filtrado por este condomínio, a logo será inserida no cabeçalho do PDF.
+                    </p>
+
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <label className="cursor-pointer inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition shadow-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingLogoLocal ? "Enviando..." : logomarcaUrlLocal ? "Trocar Logo" : "Upload Logomarca"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadLogoLocal}
+                          disabled={uploadingLogoLocal}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {logomarcaUrlLocal && (
+                        <button
+                          type="button"
+                          onClick={() => setLogomarcaUrlLocal("")}
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-xs font-semibold transition"
+                        >
+                          Remover Logo
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Endereço Completo</label>
-                  <input
-                    type="text"
-                    required
-                    value={enderecoLocal}
-                    onChange={(e) => setEnderecoLocal(e.target.value)}
-                    placeholder="ex: Av. Boa Viagem, 1200 - Recife PE"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  />
+              </div>
+
+              <form onSubmit={handleSaveLocal} className="space-y-4">
+                {/* Seção 2: Dados Empresariais / Cadastrais */}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Dados Cadastrais do Condomínio
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Nome do Condomínio / Edifício *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={nomeLocal}
+                        onChange={(e) => setNomeLocal(e.target.value)}
+                        placeholder="ex: Condomínio Edifício Mar Azul"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Razão Social (Opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={razaoSocialLocal}
+                        onChange={(e) => setRazaoSocialLocal(e.target.value)}
+                        placeholder="ex: Condomínio do Edifício Mar Azul"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        CNPJ do Condomínio
+                      </label>
+                      <input
+                        type="text"
+                        value={cnpjLocal}
+                        onChange={(e) => setCnpjLocal(e.target.value)}
+                        placeholder="00.000.000/0001-00"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Telefone / WhatsApp
+                      </label>
+                      <input
+                        type="text"
+                        value={telefoneLocal}
+                        onChange={(e) => setTelefoneLocal(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        E-mail de Contato
+                      </label>
+                      <input
+                        type="email"
+                        value={emailLocal}
+                        onChange={(e) => setEmailLocal(e.target.value)}
+                        placeholder="contato@condominio.com"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs"
-                >
-                  {editingLocal ? "Atualizar Condomínio" : "Salvar Condomínio"}
-                </button>
+
+                {/* Seção 3: Endereço Completo */}
+                <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Endereço & Localização
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        CEP
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={cepLocal}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCepLocal(val);
+                            if (val.replace(/\D/g, "").length === 8) {
+                              handleBuscarCepLocal(val);
+                            }
+                          }}
+                          onBlur={() => handleBuscarCepLocal(cepLocal)}
+                          placeholder="00000-000"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleBuscarCepLocal(cepLocal)}
+                          disabled={buscandoCepLocal}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-blue-600"
+                          title="Buscar CEP"
+                        >
+                          <Search className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Logradouro / Endereço Completo *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={enderecoLocal}
+                        onChange={(e) => setEnderecoLocal(e.target.value)}
+                        placeholder="ex: Av. Boa Viagem, 1200"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Bairro
+                      </label>
+                      <input
+                        type="text"
+                        value={bairroLocal}
+                        onChange={(e) => setBairroLocal(e.target.value)}
+                        placeholder="ex: Boa Viagem"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Cidade
+                      </label>
+                      <input
+                        type="text"
+                        value={cidadeLocal}
+                        onChange={(e) => setCidadeLocal(e.target.value)}
+                        placeholder="ex: Recife"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Estado (UF)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={2}
+                        value={estadoLocal}
+                        onChange={(e) => setEstadoLocal(e.target.value.toUpperCase())}
+                        placeholder="PE"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLocalModal(false)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md transition disabled:opacity-50"
+                  >
+                    {submitting ? "Salvando..." : editingLocal ? "Atualizar Condomínio" : "Salvar Condomínio"}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
