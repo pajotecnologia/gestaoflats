@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
 
 export interface ReportItemReceber {
   locatarioNome: string;
@@ -69,7 +69,7 @@ export interface ReportItemContrato {
   locatarioNome: string;
   locatarioCpf: string;
   flatNumero: string;
-  condominioNome: string;
+  condominioNome?: string;
   valorMensal: number;
   dataEmissao: string;
   dataFinal: string;
@@ -99,8 +99,9 @@ export interface ContratosReportData {
 // ----------------------------------------------------
 // GERADOR DE RELATÓRIO DE CONTRATOS & BLOCKCHAIN
 // ----------------------------------------------------
-export function generateContratosPDFReport(data: ContratosReportData) {
+export async function generateContratosPDFReport(data: ContratosReportData) {
   const doc = new jsPDF();
+  const readyLogo = await ensurePngDataUrl(data.empresaLogomarcaUrl);
 
   drawStandardPDFHeader(doc, {
     empresaNome: data.empresaNome,
@@ -108,13 +109,13 @@ export function generateContratosPDFReport(data: ContratosReportData) {
     empresaEndereco: data.empresaEndereco,
     empresaTelefone: data.empresaTelefone,
     empresaEmail: data.empresaEmail,
-    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    empresaLogomarcaUrl: readyLogo || undefined,
     tituloDocumento: "RELATÓRIO DE CONTRATOS & AUDITORIA BLOCKCHAIN",
     subtituloDocumento: `Filtro: ${data.filtrosTexto || "Todos os Contratos"} • Selo Bitcoin OpenTimestamps`,
     variant: "white",
   });
 
-  let y = 54;
+  let y = 54; 54;
 
   // Cabeçalho da Tabela
   doc.setFillColor(241, 245, 249);
@@ -232,8 +233,9 @@ export function generateContratosPDFReport(data: ContratosReportData) {
 // ----------------------------------------------------
 // GERADOR DE RELATÓRIO DE CONTAS A RECEBER
 // ----------------------------------------------------
-export function generateContasReceberPDFReport(data: ContasReceberReportData) {
+export async function generateContasReceberPDFReport(data: ContasReceberReportData) {
   const doc = new jsPDF();
+  const readyLogo = await ensurePngDataUrl(data.empresaLogomarcaUrl);
 
   drawStandardPDFHeader(doc, {
     empresaNome: data.empresaNome,
@@ -241,7 +243,7 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
     empresaEndereco: data.empresaEndereco,
     empresaTelefone: data.empresaTelefone,
     empresaEmail: data.empresaEmail,
-    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    empresaLogomarcaUrl: readyLogo || undefined,
     tituloDocumento: "RELATÓRIO FINANCEIRO - CONTAS A RECEBER",
     subtituloDocumento: `Período: ${data.dataInicio} a ${data.dataFim} • Filtro: ${data.filtrosTexto}`,
     variant: "white",
@@ -369,8 +371,9 @@ export function generateContasReceberPDFReport(data: ContasReceberReportData) {
 // ----------------------------------------------------
 // GERADOR DE RELATÓRIO DE CONTAS A PAGAR
 // ----------------------------------------------------
-export function generateContasPagarPDFReport(data: ContasPagarReportData) {
+export async function generateContasPagarPDFReport(data: ContasPagarReportData) {
   const doc = new jsPDF();
+  const readyLogo = await ensurePngDataUrl(data.empresaLogomarcaUrl);
 
   drawStandardPDFHeader(doc, {
     empresaNome: data.empresaNome,
@@ -378,7 +381,7 @@ export function generateContasPagarPDFReport(data: ContasPagarReportData) {
     empresaEndereco: data.empresaEndereco,
     empresaTelefone: data.empresaTelefone,
     empresaEmail: data.empresaEmail,
-    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    empresaLogomarcaUrl: readyLogo || undefined,
     tituloDocumento: "RELATÓRIO FINANCEIRO - CONTAS A PAGAR",
     subtituloDocumento: `Período: ${data.dataInicio} a ${data.dataFim} • Filtro: ${data.filtrosTexto}`,
     variant: "white",
@@ -548,8 +551,9 @@ export interface FluxoCaixaReportData {
   itens: ReportItemFluxoDiario[];
 }
 
-export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
+export async function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
   const doc = new jsPDF();
+  const readyLogo = await ensurePngDataUrl(data.empresaLogomarcaUrl);
 
   // 1. Cabeçalho Padronizado (Com Fundo Branco)
   drawStandardPDFHeader(doc, {
@@ -558,7 +562,7 @@ export function generateFluxoCaixaPDFReport(data: FluxoCaixaReportData) {
     empresaEndereco: data.empresaEndereco,
     empresaTelefone: data.empresaTelefone,
     empresaEmail: data.empresaEmail,
-    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    empresaLogomarcaUrl: readyLogo || undefined,
     tituloDocumento: "RELATÓRIO FINANCEIRO - FLUXO DE CAIXA DIÁRIO",
     subtituloDocumento: `Período: ${data.dataInicio} a ${data.dataFim} ${data.filtrosTexto ? "(" + data.filtrosTexto + ")" : ""}`,
     variant: "white",

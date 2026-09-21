@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
 import { convertUrlToBase64 } from "./baseUrl";
 import { formatMesReferencia } from "./validation";
 
@@ -27,8 +27,11 @@ export interface ReciboPDFData {
 
 export async function prepareReciboDataWithBase64Images(data: ReciboPDFData): Promise<ReciboPDFData> {
   let logoUrl = data.empresaLogomarcaUrl;
-  if (logoUrl && !logoUrl.startsWith("data:image")) {
-    logoUrl = await convertUrlToBase64(logoUrl);
+  if (logoUrl) {
+    if (!logoUrl.startsWith("data:image")) {
+      logoUrl = await convertUrlToBase64(logoUrl);
+    }
+    logoUrl = (await ensurePngDataUrl(logoUrl)) || logoUrl;
   }
   let sigUrl = data.usuarioAssinaturaUrl || data.empresaAssinaturaUrl;
   if (sigUrl && !sigUrl.startsWith("data:image")) {

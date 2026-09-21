@@ -111,21 +111,31 @@ function RelatoriosContent() {
         if (resLoc?.locatarios) setLocatarios(resLoc.locatarios);
         if (resForn?.fornecedores) setFornecedores(resForn.fornecedores);
 
+        const allLocais = [...(resLocais?.locais || []), ...(resFlats?.locais || [])];
+        const uniqueLocaisMap = new Map();
+        allLocais.forEach((l: any) => {
+          if (l?.id) {
+            const existing = uniqueLocaisMap.get(l.id);
+            if (!existing || (!existing.logomarcaUrl && l.logomarcaUrl)) {
+              uniqueLocaisMap.set(l.id, l);
+            }
+          }
+        });
+
         if (resFlats?.flats) {
           setFlats(resFlats.flats);
-          const uniqueLocaisMap = new Map();
-          if (resLocais?.locais) {
-            resLocais.locais.forEach((l: any) => uniqueLocaisMap.set(l.id, l));
-          }
           resFlats.flats.forEach((f: any) => {
-            if (f.local && !uniqueLocaisMap.has(f.local.id)) {
-              uniqueLocaisMap.set(f.local.id, f.local);
+            if (f.local && f.local.id) {
+              const existing = uniqueLocaisMap.get(f.local.id);
+              if (!existing) {
+                uniqueLocaisMap.set(f.local.id, f.local);
+              } else if (!existing.logomarcaUrl && f.local.logomarcaUrl) {
+                uniqueLocaisMap.set(f.local.id, { ...existing, ...f.local });
+              }
             }
           });
-          setLocais(Array.from(uniqueLocaisMap.values()));
-        } else if (resLocais?.locais) {
-          setLocais(resLocais.locais);
         }
+        setLocais(Array.from(uniqueLocaisMap.values()));
 
         if (resRec?.contas) setContasReceberList(resRec.contas);
         if (resPag?.contas) setContasPagarList(resPag.contas);
@@ -188,12 +198,12 @@ function RelatoriosContent() {
   };
 
   // Handler: Imprimir Ficha de Checklist em Branco
-  const handleImprimirChecklistEmBranco = () => {
+  const handleImprimirChecklistEmBranco = async () => {
     const selFlat = flats.find((f) => f.id === selectedFlatId);
     const selLoc = locatarios.find((l) => l.id === selectedLocatarioId);
     const headerInfo = getDynamicReportHeader(selFlat?.localId, selectedFlatId);
 
-    generateBlankChecklistPDF({
+    await generateBlankChecklistPDF({
       empresaNome: headerInfo.empresaNome,
       empresaCnpj: headerInfo.empresaCnpj,
       empresaEndereco: headerInfo.empresaEndereco,
@@ -226,7 +236,7 @@ function RelatoriosContent() {
     valorTotalMensal: filteredContratos.reduce((acc, c) => acc + (c.valorMensal || 0), 0),
   };
 
-  const handleImprimirContratosPDF = () => {
+  const handleImprimirContratosPDF = async () => {
     const selLoc = locatarios.find((l) => l.id === contratoLocatarioId);
     const selLocal = locais.find((l) => l.id === contratoLocalId);
     const headerInfo = getDynamicReportHeader(contratoLocalId);
@@ -236,7 +246,7 @@ function RelatoriosContent() {
     if (selLocal) filtrosArr.push(`Condomínio: ${selLocal.nome}`);
     if (contratoStatus) filtrosArr.push(`Status: ${contratoStatus}`);
 
-    generateContratosPDFReport({
+    await generateContratosPDFReport({
       empresaNome: headerInfo.empresaNome,
       empresaCnpj: headerInfo.empresaCnpj,
       empresaEndereco: headerInfo.empresaEndereco,
@@ -294,7 +304,7 @@ function RelatoriosContent() {
   };
 
   // Imprimir Relatório de Contas a Receber PDF
-  const handleImprimirReceberPDF = () => {
+  const handleImprimirReceberPDF = async () => {
     const selLoc = locatarios.find((l) => l.id === receberLocatarioId);
     const selLocal = locais.find((l) => l.id === receberLocalId);
     const selFlat = flats.find((f) => f.id === receberFlatId);
@@ -307,7 +317,7 @@ function RelatoriosContent() {
     if (receberStatus) filtrosArr.push(`Status: ${receberStatus}`);
     const filtrosTexto = filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Lançamentos";
 
-    generateContasReceberPDFReport({
+    await generateContasReceberPDFReport({
       empresaNome: headerInfo.empresaNome,
       empresaCnpj: headerInfo.empresaCnpj,
       empresaEndereco: headerInfo.empresaEndereco,
@@ -363,7 +373,7 @@ function RelatoriosContent() {
   };
 
   // Imprimir Relatório de Contas a Pagar PDF
-  const handleImprimirPagarPDF = () => {
+  const handleImprimirPagarPDF = async () => {
     const selForn = fornecedores.find((f) => f.id === pagarFornecedorId);
     const selLocal = locais.find((l) => l.id === pagarLocalId);
     const selFlat = flats.find((f) => f.id === pagarFlatId);
@@ -376,7 +386,7 @@ function RelatoriosContent() {
     if (pagarStatus) filtrosArr.push(`Status: ${pagarStatus}`);
     const filtrosTexto = filtrosArr.length > 0 ? filtrosArr.join(" | ") : "Todos os Lançamentos";
 
-    generateContasPagarPDFReport({
+    await generateContasPagarPDFReport({
       empresaNome: headerInfo.empresaNome,
       empresaCnpj: headerInfo.empresaCnpj,
       empresaEndereco: headerInfo.empresaEndereco,
@@ -526,7 +536,7 @@ function RelatoriosContent() {
   }, [filteredFluxoDiario]);
 
   // Handler Imprimir PDF do Fluxo de Caixa Diário
-  const handleImprimirFluxoCaixaPDF = () => {
+  const handleImprimirFluxoCaixaPDF = async () => {
     const selLocal = locais.find((l) => l.id === fluxoLocalId);
     const selFlat = flats.find((f) => f.id === fluxoFlatId);
     const headerInfo = getDynamicReportHeader(fluxoLocalId, fluxoFlatId);
@@ -538,7 +548,7 @@ function RelatoriosContent() {
     if (fluxoTipoLancamento === "SAIDAS") filtrosArr.push("Apenas Despesas (Saídas)");
     filtrosArr.push("Lançamentos Efetivados/Pagos");
 
-    generateFluxoCaixaPDFReport({
+    await generateFluxoCaixaPDFReport({
       empresaNome: headerInfo.empresaNome,
       empresaCnpj: headerInfo.empresaCnpj,
       empresaEndereco: headerInfo.empresaEndereco,

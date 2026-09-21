@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { drawStandardPDFHeader } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
 
 export interface BlankChecklistPDFData {
   empresaNome: string;
@@ -56,8 +56,9 @@ export const defaultBlankChecklistCategories = [
   },
 ];
 
-export function buildBlankChecklistPDFDoc(data: BlankChecklistPDFData): jsPDF {
+export async function buildBlankChecklistPDFDoc(data: BlankChecklistPDFData): Promise<jsPDF> {
   const doc = new jsPDF();
+  const readyLogo = await ensurePngDataUrl(data.empresaLogomarcaUrl);
 
   // Cabeçalho Padrão com Logomarca e Dados da Empresa
   drawStandardPDFHeader(doc, {
@@ -66,7 +67,7 @@ export function buildBlankChecklistPDFDoc(data: BlankChecklistPDFData): jsPDF {
     empresaEndereco: data.empresaEndereco,
     empresaTelefone: data.empresaTelefone,
     empresaEmail: data.empresaEmail,
-    empresaLogomarcaUrl: data.empresaLogomarcaUrl,
+    empresaLogomarcaUrl: readyLogo || undefined,
     tituloDocumento: "FICHA DE CHECKLIST DE VISTORIA (PREENCHIMENTO MANUAL)",
     subtituloDocumento: "Ficha impressa para conferência de itens e assinaturas a mão",
     variant: "white",
@@ -233,8 +234,8 @@ export function buildBlankChecklistPDFDoc(data: BlankChecklistPDFData): jsPDF {
   return doc;
 }
 
-export function generateBlankChecklistPDF(data: BlankChecklistPDFData) {
-  const doc = buildBlankChecklistPDFDoc(data);
+export async function generateBlankChecklistPDF(data: BlankChecklistPDFData) {
+  const doc = await buildBlankChecklistPDFDoc(data);
   const flatName = data.flatNumero ? data.flatNumero.replace(/\s+/g, "_") : "Geral";
   doc.save(`Ficha_Vistoria_Em_Branco_Flat_${flatName}.pdf`);
 }

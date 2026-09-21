@@ -13,7 +13,59 @@ export interface PDFDocumentHeaderData {
 }
 
 /**
- * Desenha o Cabeçalho Padrão Unificado com Logomarca e Dados da Empresa
+ * Converte qualquer formato de imagem (WebP, JPEG, PNG, Data URI, URL)
+ * para um Data URI PNG 100% compatível com o motor do jsPDF.
+ */
+export async function ensurePngDataUrl(logoUrl?: string | null): Promise<string | null> {
+  if (!logoUrl || !logoUrl.trim()) return null;
+  const trimmed = logoUrl.trim();
+
+  // Se não estiver no browser (ex: SSR), retorna como está
+  if (typeof window === "undefined" || typeof document === "undefined" || typeof Image === "undefined") {
+    return trimmed;
+  }
+
+  // Se já for PNG data URI puro, não precisa converter
+  if (trimmed.startsWith("data:image/png;base64,")) {
+    return trimmed;
+  }
+
+  try {
+    return await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const width = img.naturalWidth || img.width || 300;
+          const height = img.naturalHeight || img.height || 300;
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const pngData = canvas.toDataURL("image/png");
+            resolve(pngData);
+            return;
+          }
+        } catch (err) {
+          console.warn("Falha ao converter canvas para PNG:", err);
+        }
+        resolve(trimmed);
+      };
+      img.onerror = (err) => {
+        console.warn("Falha ao carregar imagem para conversão PNG:", err);
+        resolve(trimmed);
+      };
+      img.src = trimmed;
+    });
+  } catch {
+    return trimmed;
+  }
+}
+
+/**
+ * Desenha o Cabeçalho Padrão Unificado com Logomarca e Dados da Empresa / Condomínio
  * Variante 100% White Clean (Sem Banner Azul de Fundo)
  */
 export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
@@ -24,24 +76,35 @@ export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
   doc.setLineWidth(0.5);
   doc.line(0, 36, 210, 36);
 
-  // 2. Logomarca da Empresa ou Emblema com Inicial
+  // 2. Logomarca da Empresa / Condomínio ou Emblema com Inicial
   let hasLogo = false;
   if (data.empresaLogomarcaUrl && data.empresaLogomarcaUrl.trim()) {
     try {
       const logoUrl = data.empresaLogomarcaUrl.trim();
       let format = "PNG";
-      if (logoUrl.toLowerCase().includes(".jpg") || logoUrl.toLowerCase().includes(".jpeg") || logoUrl.includes("image/jpeg")) {
+      if (
+        logoUrl.toLowerCase().includes(".jpg") ||
+        logoUrl.toLowerCase().includes(".jpeg") ||
+        logoUrl.includes("image/jpeg")
+      ) {
         format = "JPEG";
+      } else if (
+        logoUrl.toLowerCase().includes(".png") ||
+        logoUrl.includes("image/png")
+      ) {
+        format = "PNG";
       }
+
       doc.addImage(logoUrl, format, 12, 5, 26, 26);
       hasLogo = true;
     } catch (e) {
+      console.warn("Falha ao adicionar logomarca ao PDF:", e);
       hasLogo = false;
     }
   }
 
   if (!hasLogo) {
-    // Emblema da Empresa com a Inicial do Nome
+    // Emblema da Empresa / Condomínio com a Inicial do Nome
     doc.setFillColor(30, 58, 138);
     doc.roundedRect(12, 6, 24, 24, 2, 2, "F");
     doc.setTextColor(255, 255, 255);
@@ -51,7 +114,7 @@ export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
     doc.text(initial, 24, 22, { align: "center" });
   }
 
-  // 3. Informações da Empresa (Tipografia Elegante em Azul Marinho e Cinza)
+  // 3. Informações da Empresa / Condomínio (Tipografia Elegante em Azul Marinho e Cinza)
   doc.setTextColor(30, 58, 138);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -100,3 +163,4 @@ export function drawStandardPDFHeader(doc: jsPDF, data: PDFDocumentHeaderData) {
   doc.setDrawColor(209, 213, 219);
   doc.line(0, 36 + subHeaderHeight, 210, 36 + subHeaderHeight);
 }
+

@@ -113,15 +113,15 @@ export async function optimizeSignature(input: Buffer | string): Promise<string>
 }
 
 /**
- * Preset para Logomarcas da Empresa (~15-20 KB).
+ * Preset para Logomarcas da Empresa e Condomínios (PNG leve de alta fidelidade com transparência e compatibilidade nativa com jsPDF).
  */
 export async function optimizeLogo(input: Buffer | string): Promise<string> {
   return optimizeImageToDataUri(input, {
     maxWidth: 400,
     maxHeight: 400,
-    quality: 80,
+    quality: 85,
     effort: 6,
-    format: "webp",
+    format: "png",
   });
 }
 
