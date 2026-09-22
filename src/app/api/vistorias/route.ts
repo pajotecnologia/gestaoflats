@@ -122,11 +122,38 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, ...changes } = body;
+    const { id, acao, ...changes } = body;
     if (!id) return NextResponse.json({ error: "ID da vistoria é obrigatório." }, { status: 400 });
 
     const current = await prisma.vistoriaChecklist.findFirst({ where: { id, empresaId: session.empresaId } });
     if (!current) return NextResponse.json({ error: "Vistoria não encontrada." }, { status: 404 });
+
+    if (acao === "COBRAR_DANOS") {
+      if (!current.locatarioId || current.valorDanos <= 0) {
+        return NextResponse.json({ error: "A vistoria precisa ter locatário e valor de danos maior que zero." }, { status: 400 });
+      }
+      if (current.cobrancaDanosGerada) {
+        return NextResponse.json({ error: "A cobrança dos danos desta vistoria já foi gerada." }, { status: 409 });
+      }
+      await prisma.contaReceber.create({
+        data: {
+          empresaId: session.empresaId,
+          locatarioId: current.locatarioId,
+          mesReferencia: new Date().toISOString().slice(0, 7),
+          numeroParcela: 1,
+          valor: current.valorDanos,
+          dataVencimento: new Date(),
+          status: "PENDENTE",
+          observacao: `Cobrança de danos — vistoria ${current.id} — Flat ${current.flatId}`,
+        },
+      });
+      const vistoriaCobrada = await prisma.vistoriaChecklist.update({
+        where: { id },
+        data: { cobrancaDanosGerada: true, dataCobrancaDanos: new Date() },
+        include: { flat: { include: { local: true } }, locatario: true, reserva: true, modelo: true },
+      });
+      return NextResponse.json({ vistoria: vistoriaCobrada, cobrancaGerada: true });
+    }
 
     const data: any = {};
     if (changes.itens) {
