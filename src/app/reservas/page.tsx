@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Shell from "@/components/layout/Shell";
-import { CalendarDays, CheckCircle2, Clock3, Plus, RefreshCw, Search, UserRound, XCircle } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, Plus, RefreshCw, Search, UserRound, XCircle, Filter } from "lucide-react";
+import AgendaCalendar from "@/components/reservas/AgendaCalendar";
 
 type Reserva = {
   id: string;
@@ -59,6 +60,10 @@ export default function ReservasPage() {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [agendaMonth, setAgendaMonth] = useState(new Date());
+  const [selectedFlatId, setSelectedFlatId] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedReservation, setSelectedReservation] = useState<Reserva | null>(null);
   const [form, setForm] = useState({
     locatarioId: "",
     flatId: "",
@@ -107,6 +112,11 @@ export default function ReservasPage() {
         .join(" ").toLowerCase().includes(term)
     );
   }, [reservas, search]);
+
+  const openCreateForDate = (date: string) => {
+    setForm(prev => ({ ...prev, dataEntrada: date, dataSaida: date }));
+    setShowForm(true);
+  };
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -191,6 +201,31 @@ export default function ReservasPage() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-100">
+              <Filter className="h-4 w-4 text-blue-600" /> Filtros da agenda
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select value={selectedFlatId} onChange={e => setSelectedFlatId(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] dark:border-slate-700 dark:bg-slate-950">
+                <option value="">Todos os imóveis</option>
+                {flats.map(x => <option key={x.id} value={x.id}>{x.nome ? `${x.nome} • ` : ""}Flat {x.numero}</option>)}
+              </select>
+              <select value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] dark:border-slate-700 dark:bg-slate-950">
+                <option value="">Todos os status</option>
+                {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </div>
+          </div>
+          <AgendaCalendar
+            reservations={reservas}
+            selectedFlatId={selectedFlatId}
+            selectedStatus={selectedStatus}
+            month={agendaMonth}
+            onMonthChange={setAgendaMonth}
+            onSelectReservation={(reservation) => setSelectedReservation(reservation as Reserva)}
+            onCreate={openCreateForDate}
+          />
+          <div className="my-5 border-t border-slate-200 dark:border-slate-800" />
           <div className="mb-4 flex items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -239,6 +274,36 @@ export default function ReservasPage() {
           )}
         </div>
       </div>
+
+      {selectedReservation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-blue-600" />
+                  <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{selectedReservation.codigo}</h2>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">{selectedReservation.locatario.nome} • Flat {selectedReservation.flat.numero}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedReservation(null)}><XCircle className="h-5 w-5 text-slate-400" /></button>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950"><span className="text-slate-400">Entrada</span><div className="mt-1 font-bold">{dateBR(selectedReservation.dataEntrada)} {selectedReservation.horaEntrada || ""}</div></div>
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950"><span className="text-slate-400">Saída</span><div className="mt-1 font-bold">{dateBR(selectedReservation.dataSaida)} {selectedReservation.horaSaida || ""}</div></div>
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950"><span className="text-slate-400">Status</span><div className="mt-1 font-bold">{statusLabels[selectedReservation.status] || selectedReservation.status}</div></div>
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950"><span className="text-slate-400">Total</span><div className="mt-1 font-bold">{money(selectedReservation.valorTotal)}</div></div>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              {selectedReservation.status === "CONFIRMADA" && <button onClick={() => { changeStatus(selectedReservation.id, "CHECK_IN"); setSelectedReservation(null); }} className="rounded-lg bg-cyan-600 px-3 py-2 text-[10px] font-bold text-white">Check-in</button>}
+              {selectedReservation.status === "CHECK_IN" && <button onClick={() => { changeStatus(selectedReservation.id, "EM_ESTADIA"); setSelectedReservation(null); }} className="rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white">Em estadia</button>}
+              {selectedReservation.status === "EM_ESTADIA" && <button onClick={() => { changeStatus(selectedReservation.id, "CHECK_OUT"); setSelectedReservation(null); }} className="rounded-lg bg-violet-600 px-3 py-2 text-[10px] font-bold text-white">Check-out</button>}
+              {selectedReservation.status === "CHECK_OUT" && <button onClick={() => { changeStatus(selectedReservation.id, "FINALIZADA"); setSelectedReservation(null); }} className="rounded-lg bg-green-600 px-3 py-2 text-[10px] font-bold text-white">Finalizar</button>}
+              {![ "FINALIZADA", "CANCELADA" ].includes(selectedReservation.status) && <button onClick={() => { changeStatus(selectedReservation.id, "CANCELADA"); setSelectedReservation(null); }} className="rounded-lg bg-red-600 px-3 py-2 text-[10px] font-bold text-white">Cancelar</button>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
