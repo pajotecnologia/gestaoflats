@@ -199,3 +199,57 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  const session = await getAuthSessionOrFallback();
+  if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  try {
+    const { id, acao, ...body } = await request.json();
+    if (!id || !acao) return NextResponse.json({ error: "ID do contrato e ação são obrigatórios." }, { status: 400 });
+    const contrato = await prisma.contrato.findFirst({ where: { id, empresaId: session.empresaId } });
+    if (!contrato) return NextResponse.json({ error: "Contrato não encontrado." }, { status: 404 });
+    const registrar = (tipo: string, descricao: string, dados?: unknown) => prisma.contratoEvento.create({ data: { empresaId: session.empresaId, contratoId: id, tipo, descricao, dadosJson: dados ? JSON.stringify(dados) : null } });
+    if (acao === "RENOVAR") {
+      const quantidade = Math.max(1, Number(body.quantidade || 12));
+      const unidade = body.unidade === "DIAS" ? "DIAS" : "MESES";
+      const novaDataFinal = new Date(contrato.dataFinal);
+      if (unidade === "DIAS") novaDataFinal.setDate(novaDataFinal.getDate() + quantidade); else novaDataFinal.setMonth(novaDataFinal.getMonth() + quantidade);
+      const atualizado = await prisma.contrato.update({ where: { id }, data: { dataFinal: novaDataFinal, status: "ATIVO" } });
+      await registrar("RENOVACAO", `Contrato renovado por ${quantidade} ${unidade.toLowerCase()}.`, { quantidade, unidade, dataAnterior: contrato.dataFinal, novaDataFinal });
+      return NextResponse.json({ contrato: atualizado });
+    }
+    if (acao === "REAJUSTAR") {
+      const novoValor = Number(body.valorMensal);
+      if (!Number.isFinite(novoValor) || novoValor <= 0) return NextResponse.json({ error: "Novo valor mensal inválido." }, { status: 400 });
+      const valorAnterior = contrato.valorMensal;
+      const atualizado = await prisma.contrato.update({ where: { id }, data: { valorMensal: novoValor } });
+      const pendentes = await prisma.contaReceber.count({ where: { contratoId: id, status: "PENDENTE" } });
+      if (pendentes) await prisma.contaReceber.updateMany({ where: { contratoId: id, status: "PENDENTE" }, data: { valor: novoValor } });
+      await registrar("REAJUSTE", `Valor mensal reajustado de R$ ${valorAnterior.toFixed(2)} para R$ ${novoValor.toFixed(2)}.`, { valorAnterior, novoValor, parcelasAtualizadas: pendentes });
+      return NextResponse.json({ contrato: atualizado, parcelasAtualizadas: pendentes });
+    }
+    if (acao === "RESCINDIR" || acao === "CANCELAR") {
+      const motivo = String(body.motivo || (acao === "RESCINDIR" ? "Rescisão contratual" : "Cancelamento contratual"));
+      const status = acao === "RESCINDIR" ? "FINALIZADO" : "CANCELADO";
+      const atualizado = await prisma.contrato.update({ where: { id }, data: { status } });
+      await prisma.flat.update({ where: { id: contrato.flatId }, data: { status: "DISPONIVEL" } });
+      await registrar(acao === "RESCINDIR" ? "RESCISAO" : "CANCELAMENTO", motivo, { motivo, data: new Date().toISOString() });
+      return NextResponse.json({ contrato: atualizado });
+    }
+    if (acao === "ALTERAR") {
+      const data: any = {};
+      if (body.diaVencimento !== undefined) data.diaVencimento = Number(body.diaVencimento);
+      if (body.formaPagamento !== undefined) data.formaPagamento = body.formaPagamento || null;
+      if (body.multaAtrasoPercentual !== undefined) data.multaAtrasoPercentual = Number(body.multaAtrasoPercentual);
+      if (body.jurosAtrasoPercentual !== undefined) data.jurosAtrasoPercentual = Number(body.jurosAtrasoPercentual);
+      if (body.valorCaucao !== undefined) data.valorCaucao = Number(body.valorCaucao);
+      if (body.multaRescisaoMeses !== undefined) data.multaRescisaoMeses = Number(body.multaRescisaoMeses);
+      if (body.bancoNome !== undefined) data.bancoNome = body.bancoNome || null;
+      if (body.bancoDadosConta !== undefined) data.bancoDadosConta = body.bancoDadosConta || null;
+      const atualizado = await prisma.contrato.update({ where: { id }, data });
+      await registrar("ALTERACAO", "Condições contratuais atualizadas.", data);
+      return NextResponse.json({ contrato: atualizado });
+    }
+    return NextResponse.json({ error: "Ação de contrato não suportada." }, { status: 400 });
+  } catch (error: any) { return NextResponse.json({ error: error.message || "Erro ao atualizar contrato." }, { status: 500 }); }
+}
