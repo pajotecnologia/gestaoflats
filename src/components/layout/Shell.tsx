@@ -105,6 +105,7 @@ function ShellContent({ children }: ShellProps) {
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Reservas & Agenda", href: "/reservas", icon: CalendarDays },
+    { label: "Checklists & Vistorias", href: "/vistorias", icon: ClipboardCheck },
     { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
     { label: "Locatários", href: "/locatarios", icon: Users },
     { label: "Fornecedores", href: "/fornecedores", icon: Truck },
