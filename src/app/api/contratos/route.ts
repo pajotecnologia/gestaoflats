@@ -22,6 +22,7 @@ export async function GET() {
           orderBy: { numeroParcela: "asc" },
         },
         vistoriasChecklist: true,
+        eventos: { orderBy: { criadoEm: "desc" }, take: 30 },
       },
       orderBy: { createdAt: "desc" },
     });
