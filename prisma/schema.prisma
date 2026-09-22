@@ -41,6 +41,8 @@ model Empresa {
   reservas              Reserva[]
   eventosContrato       ContratoEvento[]
   eventosFinanceiros    FinanceiroEvento[]
+  documentos            ClienteDocumento[]
+  ordensServico         OrdemServico[]
 }
 
 model ConfiguracaoParametros {
@@ -102,6 +104,8 @@ model Locatario {
   contasReceber      ContaReceber[]
   vistoriasChecklist VistoriaChecklist[]
   reservas            Reserva[]
+  documentos           ClienteDocumento[]
+  ordensServico        OrdemServico[]
 }
 
 model Fornecedor {
@@ -218,6 +222,7 @@ model Contrato {
   vistoriasChecklist      VistoriaChecklist[]
   reservas                Reserva[]
   eventos                 ContratoEvento[]
+  documentos              ClienteDocumento[]
 }
 
 model ChecklistModelo {
@@ -393,6 +398,64 @@ model ContratoEvento {
   criadoEm   DateTime @default(now())
 
   @@index([empresaId, contratoId, criadoEm])
+}
+
+
+model ClienteDocumento {
+  id            String     @id @default(uuid())
+  empresaId     String
+  empresa       Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  locatarioId   String
+  locatario     Locatario  @relation(fields: [locatarioId], references: [id], onDelete: Cascade)
+  contratoId    String?
+  contrato      Contrato?  @relation(fields: [contratoId], references: [id], onDelete: SetNull)
+  tipo          String
+  titulo        String
+  descricao     String?
+  arquivoUrl    String?
+  mimeType      String?
+  tamanhoBytes  Int?
+  dataDocumento DateTime?
+  validade      DateTime?
+  status        String     @default("ATIVO")
+  criadoEm      DateTime   @default(now())
+  atualizadoEm  DateTime   @updatedAt
+
+  @@index([empresaId, locatarioId])
+  @@index([contratoId])
+  @@index([validade])
+}
+
+model OrdemServico {
+  id             String    @id @default(uuid())
+  empresaId      String
+  empresa        Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  locatarioId    String?
+  locatario      Locatario? @relation(fields: [locatarioId], references: [id], onDelete: SetNull)
+  flatId         String?
+  flat           Flat?     @relation(fields: [flatId], references: [id], onDelete: SetNull)
+  codigo         String    @unique
+  titulo         String
+  descricao      String?
+  categoria      String    @default("MANUTENCAO")
+  prioridade     String    @default("MEDIA")
+  status         String    @default("ABERTA")
+  responsavel    String?
+  fornecedorNome String?
+  valorEstimado  Float     @default(0)
+  valorReal      Float     @default(0)
+  dataAbertura   DateTime  @default(now())
+  prazo          DateTime?
+  dataConclusao  DateTime?
+  observacao     String?
+  fotosJson      String?
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  @@index([empresaId, status])
+  @@index([empresaId, flatId])
+  @@index([locatarioId])
+  @@index([prazo])
 }
 
 model FinanceiroEvento {
