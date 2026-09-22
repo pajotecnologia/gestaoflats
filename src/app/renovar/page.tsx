@@ -153,11 +153,22 @@ function RenovarContent() {
     return () => clearInterval(interval);
   }, [data, empresaIdParam, pagamentoConfirmado, selectedPlano]);
 
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleCopyPix = () => {
     if (data?.pix?.copiaCola) {
       navigator.clipboard.writeText(data.pix.copiaCola);
       setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
     }
   };
 
