@@ -20,13 +20,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reservas, setReservas] = useState<any[]>([]);
+  const [vistorias, setVistorias] = useState<any[]>([]);
 
   useEffect(() => {
-    Promise.all([fetch("/api/dashboard/stats"), fetch("/api/reservas")])
-      .then(async ([statsRes, reservasRes]) => {
-        const [statsData, reservasData] = await Promise.all([statsRes.json(), reservasRes.json()]);
+    Promise.all([fetch("/api/dashboard/stats"), fetch("/api/reservas"), fetch("/api/vistorias")])
+      .then(async ([statsRes, reservasRes, vistoriasRes]) => {
+        const [statsData, reservasData, vistoriasData] = await Promise.all([statsRes.json(), reservasRes.json(), vistoriasRes.json()]);
         setStats(statsData);
         setReservas(reservasData.reservas || []);
+        setVistorias(vistoriasData.vistorias || []);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
@@ -194,6 +196,27 @@ export default function DashboardPage() {
                 <span>Check-outs</span>
                 <b>{reservas.filter((r) => r.status === "EM_ESTADIA").length}</b>
               </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div><h3 className="font-semibold text-sm">Vistorias & Estado dos Imóveis</h3><p className="text-[11px] text-slate-500">Últimas entradas e saídas registradas</p></div>
+              <a href="/vistorias" className="text-[11px] font-bold text-blue-600 hover:underline">Abrir vistorias</a>
+            </div>
+            <div className="mt-3 space-y-2">
+              {vistorias.slice(0, 4).map(v => <div key={v.id} className="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-slate-800"><div><div className="text-xs font-bold">Flat {v.flat?.numero} • {v.tipoVistoria}</div><div className="text-[10px] text-slate-500">{v.locatario?.nome || "Sem locatário"} • {v.limpezaStatus} • {v.manutencaoStatus}</div></div><div className="text-right"><div className="text-xs font-bold">{formatCurrency(v.valorDanos || 0)}</div><div className="text-[10px] text-slate-500">danos</div></div></div>)}
+              {vistorias.length === 0 && <p className="py-5 text-center text-xs text-slate-500">Nenhuma vistoria registrada.</p>}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+            <h3 className="font-semibold text-sm">Pendências de vistoria</h3>
+            <div className="mt-4 space-y-3 text-xs">
+              <a href="/vistorias" className="flex items-center justify-between rounded-xl bg-amber-50 p-3 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"><span>Limpeza pendente</span><b>{vistorias.filter(v => v.limpezaStatus !== "OK").length}</b></a>
+              <a href="/vistorias" className="flex items-center justify-between rounded-xl bg-red-50 p-3 text-red-800 dark:bg-red-950/30 dark:text-red-300"><span>Manutenção pendente</span><b>{vistorias.filter(v => v.manutencaoStatus !== "OK").length}</b></a>
+              <a href="/vistorias" className="flex items-center justify-between rounded-xl bg-blue-50 p-3 text-blue-800 dark:bg-blue-950/30 dark:text-blue-300"><span>Rascunhos</span><b>{vistorias.filter(v => v.status === "RASCUNHO").length}</b></a>
             </div>
           </div>
         </div>
