@@ -37,6 +37,7 @@ model Empresa {
   vistoriasChecklist    VistoriaChecklist[]
   formasPagamento       FormaPagamento[]
   configuracaoParametros ConfiguracaoParametros?
+  reservas              Reserva[]
 }
 
 model ConfiguracaoParametros {
@@ -97,6 +98,7 @@ model Locatario {
   contratos          Contrato[]
   contasReceber      ContaReceber[]
   vistoriasChecklist VistoriaChecklist[]
+  reservas            Reserva[]
 }
 
 model Fornecedor {
@@ -297,3 +299,40 @@ model FormaPagamento {
   updatedAt DateTime @updatedAt
 }
 
+
+model Reserva {
+  id                String    @id @default(uuid())
+  empresaId         String
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  locatarioId       String
+  locatario         Locatario @relation(fields: [locatarioId], references: [id], onDelete: Cascade)
+  flatId            String
+  flat              Flat      @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  contratoId        String?
+  contrato          Contrato? @relation(fields: [contratoId], references: [id], onDelete: SetNull)
+  codigo            String    @unique
+  dataEntrada       DateTime
+  dataSaida         DateTime
+  horaEntrada       String?
+  horaSaida         String?
+  quantidadePessoas Int       @default(1)
+  valorDiaria       Float     @default(0)
+  quantidadeDiarias Int       @default(1)
+  desconto          Float     @default(0)
+  taxas             Float     @default(0)
+  caucao            Float     @default(0)
+  valorTotal        Float     @default(0)
+  valorRecebido     Float     @default(0)
+  valorPendente     Float     @default(0)
+  origem            String?
+  observacao        String?
+  status            String    @default("SOLICITADA") // SOLICITADA, PRE_RESERVA, AGUARDANDO_PAGAMENTO, CONFIRMADA, CHECK_IN, EM_ESTADIA, CHECK_OUT, FINALIZADA, CANCELADA
+  dataCheckIn       DateTime?
+  dataCheckOut      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([empresaId, dataEntrada, dataSaida])
+  @@index([flatId, dataEntrada, dataSaida])
+  @@index([locatarioId])
+}
