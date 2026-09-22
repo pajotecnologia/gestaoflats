@@ -147,6 +147,7 @@ model Flat {
   contratos          Contrato[]
   contasPagar        ContaPagar[]
   vistoriasChecklist VistoriaChecklist[]
+  reservas            Reserva[]
 }
 
 model ModeloContrato {
@@ -212,6 +213,7 @@ model Contrato {
 
   contasReceber           ContaReceber[]
   vistoriasChecklist      VistoriaChecklist[]
+  reservas                Reserva[]
 }
 
 model VistoriaChecklist {
