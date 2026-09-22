@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import Shell from "@/components/layout/Shell";
 import { validateCPF, formatCPF, formatPhone } from "@/lib/validation";
-import { Users, Plus, X, Phone, Edit3 } from "lucide-react";
+import { Users, Plus, X, Phone, Edit3, UserRound } from "lucide-react";
 
 export default function LocatariosPage() {
   const [locatarios, setLocatarios] = useState<any[]>([]);
@@ -216,6 +217,7 @@ export default function LocatariosPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
+                        <Link href={`/locatarios/${loc.id}`} className="inline-flex p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Abrir dossiê"><UserRound className="w-4 h-4" /></Link>
                         <button
                           onClick={() => handleOpenEditModal(loc)}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
