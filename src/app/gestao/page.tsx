@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Shell from "@/components/layout/Shell";
-import { BarChart3, Building2, AlertTriangle, Wrench, CalendarClock, RefreshCw } from "lucide-react";
+import { BarChart3, Building2, AlertTriangle, Wrench, CalendarClock, RefreshCw, TrendingUp, DollarSign, Wallet } from "lucide-react";
 import { formatCurrency } from "@/lib/validation";
 
 export default function GestaoPage(){
