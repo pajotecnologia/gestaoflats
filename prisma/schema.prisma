@@ -40,6 +40,7 @@ model Empresa {
   configuracaoParametros ConfiguracaoParametros?
   reservas              Reserva[]
   eventosContrato       ContratoEvento[]
+  eventosFinanceiros    FinanceiroEvento[]
 }
 
 model ConfiguracaoParametros {
@@ -298,7 +299,7 @@ model ContaReceber {
   dataPagamento  DateTime?
   formaPagamento String?   // PIX, DINHEIRO, CARTAO, BOLETO
   valorPago      Float?
-  status         String    @default("PENDENTE") // PENDENTE, PAGO, ATRASADO
+  status         String    @default("PENDENTE") // PENDENTE, PARCIAL, PAGO, ATRASADO
   observacao     String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -319,7 +320,10 @@ model ContaPagar {
   dataPagamento  DateTime?
   descricao      String
   valor          Float
-  status         String      @default("PENDENTE") // PENDENTE, PAGO, ATRASADO
+  valorPago      Float?     @default(0)
+  formaPagamento String?
+  status         String      @default("PENDENTE") // PENDENTE, PARCIAL, PAGO, ATRASADO
+  observacao     String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 }
@@ -387,4 +391,24 @@ model ContratoEvento {
   criadoEm   DateTime @default(now())
 
   @@index([empresaId, contratoId, criadoEm])
+}
+
+model FinanceiroEvento {
+  id            String        @id @default(uuid())
+  empresaId     String
+  empresa       Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  tipo          String        // LANCAMENTO, BAIXA, PARCIAL, ESTORNO, ALTERACAO
+  contaReceberId String?
+  contaReceber  ContaReceber? @relation(fields: [contaReceberId], references: [id], onDelete: Cascade)
+  contaPagarId  String?
+  contaPagar    ContaPagar?   @relation(fields: [contaPagarId], references: [id], onDelete: Cascade)
+  valor         Float?
+  descricao     String
+  dadosJson     String?
+  usuarioId     String?
+  criadoEm     DateTime      @default(now())
+
+  @@index([empresaId, criadoEm])
+  @@index([contaReceberId])
+  @@index([contaPagarId])
 }
