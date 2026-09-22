@@ -31,6 +31,8 @@ import {
   Mail,
   CalendarDays,
   Wallet,
+  Wrench,
+  BarChart4,
 } from "lucide-react";
 
 interface ShellProps {
@@ -115,6 +117,8 @@ function ShellContent({ children }: ShellProps) {
     { label: "Centro Financeiro", href: "/financeiro", icon: Wallet },
     { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
     { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
+    { label: "Ordens de Serviço", href: "/ordens-servico", icon: Wrench },
+    { label: "Gestão & Inteligência", href: "/gestao", icon: BarChart4 },
   ];
 
   const relatoriosSubItems = [
