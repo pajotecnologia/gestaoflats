@@ -19,12 +19,14 @@ import {
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [reservas, setReservas] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/dashboard/stats")
-      .then((res) => res.json())
-      .then((data) => {
-        setStats(data);
+    Promise.all([fetch("/api/dashboard/stats"), fetch("/api/reservas")])
+      .then(async ([statsRes, reservasRes]) => {
+        const [statsData, reservasData] = await Promise.all([statsRes.json(), reservasRes.json()]);
+        setStats(statsData);
+        setReservas(reservasData.reservas || []);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
@@ -149,6 +151,50 @@ export default function DashboardPage() {
               {formatCurrency(kpis.saldoOperacionalLiquido || 0)}
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Recebimentos vs. Pagamentos do mês</p>
+          </div>
+        </div>
+
+        {/* Agenda e Pendências da Operação */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Agenda operacional</h3>
+                <p className="text-[11px] text-slate-500">Próximos check-ins e check-outs</p>
+              </div>
+              <a href="/reservas" className="text-[11px] font-bold text-blue-600 hover:underline">Ver agenda</a>
+            </div>
+            <div className="space-y-2">
+              {reservas.filter((r) => !["CANCELADA", "FINALIZADA"].includes(r.status)).slice(0, 5).map((r) => (
+                <div key={r.id} className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{r.locatario?.nome}</p>
+                    <p className="text-[10px] text-slate-500">Flat {r.flat?.numero} • {new Date(r.dataEntrada).toLocaleDateString("pt-BR")} → {new Date(r.dataSaida).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">{r.status}</span>
+                </div>
+              ))}
+              {reservas.filter((r) => !["CANCELADA", "FINALIZADA"].includes(r.status)).length === 0 && (
+                <p className="py-5 text-center text-xs text-slate-500">Nenhuma reserva operacional pendente.</p>
+              )}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Pendências</h3>
+            <div className="mt-4 space-y-3 text-xs">
+              <a href="/reservas" className="flex items-center justify-between rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3 text-amber-800 dark:text-amber-300">
+                <span>Pré-reservas / pagamento</span>
+                <b>{reservas.filter((r) => ["PRE_RESERVA", "AGUARDANDO_PAGAMENTO"].includes(r.status)).length}</b>
+              </a>
+              <a href="/reservas" className="flex items-center justify-between rounded-xl bg-cyan-50 dark:bg-cyan-950/30 p-3 text-cyan-800 dark:text-cyan-300">
+                <span>Check-ins</span>
+                <b>{reservas.filter((r) => r.status === "CONFIRMADA").length}</b>
+              </a>
+              <a href="/reservas" className="flex items-center justify-between rounded-xl bg-violet-50 dark:bg-violet-950/30 p-3 text-violet-800 dark:text-violet-300">
+                <span>Check-outs</span>
+                <b>{reservas.filter((r) => r.status === "EM_ESTADIA").length}</b>
+              </a>
+            </div>
           </div>
         </div>
 
