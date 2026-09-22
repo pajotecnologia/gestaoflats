@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
     let modelo = null;
     if (modeloId) modelo = await prisma.checklistModelo.findFirst({ where: { id: modeloId, empresaId: session.empresaId } });
 
-    const parsedItems = parseItems(itens ?? modelo?.itensJson ? JSON.parse(modelo?.itensJson || "[]") : []);
+    const sourceItems = Array.isArray(itens) ? itens : (modelo?.itensJson ? JSON.parse(modelo.itensJson) : []);
+    const parsedItems = parseItems(sourceItems);
     const valorDanos = parsedItems.reduce((sum, item) => sum + (item.avaria ? item.valorDano : 0), 0);
 
     const vistoria = await prisma.vistoriaChecklist.create({
