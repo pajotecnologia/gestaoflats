@@ -175,13 +175,22 @@ export default function ContratosPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Emitir Novo Contrato</span>
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => (window.location.href = "/contratos/novo")}
+              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Assistente de Emissão</span>
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Emissão Rápida</span>
+            </button>
+          </div>
         </div>
 
         {/* Lista de Contratos */}
