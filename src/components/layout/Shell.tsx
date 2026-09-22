@@ -29,6 +29,7 @@ import {
   CreditCard,
   MessageSquare,
   Mail,
+  CalendarDays,
 } from "lucide-react";
 
 interface ShellProps {
@@ -103,6 +104,7 @@ function ShellContent({ children }: ShellProps) {
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Reservas & Agenda", href: "/reservas", icon: CalendarDays },
     { label: "Flats & Condomínios", href: "/flats", icon: Building2 },
     { label: "Locatários", href: "/locatarios", icon: Users },
     { label: "Fornecedores", href: "/fornecedores", icon: Truck },
