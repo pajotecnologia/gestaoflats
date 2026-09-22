@@ -155,6 +155,7 @@ model Flat {
   contasPagar        ContaPagar[]
   vistoriasChecklist VistoriaChecklist[]
   reservas            Reserva[]
+  ordensServico       OrdemServico[]
 }
 
 model ModeloContrato {
