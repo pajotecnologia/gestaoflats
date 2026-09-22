@@ -255,6 +255,8 @@ model VistoriaChecklist {
   fotosJson               String?     // JSON de fotos gerais da vistoria
   observacaoGeral         String?
   valorDanos              Float       @default(0)
+  cobrancaDanosGerada     Boolean     @default(false)
+  dataCobrancaDanos       DateTime?
   limpezaStatus           String      @default("PENDENTE") // PENDENTE, OK, NECESSITA_LIMPEZA
   manutencaoStatus        String      @default("PENDENTE") // PENDENTE, OK, NECESSITA_MANUTENCAO
 
