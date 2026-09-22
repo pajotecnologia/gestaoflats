@@ -24,6 +24,7 @@ type Vistoria = {
   dataVistoria: string;
   responsavelVistoria: string;
   valorDanos: number;
+  itensJson: string;
   limpezaStatus: string;
   manutencaoStatus: string;
   flat: { numero: string; local?: { nome: string } | null };
@@ -63,6 +64,8 @@ export default function VistoriasPage() {
   const [modeloForm, setModeloForm] = useState({ nome: "", descricao: "" });
   const [modeloItems, setModeloItems] = useState<Item[]>([blankItem()]);
   const [saving, setSaving] = useState(false);
+  const [entradaCompare, setEntradaCompare] = useState<Vistoria | null>(null);
+  const [saidaCompare, setSaidaCompare] = useState<Vistoria | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -189,7 +192,7 @@ export default function VistoriasPage() {
             {filtered.map(v => <div key={v.id} className="rounded-2xl border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700">{v.tipoVistoria}</span><span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold">{v.status}</span></div><div className="mt-2 text-sm font-bold">{v.flat.local?.nome ? v.flat.local.nome + " • " : ""}Flat {v.flat.numero}</div><div className="text-[11px] text-slate-500">{v.locatario?.nome || "Sem locatário"} • {new Date(v.dataVistoria).toLocaleDateString("pt-BR")} • Resp.: {v.responsavelVistoria}</div></div>
-                <div className="text-right"><div className="text-xs font-bold">{money(v.valorDanos)}</div><div className="text-[10px] text-slate-500">danos identificados</div><div className="mt-1 text-[10px]">{v.limpezaStatus} • {v.manutencaoStatus}</div></div>
+                <div className="flex flex-wrap items-end justify-end gap-2"><div className="text-right"><div className="text-xs font-bold">{money(v.valorDanos)}</div><div className="text-[10px] text-slate-500">danos identificados</div><div className="mt-1 text-[10px]">{v.limpezaStatus} • {v.manutencaoStatus}</div></div><button onClick={() => v.tipoVistoria === "ENTRADA" ? setEntradaCompare(v) : setSaidaCompare(v)} className="rounded-lg border px-2.5 py-2 text-[10px] font-bold dark:border-slate-700">{v.tipoVistoria === "ENTRADA" ? "Usar entrada" : "Usar saída"}</button></div>
               </div>
             </div>)}
           </div>
@@ -230,6 +233,13 @@ export default function VistoriasPage() {
           <label className="mt-4 block text-xs font-semibold">Observação geral<textarea value={form.observacaoGeral} onChange={e=>setForm({...form,observacaoGeral:e.target.value})} rows={3} className="mt-1 w-full rounded-xl border p-2.5 text-xs dark:border-slate-700 dark:bg-slate-950"/></label>
           <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={()=>setShowForm(false)} className="rounded-xl border px-4 py-2 text-xs font-semibold">Cancelar</button><button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white disabled:opacity-50"><Save className="h-4 w-4"/>{saving?"Salvando...":"Salvar vistoria"}</button></div>
         </form></div>}
+
+        {entradaCompare && saidaCompare && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"><div className="max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
+          <div className="flex items-center justify-between"><div><h2 className="text-base font-bold">Comparação Entrada × Saída</h2><p className="text-[11px] text-slate-500">Itens com alteração de estado ou avaria ficam destacados.</p></div><button onClick={()=>{setEntradaCompare(null);setSaidaCompare(null)}}><X className="h-5 w-5"/></button></div>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950"><div className="text-[10px] text-slate-500">Entrada</div><div className="text-xs font-bold">{entradaCompare.flat.local?.nome || ""} • Flat {entradaCompare.flat.numero}</div><div className="text-[10px]">{new Date(entradaCompare.dataVistoria).toLocaleDateString("pt-BR")}</div></div><div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950"><div className="text-[10px] text-slate-500">Saída</div><div className="text-xs font-bold">{saidaCompare.flat.local?.nome || ""} • Flat {saidaCompare.flat.numero}</div><div className="text-[10px]">{new Date(saidaCompare.dataVistoria).toLocaleDateString("pt-BR")}</div></div></div>
+          <div className="mt-4 space-y-2">{(() => { const a: Item[] = JSON.parse(entradaCompare.itensJson || "[]"); const b: Item[] = JSON.parse(saidaCompare.itensJson || "[]"); const map = new Map(b.map(x=>[x.item,x])); return a.map(x=>{ const y=map.get(x.item); const changed=!!y && (x.estado!==y.estado || x.avaria!==y.avaria || x.observacao!==y.observacao); return <div key={x.id} className={`rounded-xl border p-3 ${changed ? "border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20" : "dark:border-slate-800"}`}><div className="flex flex-col gap-1 sm:flex-row sm:justify-between"><span className="text-xs font-bold">{x.item}</span><span className="text-[10px]">{x.estado} → {y?.estado || "Não informado"} {changed ? "• ALTERADO" : "• OK"}</span></div>{changed && <div className="mt-1 text-[10px] text-slate-600 dark:text-slate-300">{y?.observacao || x.observacao || "Alteração identificada"} {y?.avaria ? ` • Dano: ${money(y.valorDano)}` : ""}</div>}</div>})})()}</div>
+          <div className="mt-5 flex justify-end"><button onClick={()=>{setEntradaCompare(null);setSaidaCompare(null)}} className="rounded-xl border px-4 py-2 text-xs font-semibold dark:border-slate-700">Fechar</button></div>
+        </div></div>}
 
         {showModelo && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"><form onSubmit={saveModelo} className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900">
           <div className="mb-5 flex items-center justify-between"><div><h2 className="text-base font-bold">Modelo de checklist</h2><p className="text-[11px] text-slate-500">Crie um padrão reutilizável para entradas e saídas.</p></div><button type="button" onClick={()=>setShowModelo(false)}><X className="h-5 w-5"/></button></div>
