@@ -60,7 +60,7 @@ export async function GET() {
 
     if (!isPago && (c.status === "PENDENTE" || c.status === "ATRASADO" || dtVenc <= ultimoDiaMes)) {
       if (dtVenc <= ultimoDiaMes) {
-        totalEmAbertoReceber += c.valor;
+        totalEmAbertoReceber += Math.max(0, c.valor - Number(c.valorPago || 0));
       }
     }
   });
@@ -91,7 +91,7 @@ export async function GET() {
 
     if (!isPago && (c.status === "PENDENTE" || c.status === "ATRASADO" || dtVenc <= ultimoDiaMes)) {
       if (dtVenc <= ultimoDiaMes) {
-        totalEmAbertoPagar += c.valor;
+        totalEmAbertoPagar += Math.max(0, c.valor - Number(c.valorPago || 0));
       }
     }
   });
