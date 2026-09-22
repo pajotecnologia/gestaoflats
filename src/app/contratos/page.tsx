@@ -198,6 +198,10 @@ export default function ContratosPage() {
         ) : (
           <div className="space-y-6">
             {contratos.map((contrato) => (
+              <div key={contrato.id} className="space-y-2">
+                <div className="flex justify-end">
+                  <button onClick={() => (window.location.href = `/contratos/${contrato.id}`)} className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[11px] font-bold border border-blue-200 dark:border-blue-800">Abrir dossiê do contrato →</button>
+                </div>
               <GridMeses
                 key={contrato.id}
                 contratoId={contrato.id}
@@ -218,6 +222,7 @@ export default function ContratosPage() {
                 empresaData={empresaData}
                 onBaixaSucesso={loadData}
               />
+              </div>
             ))}
           </div>
         )}
