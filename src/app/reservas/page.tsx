@@ -114,7 +114,7 @@ export default function ReservasPage() {
   }, [reservas, search]);
 
   const openCreateForDate = (date: string) => {
-    setForm(prev => ({ ...prev, dataEntrada: date, dataSaida: date }));
+    setForm(prev => ({ ...prev, dataEntrada: date, dataSaida: new Date(new Date(`${date}T00:00:00`).getTime() + 86400000).toISOString().slice(0, 10) }));
     setShowForm(true);
   };
 
