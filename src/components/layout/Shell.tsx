@@ -30,6 +30,7 @@ import {
   MessageSquare,
   Mail,
   CalendarDays,
+  Wallet,
 } from "lucide-react";
 
 interface ShellProps {
@@ -111,6 +112,7 @@ function ShellContent({ children }: ShellProps) {
     { label: "Fornecedores", href: "/fornecedores", icon: Truck },
     { label: "Modelos de Contrato", href: "/contratos/modelos", icon: FileCode },
     { label: "Gestão de Contratos", href: "/contratos", icon: FileText },
+    { label: "Centro Financeiro", href: "/financeiro", icon: Wallet },
     { label: "Contas a Receber", href: "/financeiro/receber", icon: TrendingUp },
     { label: "Contas a Pagar", href: "/financeiro/pagar", icon: DollarSign },
   ];
