@@ -100,7 +100,6 @@ model Locatario {
   contasReceber      ContaReceber[]
   vistoriasChecklist VistoriaChecklist[]
   reservas            Reserva[]
-  vistorias            VistoriaChecklist[]
 }
 
 model Fornecedor {
