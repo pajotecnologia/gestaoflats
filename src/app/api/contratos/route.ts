@@ -195,6 +195,16 @@ export async function POST(request: NextRequest) {
       data: parcelasData,
     });
 
+    await prisma.contratoEvento.create({
+      data: {
+        empresaId: session.empresaId,
+        contratoId: newContrato.id,
+        tipo: "EMISSAO",
+        descricao: "Contrato emitido e parcelas financeiras geradas.",
+        dadosJson: JSON.stringify({ parcelas: parcelasData.length }),
+      },
+    });
+
     return NextResponse.json({ contrato: newContrato, tokenAssinatura });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
