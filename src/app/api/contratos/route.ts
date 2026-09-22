@@ -228,11 +228,13 @@ export async function PUT(request: NextRequest) {
       const atualizado = await prisma.contrato.update({ where: { id }, data: { dataFinal: novaDataFinal, status: "ATIVO" } });
       if (unidade === "MESES") {
         const novasParcelas: any[] = [];
+        const ultimaParcela = await prisma.contaReceber.aggregate({ where: { contratoId: id }, _max: { numeroParcela: true } });
+        const parcelaInicial = (ultimaParcela._max.numeroParcela || 0) + 1;
         for (let i = 1; i <= quantidade; i++) {
           const vencimento = new Date(contrato.dataFinal);
           vencimento.setMonth(vencimento.getMonth() + i);
           const mesRef = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, "0")}`;
-          novasParcelas.push({ empresaId: session.empresaId, contratoId: id, locatarioId: contrato.locatarioId, mesReferencia: mesRef, numeroParcela: 100000 + i, valor: contrato.valorMensal, dataVencimento: vencimento, status: "PENDENTE", observacao: "Parcela gerada pela renovação contratual" });
+          novasParcelas.push({ empresaId: session.empresaId, contratoId: id, locatarioId: contrato.locatarioId, mesReferencia: mesRef, numeroParcela: parcelaInicial + i - 1, valor: contrato.valorMensal, dataVencimento: vencimento, status: "PENDENTE", observacao: "Parcela gerada pela renovação contratual" });
         }
         if (novasParcelas.length) await prisma.contaReceber.createMany({ data: novasParcelas });
       }
