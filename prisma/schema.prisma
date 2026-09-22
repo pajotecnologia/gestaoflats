@@ -39,6 +39,7 @@ model Empresa {
   formasPagamento       FormaPagamento[]
   configuracaoParametros ConfiguracaoParametros?
   reservas              Reserva[]
+  eventosContrato       ContratoEvento[]
 }
 
 model ConfiguracaoParametros {
@@ -215,6 +216,7 @@ model Contrato {
   contasReceber           ContaReceber[]
   vistoriasChecklist      VistoriaChecklist[]
   reservas                Reserva[]
+  eventos                 ContratoEvento[]
 }
 
 model ChecklistModelo {
@@ -370,4 +372,19 @@ model Reserva {
   @@index([locatarioId])
 
   vistorias VistoriaChecklist[]
+}
+
+model ContratoEvento {
+  id         String   @id @default(uuid())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  contratoId String
+  contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  tipo       String   // EMISSAO, ASSINATURA, RENOVACAO, REAJUSTE, RESCISAO, CANCELAMENTO, ALTERACAO
+  descricao  String
+  dadosJson  String?
+  usuarioId  String?
+  criadoEm   DateTime @default(now())
+
+  @@index([empresaId, contratoId, criadoEm])
 }
