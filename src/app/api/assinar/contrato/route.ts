@@ -117,6 +117,16 @@ export async function POST(request: NextRequest) {
     const otsResult = await stampDocumentHash(pdfSha256);
 
     // 5. Salvar a Assinatura e Prova Blockchain no Banco de Dados
+    await prisma.contratoEvento.create({
+      data: {
+        empresaId: contrato.empresaId,
+        contratoId: contrato.id,
+        tipo: "ASSINATURA",
+        descricao: "Contrato assinado digitalmente pelo locatário.",
+        dadosJson: JSON.stringify({ ip: clientIp, dataAssinatura: dataAssinatura.toISOString(), hash: otsResult.sha256Hex }),
+      },
+    });
+
     const updatedContrato = await prisma.contrato.update({
       where: { id: contrato.id },
       data: {
