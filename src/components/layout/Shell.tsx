@@ -38,6 +38,8 @@ import {
   Bell,
   HelpCircle,
   CheckCircle2,
+  Wrench,
+  Activity,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import FloatingAlertsHub from "@/components/alertas/FloatingAlertsHub";
@@ -157,12 +159,14 @@ function ShellContent({ children }: ShellProps) {
       items: [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Agenda de Reservas", href: "/agenda", icon: Calendar, badge: "Diárias" },
+        { label: "Gestão & Indicadores", href: "/gestao", icon: Activity },
       ],
     },
     {
-      title: "IMÓVEIS & CADASTROS",
+      title: "IMÓVEIS & MANUTENÇÃO",
       items: [
         { label: "Flats & Imóveis", href: "/flats", icon: Building2 },
+        { label: "Ordens de Serviço", href: "/ordens-servico", icon: Wrench },
         { label: "Locatários", href: "/locatarios", icon: UserCheck },
         { label: "Proprietários", href: "/proprietarios", icon: Users },
         { label: "Fornecedores", href: "/fornecedores", icon: Truck },
@@ -214,8 +218,10 @@ function ShellContent({ children }: ShellProps) {
   // Rótulo da Página Atual para o Breadcrumb Topbar
   const getPageTitle = () => {
     if (pathname === "/dashboard") return { section: "Visão Geral", page: "Dashboard de Indicadores" };
+    if (pathname === "/gestao") return { section: "Gestão", page: "Painel de Indicadores & Gestão" };
     if (pathname === "/agenda") return { section: "Locações", page: "Agenda de Reservas por Diária" };
     if (pathname === "/flats") return { section: "Imóveis", page: "Flats & Condomínios" };
+    if (pathname === "/ordens-servico") return { section: "Manutenção", page: "Ordens de Serviço (O.S.)" };
     if (pathname === "/vistorias") return { section: "Vistorias", page: "Vistorias & Checklists de Imóveis" };
     if (pathname === "/checklists") return { section: "Contratos & Vistorias", page: "Modelos de Checklist" };
     if (pathname === "/locatarios") return { section: "Cadastros", page: "Gestão de Locatários" };
