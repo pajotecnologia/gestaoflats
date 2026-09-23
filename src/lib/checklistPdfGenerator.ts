@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
-import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl, ensureCleanSignaturePngDataUrl } from "./pdfHeaderBuilder";
 import { getAppBaseUrl } from "./baseUrl";
 import { calculateSha256 } from "./cryptoUtils";
 
@@ -248,8 +248,7 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
   // Renderizar imagem de assinatura da Empresa (se disponível e formato base64/png)
   if (data.empresaAssinaturaUrl && data.empresaAssinaturaUrl.startsWith("data:image")) {
     try {
-      const format = data.empresaAssinaturaUrl.includes("image/jpeg") || data.empresaAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
-      doc.addImage(data.empresaAssinaturaUrl, format, 31, y - 15, 46, 14);
+      doc.addImage(data.empresaAssinaturaUrl, "PNG", 31, y - 15, 46, 14);
     } catch (e) {
       // Fallback gráfico se não for raster suportado
     }
@@ -258,8 +257,7 @@ export function buildChecklistPDFDoc(data: ChecklistPDFData): jsPDF {
   // Renderizar imagem de assinatura do Locatário (se disponível)
   if (data.locatarioAssinaturaUrl && data.locatarioAssinaturaUrl.startsWith("data:image")) {
     try {
-      const format = data.locatarioAssinaturaUrl.includes("image/jpeg") || data.locatarioAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
-      doc.addImage(data.locatarioAssinaturaUrl, format, 133, y - 15, 46, 14);
+      doc.addImage(data.locatarioAssinaturaUrl, "PNG", 133, y - 15, 46, 14);
     } catch (e) {
       // Ignora erro de imagem
     }
@@ -397,11 +395,17 @@ export async function prepareChecklistDataWithBase64Images(data: ChecklistPDFDat
   if (logoUrl) {
     logoUrl = (await ensurePngDataUrl(logoUrl)) || logoUrl;
   }
-  if (assUrl && !assUrl.startsWith("data:image")) {
-    assUrl = await convertUrlToBase64(assUrl);
+  if (assUrl) {
+    if (!assUrl.startsWith("data:image")) {
+      assUrl = await convertUrlToBase64(assUrl);
+    }
+    assUrl = (await ensureCleanSignaturePngDataUrl(assUrl)) || assUrl;
   }
-  if (locAssUrl && !locAssUrl.startsWith("data:image")) {
-    locAssUrl = await convertUrlToBase64(locAssUrl);
+  if (locAssUrl) {
+    if (!locAssUrl.startsWith("data:image")) {
+      locAssUrl = await convertUrlToBase64(locAssUrl);
+    }
+    locAssUrl = (await ensureCleanSignaturePngDataUrl(locAssUrl)) || locAssUrl;
   }
 
   const updatedItens = await Promise.all(

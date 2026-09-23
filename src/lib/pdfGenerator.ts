@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl, ensureCleanSignaturePngDataUrl } from "./pdfHeaderBuilder";
 import { convertUrlToBase64 } from "./baseUrl";
 import { formatMesReferencia } from "./validation";
 
@@ -34,8 +34,11 @@ export async function prepareReciboDataWithBase64Images(data: ReciboPDFData): Pr
     logoUrl = (await ensurePngDataUrl(logoUrl)) || logoUrl;
   }
   let sigUrl = data.usuarioAssinaturaUrl || data.empresaAssinaturaUrl;
-  if (sigUrl && !sigUrl.startsWith("data:image")) {
-    sigUrl = await convertUrlToBase64(sigUrl);
+  if (sigUrl) {
+    if (!sigUrl.startsWith("data:image")) {
+      sigUrl = await convertUrlToBase64(sigUrl);
+    }
+    sigUrl = (await ensureCleanSignaturePngDataUrl(sigUrl)) || sigUrl;
   }
   return {
     ...data,
@@ -124,11 +127,7 @@ export function buildReciboPDFDoc(data: ReciboPDFData): jsPDF {
   if (data.empresaAssinaturaUrl && data.empresaAssinaturaUrl.trim()) {
     try {
       const sigUrl = data.empresaAssinaturaUrl.trim();
-      let format = "PNG";
-      if (sigUrl.toLowerCase().includes(".jpg") || sigUrl.toLowerCase().includes(".jpeg") || sigUrl.includes("image/jpeg")) {
-        format = "JPEG";
-      }
-      doc.addImage(sigUrl, format, 80, 185, 50, 23);
+      doc.addImage(sigUrl, "PNG", 80, 185, 50, 23);
     } catch (e) {
       console.error("Erro ao desenhar imagem da assinatura da empresa no recibo:", e);
     }

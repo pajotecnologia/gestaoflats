@@ -101,15 +101,38 @@ export async function optimizeVistoriaPhoto(input: Buffer | string): Promise<str
 
 /**
  * Preset ultra-otimizado para Assinaturas Digitais Touch/Mouse (~4-8 KB).
+ * Achata sobre fundo branco puro (#ffffff) e exporta em PNG para compatibilidade 100% nativa com o motor do jsPDF.
  */
 export async function optimizeSignature(input: Buffer | string): Promise<string> {
-  return optimizeImageToDataUri(input, {
-    maxWidth: 450,
-    maxHeight: 180,
-    quality: 70,
-    effort: 6,
-    format: "webp",
-  });
+  let buffer: Buffer;
+  if (typeof input === "string") {
+    const matches = input.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches) {
+      buffer = Buffer.from(matches[2], "base64");
+    } else {
+      buffer = Buffer.from(input, "base64");
+    }
+  } else {
+    buffer = input;
+  }
+
+  try {
+    const outputBuffer = await sharp(buffer)
+      .flatten({ background: { r: 255, g: 255, b: 255 } })
+      .resize(500, 200, { fit: "inside", withoutEnlargement: true })
+      .png({ compressionLevel: 9, effort: 8 })
+      .toBuffer();
+
+    const base64 = outputBuffer.toString("base64");
+    return `data:image/png;base64,${base64}`;
+  } catch (err) {
+    console.warn("Aviso: Falha ao otimizar assinatura via sharp, usando original:", err);
+    if (typeof input === "string" && input.startsWith("data:")) {
+      return input;
+    }
+    const base64 = buffer.toString("base64");
+    return `data:image/png;base64,${base64}`;
+  }
 }
 
 /**

@@ -70,7 +70,19 @@ export default function SignaturePad({ onSaveSignature }: SignaturePadProps) {
   const stopDrawing = () => {
     setIsDrawing(false);
     if (hasSignature && canvasRef.current) {
-      onSaveSignature(canvasRef.current.toDataURL("image/png"));
+      const canvas = canvasRef.current;
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tCtx = tempCanvas.getContext("2d");
+      if (tCtx) {
+        tCtx.fillStyle = "#ffffff";
+        tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tCtx.drawImage(canvas, 0, 0);
+        onSaveSignature(tempCanvas.toDataURL("image/png"));
+      } else {
+        onSaveSignature(canvas.toDataURL("image/png"));
+      }
     }
   };
 

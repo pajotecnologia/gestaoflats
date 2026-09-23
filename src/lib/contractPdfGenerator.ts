@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { formatCurrency } from "./validation";
-import { drawStandardPDFHeader, ensurePngDataUrl } from "./pdfHeaderBuilder";
+import { drawStandardPDFHeader, ensurePngDataUrl, ensureCleanSignaturePngDataUrl } from "./pdfHeaderBuilder";
 import { convertUrlToBase64, getAppBaseUrl } from "./baseUrl";
 import { calculateSha256 } from "./cryptoUtils";
 import { DEFAULT_CONTRATO_HTML } from "./defaultContractTemplate";
@@ -238,16 +238,14 @@ export function buildContratoPDFDoc(data: ContratoPDFData): jsPDF {
   // Imagem Assinatura Empresa (se houver)
   if (data.empresaAssinaturaUrl && data.empresaAssinaturaUrl.startsWith("data:image")) {
     try {
-      const format = data.empresaAssinaturaUrl.includes("image/jpeg") || data.empresaAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
-      doc.addImage(data.empresaAssinaturaUrl, format, 31, y - 15, 46, 14);
+      doc.addImage(data.empresaAssinaturaUrl, "PNG", 31, y - 15, 46, 14);
     } catch (e) {}
   }
 
   // Imagem Assinatura Locatário (se houver)
   if (data.locatarioAssinaturaUrl && data.locatarioAssinaturaUrl.startsWith("data:image")) {
     try {
-      const format = data.locatarioAssinaturaUrl.includes("image/jpeg") || data.locatarioAssinaturaUrl.includes("image/jpg") ? "JPEG" : "PNG";
-      doc.addImage(data.locatarioAssinaturaUrl, format, 133, y - 15, 46, 14);
+      doc.addImage(data.locatarioAssinaturaUrl, "PNG", 133, y - 15, 46, 14);
     } catch (e) {}
   }
 
@@ -527,11 +525,17 @@ export async function prepareContratoDataWithBase64Images(data: ContratoPDFData)
   if (logoUrl) {
     logoUrl = (await ensurePngDataUrl(logoUrl)) || logoUrl;
   }
-  if (assUrl && !assUrl.startsWith("data:image")) {
-    assUrl = await convertUrlToBase64(assUrl);
+  if (assUrl) {
+    if (!assUrl.startsWith("data:image")) {
+      assUrl = await convertUrlToBase64(assUrl);
+    }
+    assUrl = (await ensureCleanSignaturePngDataUrl(assUrl)) || assUrl;
   }
-  if (locatarioAssUrl && !locatarioAssUrl.startsWith("data:image")) {
-    locatarioAssUrl = await convertUrlToBase64(locatarioAssUrl);
+  if (locatarioAssUrl) {
+    if (!locatarioAssUrl.startsWith("data:image")) {
+      locatarioAssUrl = await convertUrlToBase64(locatarioAssUrl);
+    }
+    locatarioAssUrl = (await ensureCleanSignaturePngDataUrl(locatarioAssUrl)) || locatarioAssUrl;
   }
 
   // Processar fotos da Vistoria de Entrada para Base64 se existirem

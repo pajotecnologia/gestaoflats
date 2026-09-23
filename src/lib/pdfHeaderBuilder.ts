@@ -146,6 +146,61 @@ export async function ensurePngDataUrl(logoUrl?: string | null): Promise<string 
 }
 
 /**
+ * Converte qualquer formato de assinatura (WebP, JPEG, PNG, Data URI, URL)
+ * para um Data URI PNG com fundo branco garantido (#ffffff), eliminando
+ * qualquer risco de renderização com fundo preto no motor do jsPDF e leitores de PDF.
+ */
+export async function ensureCleanSignaturePngDataUrl(signatureUrl?: string | null): Promise<string | null> {
+  if (!signatureUrl || !signatureUrl.trim()) return null;
+  const trimmed = signatureUrl.trim();
+
+  // Se não estiver no browser (ex: SSR), retorna como está
+  if (typeof window === "undefined" || typeof document === "undefined" || typeof Image === "undefined") {
+    return trimmed;
+  }
+
+  try {
+    return await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const width = img.naturalWidth || img.width || 450;
+          const height = img.naturalHeight || img.height || 180;
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            // 1. Preenche fundo branco sólido (#ffffff)
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+
+            // 2. Desenha a assinatura com fidelidade
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // 3. Exporta como PNG puro
+            const pngData = canvas.toDataURL("image/png");
+            resolve(pngData);
+            return;
+          }
+        } catch (err) {
+          console.warn("Falha ao converter assinatura para PNG com fundo branco:", err);
+        }
+        resolve(trimmed);
+      };
+      img.onerror = (err) => {
+        console.warn("Falha ao carregar assinatura para conversão:", err);
+        resolve(trimmed);
+      };
+      img.src = trimmed;
+    });
+  } catch {
+    return trimmed;
+  }
+}
+
+/**
  * Desenha o Cabeçalho Padrão Unificado com Logomarca e Dados da Empresa / Condomínio
  * Variante 100% White Clean (Sem Banner Azul de Fundo)
  */
