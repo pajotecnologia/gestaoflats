@@ -212,6 +212,10 @@ export async function POST(request: NextRequest) {
         statusAssinatura: "PENDENTE",
         status: "ATIVO",
       },
+      include: {
+        flat: { include: { local: true } },
+        locatario: true,
+      },
     });
 
     // 2. Vincular Vistoria de Entrada ao novo Contrato de forma exclusiva

@@ -48,6 +48,17 @@ interface ReservaItem {
   formaPagamento: string | null;
 }
 
+const formatTipoImovel = (tipo?: string) => {
+  if (!tipo) return "Imóvel";
+  const t = String(tipo).toUpperCase();
+  if (t === "CHACARA") return "Chácara";
+  if (t === "SALAO") return "Salão";
+  if (t === "CASA") return "Casa";
+  if (t === "APARTAMENTO") return "Apartamento";
+  if (t === "FLAT") return "Flat";
+  return tipo;
+};
+
 export default function AgendaPage() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [flats, setFlats] = useState<any[]>([]);
@@ -342,7 +353,17 @@ export default function AgendaPage() {
 
       toast.success("Reserva confirmada com sucesso!");
       setShowReservaModal(false);
-      setSucessoContrato(dataContrato.contrato);
+
+      const selectedFlatObj = flats.find((f) => f.id === reservaFlatId);
+      const selectedLocatarioObj = locatarios.find((l) => l.id === reservaLocatarioId);
+
+      const contratoRetornado = {
+        ...dataContrato.contrato,
+        flat: dataContrato.contrato?.flat || selectedFlatObj,
+        locatario: dataContrato.contrato?.locatario || selectedLocatarioObj,
+      };
+
+      setSucessoContrato(contratoRetornado);
       loadData();
     } catch (err: any) {
       setErrorMessage("Erro inesperado ao emitir contrato da reserva.");
@@ -838,7 +859,7 @@ export default function AgendaPage() {
                   >
                     {flats.map((f) => (
                       <option key={f.id} value={f.id}>
-                        {f.numero} ({f.local?.nome || "Condomínio"}) - {formatCurrency(f.valorDiaria || 0)}/diária
+                        {formatTipoImovel(f.tipoImovel)} {f.numero} ({f.local?.nome || "Condomínio / Local"}) - {formatCurrency(f.valorDiaria || 0)}/diária
                       </option>
                     ))}
                   </select>
@@ -1233,11 +1254,32 @@ export default function AgendaPage() {
                 </p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-left space-y-1">
-                <p><strong>Imóvel:</strong> {sucessoContrato.flat?.numero || "Flat"}</p>
-                <p><strong>Hóspede:</strong> {sucessoContrato.locatario?.nome || "Locatário"}</p>
-                <p><strong>Período:</strong> {sucessoContrato.validadeDias || 1} diária(s)</p>
-                <p><strong>Valor Total:</strong> {formatCurrency(sucessoContrato.valorMensal)}</p>
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-left space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Imóvel:</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                    {formatTipoImovel(sucessoContrato.flat?.tipoImovel)} {sucessoContrato.flat?.numero || ""}
+                    {sucessoContrato.flat?.local?.nome ? ` (${sucessoContrato.flat.local.nome})` : ""}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Hóspede / Locatário:</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                    {sucessoContrato.locatario?.nome || "Locatário"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Período:</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    {sucessoContrato.validadeDias || 1} diária(s)
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-0.5">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Valor Total:</span>
+                  <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(sucessoContrato.valorMensal)}
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-2 pt-2">
