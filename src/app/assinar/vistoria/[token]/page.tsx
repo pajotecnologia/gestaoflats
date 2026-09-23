@@ -299,6 +299,10 @@ export default function AssinarVistoriaPublicPage({ params }: { params: { token:
           setVistoria(freshVistoria);
         }
         setSignedSuccess(true);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("imob_vistoria_signed", Date.now().toString());
+          window.dispatchEvent(new Event("imob_vistoria_signed"));
+        }
       }
     } catch (err) {
       setErrorMsg("Erro de conexão ao salvar assinatura.");

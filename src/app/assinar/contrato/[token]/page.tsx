@@ -149,6 +149,10 @@ export default function AssinarContratoPublicPage({ params }: { params: { token:
           ...(data.contrato || {}),
         }));
         setSignedSuccess(true);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("imob_contrato_signed", Date.now().toString());
+          window.dispatchEvent(new Event("imob_contrato_signed"));
+        }
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch (err) {

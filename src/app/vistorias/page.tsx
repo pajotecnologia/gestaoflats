@@ -98,8 +98,9 @@ export default function VistoriasPage() {
   // Feedback Geral
   const [feedback, setFeedback] = useState<{ type: string; message: string }>({ type: "", message: "" });
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent?: any) => {
+    const isSilent = silent === true;
+    if (!isSilent) setLoading(true);
     try {
       const [resVistorias, resFlats, resLocais, resLocatarios, resMe, resEmpresa] = await Promise.all([
         fetch("/api/vistorias").then((r) => r.json()),
@@ -125,12 +126,51 @@ export default function VistoriasPage() {
     } catch (err) {
       console.error("Erro ao carregar dados de vistorias:", err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
+
+    // Sincronização em tempo real sem precisar de F5
+    const handleSync = () => {
+      loadData(true);
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "imob_vistoria_signed" || e.key === "imob_contrato_signed") {
+        loadData(true);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadData(true);
+      }
+    };
+
+    // Auto-polling a cada 3.5 segundos em segundo plano quando a aba estiver visível
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadData(true);
+      }
+    }, 3500);
+
+    window.addEventListener("focus", handleSync);
+    window.addEventListener("imob_vistoria_signed", handleSync);
+    window.addEventListener("imob_contrato_signed", handleSync);
+    window.addEventListener("storage", handleStorage);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleSync);
+      window.removeEventListener("imob_vistoria_signed", handleSync);
+      window.removeEventListener("imob_contrato_signed", handleSync);
+      window.removeEventListener("storage", handleStorage);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   // Filtragem dos Flats pelo Condomínio Selecionado no Wizard

@@ -603,6 +603,10 @@ export default function ChecklistVistoriaModal({
         return false;
       } else {
         setSuccessMessage(`✅ Vistoria (${tipoVistoria}) salva com sucesso com status "${statusAssinatura}"!`);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("imob_vistoria_signed", Date.now().toString());
+          window.dispatchEvent(new Event("imob_vistoria_signed"));
+        }
         return true;
       }
     } catch (err) {

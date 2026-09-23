@@ -133,6 +133,44 @@ export default function ContratosPage() {
 
   useEffect(() => {
     loadData();
+
+    // 1. Sincronização periódica em tempo real enquanto a aba estiver visível (a cada 3.5 segundos)
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadData();
+      }
+    }, 3500);
+
+    // 2. Atualização imediata ao retornar o foco para a aba do sistema
+    const handleFocus = () => loadData();
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadData();
+      }
+    };
+
+    // 3. Atualização imediata quando outra aba/janela assinar vistoria ou contrato
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "imob_vistoria_signed" || e.key === "imob_contrato_signed") {
+        loadData();
+      }
+    };
+    const handleCustomEvent = () => loadData();
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("imob_vistoria_signed", handleCustomEvent);
+    window.addEventListener("imob_contrato_signed", handleCustomEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("imob_vistoria_signed", handleCustomEvent);
+      window.removeEventListener("imob_contrato_signed", handleCustomEvent);
+    };
   }, []);
 
   const updateVistoriaInfoFromObject = (vistoria: any) => {
