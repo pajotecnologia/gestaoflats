@@ -468,6 +468,7 @@ model ContaPagar {
   valorPago      Float?      @default(0)
   formaPagamento String?
   status         String      @default("PENDENTE") // PENDENTE, PAGO, ATRASADO
+  observacao     String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   eventosFinanceiros FinanceiroEvento[]
