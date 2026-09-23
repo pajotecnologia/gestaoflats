@@ -1,216 +1,179 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import crypto from "crypto";
+
+const TYPES = ["ENTRADA", "SAIDA"] as const;
+const STATUSES = ["RASCUNHO", "CONCLUIDA", "ASSINADA"] as const;
+
+function parseItems(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item: any, index) => ({
+    id: String(item.id || `item-${index + 1}`),
+    categoria: String(item.categoria || "Geral"),
+    item: String(item.item || "").trim(),
+    estado: String(item.estado || "BOM"),
+    observacao: String(item.observacao || ""),
+    avaria: Boolean(item.avaria),
+    valorDano: Math.max(0, Number(item.valorDano) || 0),
+    fotoUrl: item.fotoUrl ? String(item.fotoUrl) : null,
+  })).filter((item) => item.item);
+}
 
 export async function GET(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
-  if (!session) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const flatId = searchParams.get("flatId");
-  const locatarioId = searchParams.get("locatarioId");
-  const tipoVistoria = searchParams.get("tipoVistoria");
-  const flatOuLocatario = searchParams.get("flatOuLocatario") === "true";
-  const statusAssinatura = searchParams.get("statusAssinatura");
-  const apenasDisponiveis = searchParams.get("apenasDisponiveis") === "true";
-  const search = searchParams.get("search");
+  if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
 
   try {
-    const whereClause: any = {
-      empresaId: session.empresaId,
-    };
-
-    if (flatOuLocatario && flatId && locatarioId) {
-      whereClause.OR = [
-        { flatId: flatId },
-        { locatarioId: locatarioId },
-      ];
-    } else {
-      if (flatId) {
-        whereClause.flatId = flatId;
-      }
-      if (locatarioId) {
-        whereClause.locatarioId = locatarioId;
-      }
-    }
-
-    if (tipoVistoria && tipoVistoria !== "TODOS") {
-      whereClause.tipoVistoria = tipoVistoria;
-    }
-
-    if (statusAssinatura && statusAssinatura !== "TODOS") {
-      if (statusAssinatura === "ASSINADO") {
-        whereClause.statusAssinatura = { contains: "ASSINADO" };
-      } else {
-        whereClause.statusAssinatura = "PENDENTE";
-      }
-    }
-
-    if (apenasDisponiveis) {
-      whereClause.contratoId = null;
-    }
-
-    if (search && search.trim()) {
-      whereClause.OR = [
-        { flat: { numero: { contains: search, mode: "insensitive" } } },
-        { flat: { local: { nome: { contains: search, mode: "insensitive" } } } },
-        { locatario: { nome: { contains: search, mode: "insensitive" } } },
-        { responsavelVistoria: { contains: search, mode: "insensitive" } },
-      ];
-    }
+    const { searchParams } = new URL(request.url);
+    const flatId = searchParams.get("flatId") || undefined;
+    const reservaId = searchParams.get("reservaId") || undefined;
+    const tipoVistoria = searchParams.get("tipoVistoria") || undefined;
 
     const vistorias = await prisma.vistoriaChecklist.findMany({
-      where: whereClause,
+      where: { empresaId: session.empresaId, flatId, reservaId, tipoVistoria },
       include: {
-        flat: {
-          include: { local: true },
-        },
+        flat: { include: { local: true } },
         locatario: true,
-        contrato: {
-          include: { locatario: true, flat: true },
-        },
-        empresa: true,
+        reserva: true,
+        modelo: true,
+        contrato: true,
       },
-      orderBy: [{ dataVistoria: "desc" }, { createdAt: "desc" }],
+      orderBy: { dataVistoria: "desc" },
     });
 
     return NextResponse.json({ vistorias });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Erro ao listar vistorias." }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
-  if (!session) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
 
   try {
     const body = await request.json();
     const {
-      flatId,
-      locatarioId,
-      contratoId,
-      tipoVistoria = "ENTRADA",
-      responsavelVistoria,
-      itens = [],
-      observacoesGerais = "",
-      dataVistoria,
+      flatId, locatarioId, reservaId, contratoId, modeloId, tipoVistoria,
+      responsavelVistoria, itens, fotos, observacaoGeral,
+      limpezaStatus, manutencaoStatus, status = "RASCUNHO",
     } = body;
 
-    if (!flatId) {
-      return NextResponse.json({ error: "Flat / Imóvel é obrigatório para realizar a vistoria." }, { status: 400 });
+    if (!flatId || !responsavelVistoria || !tipoVistoria) {
+      return NextResponse.json({ error: "Imóvel, responsável e tipo da vistoria são obrigatórios." }, { status: 400 });
+    }
+    if (!TYPES.includes(tipoVistoria)) return NextResponse.json({ error: "Tipo de vistoria inválido." }, { status: 400 });
+    if (!STATUSES.includes(status)) return NextResponse.json({ error: "Status inválido." }, { status: 400 });
+
+    const flat = await prisma.flat.findFirst({ where: { id: flatId, empresaId: session.empresaId } });
+    if (!flat) return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
+
+    if (locatarioId) {
+      const loc = await prisma.locatario.findFirst({ where: { id: locatarioId, empresaId: session.empresaId } });
+      if (!loc) return NextResponse.json({ error: "Locatário não encontrado." }, { status: 404 });
+    }
+    if (reservaId) {
+      const reserva = await prisma.reserva.findFirst({ where: { id: reservaId, empresaId: session.empresaId, flatId } });
+      if (!reserva) return NextResponse.json({ error: "Reserva não encontrada para este imóvel." }, { status: 404 });
+    }
+    if (contratoId) {
+      const contrato = await prisma.contrato.findFirst({ where: { id: contratoId, empresaId: session.empresaId, flatId } });
+      if (!contrato) return NextResponse.json({ error: "Contrato não encontrado para este imóvel." }, { status: 404 });
     }
 
-    // Verificar se o flat pertence à empresa
-    const flat = await prisma.flat.findFirst({
-      where: { id: flatId, empresaId: session.empresaId },
-      include: { local: true },
-    });
+    let modelo = null;
+    if (modeloId) modelo = await prisma.checklistModelo.findFirst({ where: { id: modeloId, empresaId: session.empresaId } });
 
-    if (!flat) {
-      return NextResponse.json({ error: "Imóvel não encontrado." }, { status: 404 });
-    }
+    const sourceItems = Array.isArray(itens) ? itens : (modelo?.itensJson ? JSON.parse(modelo.itensJson) : []);
+    const parsedItems = parseItems(sourceItems);
+    const valorDanos = parsedItems.reduce((sum, item) => sum + (item.avaria ? item.valorDano : 0), 0);
 
-    const tokenAssinatura = crypto.randomBytes(16).toString("hex");
-
-    const itensJsonPayload = JSON.stringify({
-      itens,
-      observacoesGerais,
-    });
-
-    const novaVistoria = await prisma.vistoriaChecklist.create({
+    const vistoria = await prisma.vistoriaChecklist.create({
       data: {
         empresaId: session.empresaId,
         flatId,
         locatarioId: locatarioId || null,
+        reservaId: reservaId || null,
         contratoId: contratoId || null,
+        modeloId: modelo?.id || null,
         tipoVistoria,
-        responsavelVistoria: responsavelVistoria || "Vistoriador Responsável",
-        dataVistoria: dataVistoria ? new Date(dataVistoria) : new Date(),
-        itensJson: itensJsonPayload,
-        tokenAssinatura,
-        statusAssinatura: "PENDENTE",
+        responsavelVistoria,
+        itensJson: JSON.stringify(parsedItems),
+        fotosJson: JSON.stringify(Array.isArray(fotos) ? fotos : []),
+        observacaoGeral: observacaoGeral || null,
+        valorDanos,
+        limpezaStatus: limpezaStatus || "PENDENTE",
+        manutencaoStatus: manutencaoStatus || "PENDENTE",
+        status,
+        tokenAssinatura: crypto.randomUUID(),
       },
-      include: {
-        flat: {
-          include: { local: true },
-        },
-        locatario: true,
-        contrato: true,
-        empresa: true,
-      },
+      include: { flat: { include: { local: true } }, locatario: true, reserva: true, modelo: true },
     });
 
-    if (contratoId) {
-      if (tipoVistoria === "ENTRADA") {
-        await prisma.contrato.update({
-          where: { id: contratoId },
-          data: { anexoChecklistEntrada: itensJsonPayload },
-        }).catch(() => {});
-      } else if (tipoVistoria === "SAIDA") {
-        await prisma.contrato.update({
-          where: { id: contratoId },
-          data: { anexoChecklistSaida: itensJsonPayload },
-        }).catch(() => {});
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      vistoria: novaVistoria,
-      tokenAssinatura,
-    });
+    return NextResponse.json({ vistoria }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Erro ao criar vistoria." }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
-  if (!session) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
-
-  if (!id) {
-    return NextResponse.json({ error: "ID da vistoria é obrigatório." }, { status: 400 });
-  }
+  if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
 
   try {
-    const vistoria = await prisma.vistoriaChecklist.findFirst({
-      where: { id, empresaId: session.empresaId },
-    });
+    const body = await request.json();
+    const { id, acao, ...changes } = body;
+    if (!id) return NextResponse.json({ error: "ID da vistoria é obrigatório." }, { status: 400 });
 
-    if (!vistoria) {
-      return NextResponse.json({ error: "Vistoria não encontrada." }, { status: 404 });
-    }
+    const current = await prisma.vistoriaChecklist.findFirst({ where: { id, empresaId: session.empresaId } });
+    if (!current) return NextResponse.json({ error: "Vistoria não encontrada." }, { status: 404 });
 
-    if (vistoria.contratoId) {
-      // Se estiver vinculada a um contrato, desvincula ou avisa
-      const contrato = await prisma.contrato.findUnique({
-        where: { id: vistoria.contratoId },
-      });
-      if (contrato && contrato.status === "ATIVO") {
-        return NextResponse.json(
-          { error: "Esta vistoria está vinculada a um Contrato Ativo e não pode ser excluída diretamente." },
-          { status: 400 }
-        );
+    if (acao === "COBRAR_DANOS") {
+      if (!current.locatarioId || current.valorDanos <= 0) {
+        return NextResponse.json({ error: "A vistoria precisa ter locatário e valor de danos maior que zero." }, { status: 400 });
       }
+      if (current.cobrancaDanosGerada) {
+        return NextResponse.json({ error: "A cobrança dos danos desta vistoria já foi gerada." }, { status: 409 });
+      }
+      await prisma.contaReceber.create({
+        data: {
+          empresaId: session.empresaId,
+          locatarioId: current.locatarioId,
+          mesReferencia: new Date().toISOString().slice(0, 7),
+          numeroParcela: 1,
+          valor: current.valorDanos,
+          dataVencimento: new Date(),
+          status: "PENDENTE",
+          observacao: `Cobrança de danos — vistoria ${current.id} — Flat ${current.flatId}`,
+        },
+      });
+      const vistoriaCobrada = await prisma.vistoriaChecklist.update({
+        where: { id },
+        data: { cobrancaDanosGerada: true, dataCobrancaDanos: new Date() },
+        include: { flat: { include: { local: true } }, locatario: true, reserva: true, modelo: true },
+      });
+      return NextResponse.json({ vistoria: vistoriaCobrada, cobrancaGerada: true });
     }
 
-    await prisma.vistoriaChecklist.delete({
-      where: { id },
-    });
+    const data: any = {};
+    if (changes.itens) {
+      const parsedItems = parseItems(changes.itens);
+      data.itensJson = JSON.stringify(parsedItems);
+      data.valorDanos = parsedItems.reduce((sum, item) => sum + (item.avaria ? item.valorDano : 0), 0);
+    }
+    if (changes.fotos) data.fotosJson = JSON.stringify(Array.isArray(changes.fotos) ? changes.fotos : []);
+    for (const field of ["observacaoGeral", "limpezaStatus", "manutencaoStatus", "responsavelVistoria", "tipoVistoria", "status", "laudoImpressoUrl"]) {
+      if (changes[field] !== undefined) data[field] = changes[field];
+    }
+    if (changes.status === "ASSINADA") data.statusAssinatura = "ASSINADO";
 
-    return NextResponse.json({ success: true });
+    const vistoria = await prisma.vistoriaChecklist.update({
+      where: { id },
+      data,
+      include: { flat: { include: { local: true } }, locatario: true, reserva: true, modelo: true },
+    });
+    return NextResponse.json({ vistoria });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Erro ao atualizar vistoria." }, { status: 500 });
   }
 }
