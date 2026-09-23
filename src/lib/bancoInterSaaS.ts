@@ -85,13 +85,14 @@ export async function emitirCobrancaSaaSBancoInter({
     throw new Error("Empresa pagadora não encontrada no sistema.");
   }
 
-  // 2. Verifica se já existe uma cobrança pendente recente (últimas 12 horas) para o mesmo plano e valor
+  // 2. Verifica se já existe uma cobrança pendente recente (últimas 12 horas) para o mesmo plano, ciclo e valor exato
   const dozeHorasAtras = new Date(Date.now() - 12 * 60 * 60 * 1000);
   const cobrancaExistente = await prisma.cobrancaAssinaturaSaaS.findFirst({
     where: {
       empresaId,
       plano: targetPlan.slug,
       ciclo,
+      valor: valor, // Garante que a cobrança reutilizada tem exatamente o valor atual configurado
       status: "PENDENTE",
       bancoInterPixCopiaECola: { not: null },
       createdAt: { gte: dozeHorasAtras },
@@ -99,7 +100,7 @@ export async function emitirCobrancaSaaSBancoInter({
     orderBy: { createdAt: "desc" },
   });
 
-  if (cobrancaExistente && cobrancaExistente.bancoInterPixCopiaECola) {
+  if (cobrancaExistente && cobrancaExistente.bancoInterPixCopiaECola && cobrancaExistente.valor === valor) {
     const qrCodeBase64 =
       cobrancaExistente.bancoInterPixQrCode ||
       (await generatePixQRCode(cobrancaExistente.bancoInterPixCopiaECola));
@@ -111,7 +112,7 @@ export async function emitirCobrancaSaaSBancoInter({
       qrCodeBase64,
       linhaDigitavel: cobrancaExistente.bancoInterLinhaDigitavel,
       pdfUrl: cobrancaExistente.bancoInterPdfUrl,
-      valor,
+      valor: cobrancaExistente.valor,
       plano: targetPlan,
       ciclo,
     };

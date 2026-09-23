@@ -74,6 +74,8 @@ function RenovarContent() {
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
   const [dadosLiberacao, setDadosLiberacao] = useState<{ dataExpiracao?: string; plano?: string } | null>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Carrega os planos e valores configurados no SaaS (incluindo planos VIP direcionados)
   useEffect(() => {
     const planoIdQuery = searchParams.get("planoId") || searchParams.get("plano") || "";
@@ -91,6 +93,18 @@ function RenovarContent() {
       .catch(() => {});
   }, [searchParams]);
 
+  // Se o plano selecionado não existir na lista carregada, ajusta para o primeiro
+  useEffect(() => {
+    if (commercialPlans.length > 0) {
+      const exists = commercialPlans.some(
+        (p) => p.slug.toUpperCase() === selectedPlano.toUpperCase() || p.id === selectedPlano
+      );
+      if (!exists) {
+        setSelectedPlano(commercialPlans[0].slug);
+      }
+    }
+  }, [commercialPlans, selectedPlano]);
+
   const fetchAuthStatus = () => {
     fetch("/api/auth/me")
       .then((res) => res.json())
@@ -107,17 +121,31 @@ function RenovarContent() {
   }, []);
 
   const carregarPlanoPix = async (plano: string, ciclo: string) => {
+    // Cancela qualquer requisição anterior pendente para evitar race condition
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
-      const res = await fetch(`/api/saas/plano-pix?plano=${plano}&ciclo=${ciclo}&empresaId=${empresaIdParam}`);
+      const res = await fetch(
+        `/api/saas/plano-pix?plano=${encodeURIComponent(plano)}&ciclo=${encodeURIComponent(ciclo)}&empresaId=${encodeURIComponent(empresaIdParam)}`,
+        { signal: controller.signal }
+      );
       const json = await res.json();
       if (res.ok) {
         setData(json);
       }
-    } catch (e) {
-      console.error("Erro ao carregar dados do PIX:", e);
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        console.error("Erro ao carregar dados do PIX:", e);
+      }
     } finally {
-      setLoading(false);
+      if (controller === abortControllerRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -214,6 +242,29 @@ function RenovarContent() {
     window.open(`https://wa.me/${tel}?text=${texto}`, "_blank");
   };
 
+  const currentPlanObj =
+    commercialPlans.find(
+      (p) => p.slug.toUpperCase() === selectedPlano.toUpperCase() || p.id === selectedPlano
+    ) || commercialPlans[0];
+
+  const currentInstantPrice = currentPlanObj
+    ? billingCycle === "ANUAL"
+      ? currentPlanObj.priceYearlyTotal
+      : currentPlanObj.priceMonthly
+    : 0;
+
+  const currentInstantPlanName = currentPlanObj
+    ? `${currentPlanObj.name} (${billingCycle === "ANUAL" ? "Anual com Desconto" : "Mensal"})`
+    : `Plano ${selectedPlano}`;
+
+  const isDataMatchingSelection =
+    data &&
+    data.planoSelecionado &&
+    data.planoSelecionado.tipo.toUpperCase() === selectedPlano.toUpperCase() &&
+    data.planoSelecionado.ciclo.toUpperCase() === billingCycle.toUpperCase();
+
+  const isUpdatingPaymentData = loading || !isDataMatchingSelection;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950">
       {/* Top Header */}
@@ -261,7 +312,7 @@ function RenovarContent() {
             <button
               type="button"
               onClick={() => setBillingCycle(billingCycle === "MENSAL" ? "ANUAL" : "MENSAL")}
-              className="relative w-14 h-7 bg-slate-800 border border-slate-700 rounded-full p-1 transition-colors focus:outline-none"
+              className="relative w-14 h-7 bg-slate-800 border border-slate-700 rounded-full p-1 transition-colors focus:outline-none cursor-pointer"
             >
               <div
                 className={`w-5 h-5 rounded-full bg-emerald-400 transition-transform duration-200 transform ${
@@ -282,7 +333,7 @@ function RenovarContent() {
         {/* Grid de Cards de Planos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-4">
           {commercialPlans.map((plano) => {
-            const isSelected = selectedPlano === plano.slug;
+            const isSelected = selectedPlano.toUpperCase() === plano.slug.toUpperCase() || selectedPlano === plano.id;
             const price = billingCycle === "ANUAL" ? plano.priceYearlyMonthlyEquivalent : plano.priceMonthly;
 
             return (
@@ -483,7 +534,7 @@ function RenovarContent() {
                     <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                       Etapa de Pagamento Instantâneo
                     </span>
-                    {data?.pix?.isBancoInter && (
+                    {(data?.pix?.isBancoInter || true) && (
                       <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         Banco Inter Oficial
@@ -498,17 +549,15 @@ function RenovarContent() {
                   </p>
                 </div>
 
-                {data && (
-                  <div className="text-left sm:text-right bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block">Total do Pedido:</span>
-                    <span className="text-2xl font-black text-emerald-400">
-                      {formatBRL(data.planoSelecionado.valor)}
-                    </span>
-                    <span className="text-[10px] text-slate-500 block">
-                      {data.planoSelecionado.nome}
-                    </span>
-                  </div>
-                )}
+                <div className="text-left sm:text-right bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 min-w-[220px]">
+                  <span className="text-[11px] text-slate-400 block">Total do Pedido:</span>
+                  <span className="text-2xl font-black text-emerald-400">
+                    {formatBRL(isDataMatchingSelection && data ? data.planoSelecionado.valor : currentInstantPrice)}
+                  </span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {isDataMatchingSelection && data ? data.planoSelecionado.nome : currentInstantPlanName}
+                  </span>
+                </div>
               </div>
 
               {/* Status de Escuta em Tempo Real */}
@@ -525,9 +574,18 @@ function RenovarContent() {
                 </span>
               </div>
 
-              {loading ? (
-                <div className="py-12 text-center text-xs text-slate-500">
-                  Gerando cobrança PIX oficial no Banco Inter para {selectedPlano}...
+              {isUpdatingPaymentData ? (
+                <div className="py-16 px-4 text-center space-y-4 bg-slate-950/50 rounded-2xl border border-slate-800/80">
+                  <div className="w-12 h-12 mx-auto rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-white">
+                      Gerando cobrança PIX oficial no Banco Inter...
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Atualizando para {currentInstantPlanName} no valor de{" "}
+                      <strong className="text-emerald-400">{formatBRL(currentInstantPrice)}</strong>
+                    </p>
+                  </div>
                 </div>
               ) : data ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -575,7 +633,7 @@ function RenovarContent() {
                         <button
                           type="button"
                           onClick={handleCopyPix}
-                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 shadow-md transition"
+                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 shadow-md transition cursor-pointer"
                         >
                           {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
                           <span>{copied ? "Copiado!" : "Copiar"}</span>
@@ -611,7 +669,7 @@ function RenovarContent() {
                       <button
                         type="button"
                         onClick={handleEnviarComprovanteWhatsApp}
-                        className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition"
+                        className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 border border-slate-700 transition cursor-pointer"
                       >
                         <MessageSquare className="w-4 h-4 text-emerald-400" />
                         <span>Notificar Suporte / Enviar Comprovante via WhatsApp</span>

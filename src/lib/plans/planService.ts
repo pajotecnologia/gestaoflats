@@ -63,7 +63,10 @@ export async function getActiveSaasPlans(): Promise<Record<string, PlanDefinitio
     const config = await prisma.configuracaoSaaS.findFirst();
     if (config?.planosConfigJson) {
       const custom = JSON.parse(config.planosConfigJson);
-      return { ...SAAS_PLANS, ...custom };
+      const plans: Record<string, PlanDefinition> = { ...custom };
+      if (!plans.TRIAL) plans.TRIAL = SAAS_PLANS.TRIAL;
+      if (!plans.MESTRE) plans.MESTRE = SAAS_PLANS.MESTRE;
+      return plans;
     }
   } catch (e) {}
   return SAAS_PLANS;

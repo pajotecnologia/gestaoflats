@@ -1,6 +1,6 @@
 {
   "name": "gestaoflats",
-  "version": "2.29.11",
+  "version": "2.29.12",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3010",
