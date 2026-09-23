@@ -5,6 +5,7 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 ---
 
 ## 📑 ÍNDICE DE VERSÕES
+- [v2.29.15 - Emissão de Cobrança SaaS no Banco Inter sob Demanda via Botão](#v22915---emissão-de-cobrança-saas-no-banco-inter-sob-demanda-via-botão)
 - [v2.29.14 - Eliminação de Flash de Preços no Checkout com Skeleton Loading](#v22914---eliminação-de-flash-de-preços-no-checkout-com-skeleton-loading)
 - [v2.29.13 - Padronização do Percentual de Economia Anual (10%)](#v22913---padronização-do-percentual-de-economia-anual-10)
 - [v2.29.12 - Sincronização Instantânea no Checkout & Correção da Linha Digitável Inter](#v22912---sincronização-instantânea-no-checkout--correção-da-linha-digitável-inter)
@@ -18,6 +19,29 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 - [v2.29.4 - Conciliação Automática no Contas a Pagar e Caixa do Dia](#v2294---conciliação-automática-no-contas-a-pagar-e-caixa-do-dia)
 - [v2.29.3 - Integração Financeira Nativa da Ordem de Serviço (O.S.)](#v2293---integração-financeira-nativa-da-ordem-de-serviço-os)
 - [v2.29.2 - Atualização Reativa de Status da Vistoria sem F5](#v2292---atualização-reativa-de-status-da-vistoria-sem-f5)
+
+---
+
+### v2.29.15 - Emissão de Cobrança SaaS no Banco Inter sob Demanda via Botão
+- **Data**: 23/09/2026
+- **Arquivos**:
+  - `src/app/api/saas/plano-pix/route.ts`
+  - `src/app/renovar/page.tsx`
+  - `src/lib/version.ts`
+  - `package.json`
+- **Problema Relatado**:
+  - Ao entrar na página `/renovar` e alternar entre os planos ou ciclos, o sistema gerava imediatamente e automaticamente novas cobranças/boletos no Banco Inter sem o consentimento ou confirmação do cliente.
+  - Solicitação de verificação das credenciais e status de conexão da Empresa com o Banco Inter.
+- **Diagnóstico da Conexão**:
+  - Script diagnóstico validou as chaves mTLS da Empresa Mestre (`empresa-demo-001`): `bancoInterAtivo: true`, certificado CRT, chave KEY e ambiente `PRODUCAO`.
+  - Autenticação OAuth 2.0 mTLS bem-sucedida e consulta à API `/cobranca/v3/cobrancas` retornou HTTP 200 OK.
+- **Causa Raiz da Emissão Automática**:
+  - O hook `useEffect` da tela de renovação invocava `/api/saas/plano-pix` a cada alteração de `[selectedPlano, billingCycle]`. A rota chamava incondicionalmente a API de emissão de cobrança do Banco Inter.
+- **Solução Implementada**:
+  - **Backend (`/api/saas/plano-pix`)**: Adicionado controle pelo parâmetro `emitir=true` (ou método `POST`). Se `emitir !== "true"`, a rota apenas retorna as informações de preview e valores do plano sem registrar nenhuma cobrança no banco.
+  - **Frontend (`/renovar`)**: A emissão da cobrança no Banco Inter agora ocorre única e exclusivamente quando o usuário clica no botão principal *"Gerar Pagamento PIX (R$ XX,XX)"*.
+  - Ao clicar no botão, é exibido feedback de carregamento (*"Gerando Bolepix no Banco Inter..."*), seguido do QR Code Pix, Copia e Cola, Linha Digitável e início do monitoramento de baixa em tempo real.
+  - Se o usuário trocar de plano ou ciclo após ter gerado um QR Code, o sistema oculta a cobrança anterior e reapresenta o botão de confirmação para o novo plano selecionado.
 
 ---
 
