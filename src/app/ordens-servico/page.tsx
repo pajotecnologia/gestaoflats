@@ -1,16 +1,825 @@
 "use client";
-import { useEffect,useState } from "react";
+
+import React, { useEffect, useState, useMemo } from "react";
 import Shell from "@/components/layout/Shell";
-import { Plus, Wrench, CheckCircle2, X, RefreshCw } from "lucide-react";
+import {
+  Wrench,
+  Plus,
+  Search,
+  Filter,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Flame,
+  Building2,
+  User,
+  Calendar,
+  DollarSign,
+  Edit3,
+  Trash2,
+  X,
+  Check,
+  ChevronRight,
+  Sparkles,
+  Info,
+  CheckCircle,
+  Tag,
+  Hammer,
+  Droplet,
+  Zap,
+  Wind,
+  Paintbrush,
+  Brush,
+} from "lucide-react";
 import { formatCurrency } from "@/lib/validation";
-export default function OrdensServicoPage(){
- const [ordens,setOrdens]=useState<any[]>([]); const [flats,setFlats]=useState<any[]>([]); const [open,setOpen]=useState(false); const [form,setForm]=useState<any>({titulo:"",descricao:"",flatId:"",prioridade:"MEDIA",categoria:"MANUTENCAO",valorEstimado:"",prazo:""}); const [loading,setLoading]=useState(true);
- const load=()=>Promise.all([fetch("/api/ordens-servico").then(r=>r.json()),fetch("/api/flats").then(r=>r.json())]).then(([a,b])=>{setOrdens(a.ordens||[]);setFlats(b.flats||[])}).finally(()=>setLoading(false));
- useEffect(()=>{load()},[]);
- const save=async(e:any)=>{e.preventDefault();await fetch("/api/ordens-servico",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});setOpen(false);setForm({titulo:"",descricao:"",flatId:"",prioridade:"MEDIA",categoria:"MANUTENCAO",valorEstimado:"",prazo:""});load()};
- const status=async(o:any,s:string)=>{await fetch("/api/ordens-servico",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:o.id,status:s})});load()};
- return <Shell><div className="space-y-6"><div className="flex justify-between border-b border-slate-200 dark:border-slate-800 pb-4"><div><h1 className="text-lg font-bold">Ordens de Serviço</h1><p className="text-xs text-slate-500">Manutenção, limpeza, reparos e acompanhamento de execução.</p></div><button onClick={()=>setOpen(true)} className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold flex gap-2 items-center"><Plus className="w-4 h-4"/> Nova OS</button></div>
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{loading?<p className="text-xs text-slate-500">Carregando...</p>:ordens.map(o=><div key={o.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4"><div className="flex justify-between"><div><span className="text-[10px] text-blue-600 font-bold">{o.codigo}</span><h2 className="font-bold text-sm mt-1">{o.titulo}</h2></div><Wrench className="w-5 h-5 text-slate-400"/></div><p className="text-xs text-slate-500 mt-2">{o.descricao||"Sem descrição"}</p><div className="flex flex-wrap gap-2 mt-3 text-[10px]"><span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800">{o.prioridade}</span><span className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600">{o.status}</span>{o.flat&&<span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800">Flat {o.flat.numero}</span>}</div><div className="flex items-center justify-between mt-4"><span className="text-xs font-semibold">{formatCurrency(o.valorReal||o.valorEstimado||0)}</span><div className="flex gap-2">{o.status==="ABERTA"&&<button onClick={()=>status(o,"EM_EXECUCAO")} className="text-[10px] px-2 py-1 rounded-lg bg-blue-600 text-white">Iniciar</button>}{o.status==="EM_EXECUCAO"&&<button onClick={()=>status(o,"CONCLUIDA")} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-600 text-white"><CheckCircle2 className="w-3 h-3 inline"/> Concluir</button>}</div></div></div>)}</div>
- {open&&<div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"><form onSubmit={save} className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 p-6 space-y-3"><div className="flex justify-between"><h2 className="font-bold">Nova Ordem de Serviço</h2><button type="button" onClick={()=>setOpen(false)}><X className="w-4 h-4"/></button></div><input required placeholder="Título" value={form.titulo} onChange={e=>setForm({...form,titulo:e.target.value})} className="w-full rounded-xl border p-3 text-xs bg-transparent"/><textarea placeholder="Descrição" value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} className="w-full rounded-xl border p-3 text-xs bg-transparent"/><div className="grid grid-cols-2 gap-3"><select value={form.flatId} onChange={e=>setForm({...form,flatId:e.target.value})} className="rounded-xl border p-3 text-xs bg-transparent"><option value="">Imóvel</option>{flats.map(f=><option key={f.id} value={f.id}>{f.numero}</option>)}</select><select value={form.prioridade} onChange={e=>setForm({...form,prioridade:e.target.value})} className="rounded-xl border p-3 text-xs bg-transparent"><option>BAIXA</option><option>MEDIA</option><option>ALTA</option><option>URGENTE</option></select></div><input type="number" step="0.01" placeholder="Valor estimado" value={form.valorEstimado} onChange={e=>setForm({...form,valorEstimado:e.target.value})} className="w-full rounded-xl border p-3 text-xs bg-transparent"/><input type="date" value={form.prazo} onChange={e=>setForm({...form,prazo:e.target.value})} className="w-full rounded-xl border p-3 text-xs bg-transparent"/><button className="w-full rounded-xl bg-blue-600 text-white p-3 text-xs font-bold">Criar OS</button></form></div>}
- </div></Shell>
+import { toast } from "sonner";
+
+interface OrdemServico {
+  id: string;
+  codigo: string;
+  titulo: string;
+  descricao: string | null;
+  categoria: string;
+  prioridade: "BAIXA" | "MEDIA" | "ALTA" | "URGENTE";
+  status: "ABERTA" | "EM_EXECUCAO" | "CONCLUIDA" | "CANCELADA";
+  responsavel: string | null;
+  fornecedorNome: string | null;
+  valorEstimado: number;
+  valorReal: number;
+  dataAbertura: string;
+  prazo: string | null;
+  dataConclusao: string | null;
+  observacao: string | null;
+  flat?: {
+    id: string;
+    numero: string;
+    tipoImovel?: string;
+    local?: {
+      id: string;
+      nome: string;
+    };
+  } | null;
+  locatario?: {
+    id: string;
+    nome: string;
+    telefone: string;
+  } | null;
+}
+
+const formatTipoImovel = (tipo?: string) => {
+  if (!tipo) return "Imóvel";
+  const t = String(tipo).toUpperCase();
+  if (t === "CHACARA") return "Chácara";
+  if (t === "SALAO") return "Salão de Festas";
+  if (t === "CASA") return "Casa";
+  if (t === "APARTAMENTO") return "Apartamento";
+  if (t === "FLAT") return "Flat";
+  return tipo;
+};
+
+const CATEGORIAS = [
+  { id: "MANUTENCAO", label: "Manutenção Geral", icon: Wrench },
+  { id: "ELETRICA", label: "Elétrica", icon: Zap },
+  { id: "HIDRAULICA", label: "Hidráulica", icon: Droplet },
+  { id: "AR_CONDICIONADO", label: "Ar-condicionado", icon: Wind },
+  { id: "PINTURA", label: "Pintura", icon: Paintbrush },
+  { id: "LIMPEZA", label: "Limpeza & Higienização", icon: Brush },
+  { id: "ALVENARIA", label: "Alvenaria & Reforma", icon: Hammer },
+  { id: "OUTRO", label: "Outro", icon: Tag },
+];
+
+export default function OrdensServicoPage() {
+  const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+  const [flats, setFlats] = useState<any[]>([]);
+  const [locatarios, setLocatarios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<string>("TODOS");
+  const [filtroPrioridade, setFiltroPrioridade] = useState<string>("TODAS");
+  const [filtroFlatId, setFiltroFlatId] = useState<string>("");
+
+  // Modais
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingOrdem, setEditingOrdem] = useState<OrdemServico | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Formulário
+  const [form, setForm] = useState({
+    titulo: "",
+    descricao: "",
+    flatId: "",
+    locatarioId: "",
+    categoria: "MANUTENCAO",
+    prioridade: "MEDIA",
+    responsavel: "",
+    fornecedorNome: "",
+    valorEstimado: "",
+    valorReal: "",
+    prazo: "",
+    observacao: "",
+  });
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [resOrdens, resFlats, resLocatarios] = await Promise.all([
+        fetch("/api/ordens-servico").then((r) => r.json()),
+        fetch("/api/flats").then((r) => r.json()),
+        fetch("/api/locatarios").then((r) => r.json()),
+      ]);
+
+      setOrdens(resOrdens.ordens || []);
+      setFlats(resFlats.flats || []);
+      setLocatarios(resLocatarios.locatarios || []);
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+      toast.error("Erro ao carregar ordens de serviço.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleOpenCreate = () => {
+    setEditingOrdem(null);
+    setForm({
+      titulo: "",
+      descricao: "",
+      flatId: flats[0]?.id || "",
+      locatarioId: "",
+      categoria: "MANUTENCAO",
+      prioridade: "MEDIA",
+      responsavel: "",
+      fornecedorNome: "",
+      valorEstimado: "",
+      valorReal: "",
+      prazo: new Date().toISOString().split("T")[0],
+      observacao: "",
+    });
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (ordem: OrdemServico) => {
+    setEditingOrdem(ordem);
+    setForm({
+      titulo: ordem.titulo || "",
+      descricao: ordem.descricao || "",
+      flatId: ordem.flat?.id || "",
+      locatarioId: ordem.locatario?.id || "",
+      categoria: ordem.categoria || "MANUTENCAO",
+      prioridade: ordem.prioridade || "MEDIA",
+      responsavel: ordem.responsavel || "",
+      fornecedorNome: ordem.fornecedorNome || "",
+      valorEstimado: ordem.valorEstimado ? String(ordem.valorEstimado) : "",
+      valorReal: ordem.valorReal ? String(ordem.valorReal) : "",
+      prazo: ordem.prazo ? new Date(ordem.prazo).toISOString().split("T")[0] : "",
+      observacao: ordem.observacao || "",
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.titulo.trim()) {
+      toast.warning("Informe o título da ordem de serviço.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload: any = {
+        ...form,
+        valorEstimado: form.valorEstimado ? parseFloat(form.valorEstimado) : 0,
+        valorReal: form.valorReal ? parseFloat(form.valorReal) : 0,
+        prazo: form.prazo || null,
+        flatId: form.flatId || null,
+        locatarioId: form.locatarioId || null,
+      };
+
+      let res;
+      if (editingOrdem) {
+        res = await fetch("/api/ordens-servico", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingOrdem.id, ...payload }),
+        });
+      } else {
+        res = await fetch("/api/ordens-servico", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Erro ao salvar ordem de serviço.");
+        return;
+      }
+
+      toast.success(editingOrdem ? "Ordem de serviço atualizada!" : "Ordem de serviço aberta com sucesso!");
+      setModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro inesperado ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateStatus = async (ordem: OrdemServico, newStatus: string) => {
+    try {
+      const res = await fetch("/api/ordens-servico", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ordem.id, status: newStatus }),
+      });
+
+      if (!res.ok) {
+        toast.error("Erro ao atualizar status da ordem.");
+        return;
+      }
+
+      toast.success(
+        newStatus === "CONCLUIDA"
+          ? "Ordem de serviço marcada como Concluída!"
+          : newStatus === "EM_EXECUCAO"
+          ? "Ordem de serviço colocada em Execução!"
+          : "Status da ordem atualizado."
+      );
+      loadData();
+    } catch (err) {
+      toast.error("Erro ao atualizar status.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta ordem de serviço?")) return;
+    try {
+      const res = await fetch(`/api/ordens-servico?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("Erro ao excluir ordem de serviço.");
+        return;
+      }
+      toast.success("Ordem de serviço excluída com sucesso.");
+      loadData();
+    } catch (err) {
+      toast.error("Erro ao excluir.");
+    }
+  };
+
+  // Filtragem
+  const ordensFiltradas = useMemo(() => {
+    return ordens.filter((o) => {
+      const matchesSearch =
+        o.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        o.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.descricao && o.descricao.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (o.flat && o.flat.numero.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (o.locatario && o.locatario.nome.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesStatus = filtroStatus === "TODOS" || o.status === filtroStatus;
+      const matchesPrioridade = filtroPrioridade === "TODAS" || o.prioridade === filtroPrioridade;
+      const matchesFlat = !filtroFlatId || o.flat?.id === filtroFlatId;
+
+      return matchesSearch && matchesStatus && matchesPrioridade && matchesFlat;
+    });
+  }, [ordens, searchTerm, filtroStatus, filtroPrioridade, filtroFlatId]);
+
+  // Totalizadores
+  const totalGeral = ordens.length;
+  const totalAbertas = ordens.filter((o) => o.status === "ABERTA").length;
+  const totalExecucao = ordens.filter((o) => o.status === "EM_EXECUCAO").length;
+  const totalConcluidas = ordens.filter((o) => o.status === "CONCLUIDA").length;
+  const valorTotalEstimado = ordens.reduce((acc, o) => acc + (o.valorEstimado || 0), 0);
+
+  const getPriorityBadge = (p: string) => {
+    switch (p) {
+      case "URGENTE":
+        return "bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-400 border-rose-300 dark:border-rose-800";
+      case "ALTA":
+        return "bg-orange-100 text-orange-700 dark:bg-orange-950/70 dark:text-orange-400 border-orange-300 dark:border-orange-800";
+      case "MEDIA":
+        return "bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-400 border-amber-300 dark:border-amber-800";
+      case "BAIXA":
+      default:
+        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+    }
+  };
+
+  const getStatusBadge = (s: string) => {
+    switch (s) {
+      case "CONCLUIDA":
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800";
+      case "EM_EXECUCAO":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-400 border-blue-300 dark:border-blue-800";
+      case "CANCELADA":
+        return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700";
+      case "ABERTA":
+      default:
+        return "bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-400 border-amber-300 dark:border-amber-800";
+    }
+  };
+
+  return (
+    <Shell>
+      <div className="space-y-6">
+        {/* Header Superior */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-zinc-800 pb-5">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <span>Ordens de Serviço & Manutenção</span>
+                <span className="text-xs bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 font-bold px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                  O.S.
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Gestão de chamados técnicos, reparos preventivos, pintura, elétrica e manutenção de imóveis
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleOpenCreate}
+            className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nova Ordem de Serviço</span>
+          </button>
+        </div>
+
+        {/* Totalizadores / Métricas Rápidas */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total de O.S.</span>
+            <div className="text-2xl font-black text-slate-900 dark:text-zinc-100 mt-0.5">{totalGeral}</div>
+            <span className="text-[10px] text-slate-500">Cadastradas no sistema</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
+            <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider">Abertas (Pendentes)</span>
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{totalAbertas}</div>
+            <span className="text-[10px] text-slate-500">Aguardando início</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
+            <span className="text-[11px] font-bold text-blue-500 uppercase tracking-wider">Em Execução</span>
+            <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5">{totalExecucao}</div>
+            <span className="text-[10px] text-slate-500">Em andamento técnico</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
+            <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider">Concluídas</span>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{totalConcluidas}</div>
+            <span className="text-[10px] text-slate-500">Finalizadas com sucesso</span>
+          </div>
+        </div>
+
+        {/* Barra de Filtros e Busca */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por título, código ou imóvel..."
+                className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100"
+              >
+                <option value="TODOS">Status: Todos</option>
+                <option value="ABERTA">Status: Abertas</option>
+                <option value="EM_EXECUCAO">Status: Em Execução</option>
+                <option value="CONCLUIDA">Status: Concluídas</option>
+                <option value="CANCELADA">Status: Canceladas</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={filtroPrioridade}
+                onChange={(e) => setFiltroPrioridade(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100"
+              >
+                <option value="TODAS">Prioridade: Todas</option>
+                <option value="URGENTE">Prioridade: Urgente</option>
+                <option value="ALTA">Prioridade: Alta</option>
+                <option value="MEDIA">Prioridade: Média</option>
+                <option value="BAIXA">Prioridade: Baixa</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={filtroFlatId}
+                onChange={(e) => setFiltroFlatId(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100"
+              >
+                <option value="">Filtrar por Imóvel: Todos</option>
+                {flats.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {formatTipoImovel(f.tipoImovel)} {f.numero} ({f.local?.nome || "Condomínio"})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Grid de Ordens de Serviço */}
+        {loading ? (
+          <div className="py-12 text-center text-xs text-slate-500">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <span>Carregando ordens de serviço...</span>
+          </div>
+        ) : ordensFiltradas.length === 0 ? (
+          <div className="p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-400 flex items-center justify-center mx-auto">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-100">
+              Nenhuma ordem de serviço encontrada
+            </h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {searchTerm || filtroStatus !== "TODOS"
+                ? "Tente ajustar os filtros de busca."
+                : "Clique no botão acima para abrir a primeira ordem de serviço de manutenção."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ordensFiltradas.map((ordem) => {
+              const prazoDate = ordem.prazo ? new Date(ordem.prazo).toLocaleDateString("pt-BR") : null;
+
+              return (
+                <div
+                  key={ordem.id}
+                  className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 shadow-xs hover:border-blue-500/40 transition flex flex-col justify-between space-y-3"
+                >
+                  {/* Cabeçalho do Card */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                        {ordem.codigo}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getPriorityBadge(
+                            ordem.prioridade
+                          )}`}
+                        >
+                          {ordem.prioridade}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(
+                            ordem.status
+                          )}`}
+                        >
+                          {ordem.status === "EM_EXECUCAO"
+                            ? "Em Execução"
+                            : ordem.status === "CONCLUIDA"
+                            ? "Concluída"
+                            : ordem.status === "CANCELADA"
+                            ? "Cancelada"
+                            : "Aberta"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-100 leading-snug">
+                      {ordem.titulo}
+                    </h3>
+
+                    {ordem.descricao && (
+                      <p className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                        {ordem.descricao}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Informações de Vínculo: Imóvel e Locatário */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200/80 dark:border-zinc-800/80 text-xs space-y-1.5">
+                    {ordem.flat && (
+                      <div className="flex items-center space-x-1.5 text-slate-700 dark:text-zinc-300">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="font-semibold">
+                          {formatTipoImovel(ordem.flat.tipoImovel)} {ordem.flat.numero}
+                        </span>
+                        {ordem.flat.local?.nome && (
+                          <span className="text-slate-400 text-[11px]">({ordem.flat.local.nome})</span>
+                        )}
+                      </div>
+                    )}
+
+                    {ordem.locatario && (
+                      <div className="flex items-center space-x-1.5 text-slate-600 dark:text-zinc-400 text-[11px]">
+                        <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{ordem.locatario.nome}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60 dark:border-zinc-800/60 text-slate-500">
+                      <span>Prazo: {prazoDate || "Não informado"}</span>
+                      {ordem.valorEstimado > 0 && (
+                        <span className="font-bold text-slate-900 dark:text-zinc-200">
+                          {formatCurrency(ordem.valorReal || ordem.valorEstimado)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ações Rápidas */}
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-1.5">
+                      {ordem.status === "ABERTA" && (
+                        <button
+                          onClick={() => handleUpdateStatus(ordem, "EM_EXECUCAO")}
+                          className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-400 font-bold text-[10px] transition cursor-pointer"
+                        >
+                          Iniciar Execução
+                        </button>
+                      )}
+                      {ordem.status === "EM_EXECUCAO" && (
+                        <button
+                          onClick={() => handleUpdateStatus(ordem, "CONCLUIDA")}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Concluir O.S.</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenEdit(ordem)}
+                        title="Editar O.S."
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 transition cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(ordem.id)}
+                        title="Excluir O.S."
+                        className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* MODAL ORGANIZADO COM LABELS CLARAS: NOVA OU EDITAR O.S. */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-zinc-100">
+              {/* Header do Modal */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-base text-slate-900 dark:text-zinc-100">
+                      {editingOrdem ? `Editar Ordem de Serviço (${editingOrdem.codigo})` : "Nova Ordem de Serviço"}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Preencha os dados e os responsáveis para acompanhamento da execução
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Formulário com Labels Claras e Identificadas */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* 1. Título do Chamado */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Título da Ordem de Serviço *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.titulo}
+                    onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                    placeholder="Ex: Troca de disjuntor elétrico / Manutenção no Ar-condicionado"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {/* 2. Descrição Detalhada */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Descrição do Problema / Serviço
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.descricao}
+                    onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                    placeholder="Descreva detalhes do defeito, peças a substituir ou especificações técnicas..."
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl p-3 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 leading-relaxed"
+                  />
+                </div>
+
+                {/* 3. Imóvel e Categoria */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Imóvel / Espaço Vinculado
+                    </label>
+                    <select
+                      value={form.flatId}
+                      onChange={(e) => setForm({ ...form, flatId: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100"
+                    >
+                      <option value="">-- Nenhum Imóvel Específico --</option>
+                      {flats.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {formatTipoImovel(f.tipoImovel)} {f.numero} ({f.local?.nome || "Condomínio / Local"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Categoria do Serviço
+                    </label>
+                    <select
+                      value={form.categoria}
+                      onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100"
+                    >
+                      {CATEGORIAS.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 4. Solicitante / Locatário e Nível de Prioridade */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Locatário / Solicitante
+                    </label>
+                    <select
+                      value={form.locatarioId}
+                      onChange={(e) => setForm({ ...form, locatarioId: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100"
+                    >
+                      <option value="">-- Sem Locatário Vinculado --</option>
+                      {locatarios.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.nome} ({loc.telefone})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Nível de Prioridade *
+                    </label>
+                    <select
+                      value={form.prioridade}
+                      onChange={(e) => setForm({ ...form, prioridade: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 font-semibold"
+                    >
+                      <option value="BAIXA">🟢 Baixa (Rotina)</option>
+                      <option value="MEDIA">🟡 Média (Padrão)</option>
+                      <option value="ALTA">🟠 Alta (Importante)</option>
+                      <option value="URGENTE">🔴 Urgente (Imediata)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 5. Técnico / Fornecedor e Prazo */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Responsável / Técnico / Fornecedor
+                    </label>
+                    <input
+                      type="text"
+                      value={form.responsavel}
+                      onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
+                      placeholder="Ex: João Eletricista / Refrigeração Silva"
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Prazo Limite / Conclusão
+                    </label>
+                    <input
+                      type="date"
+                      value={form.prazo}
+                      onChange={(e) => setForm({ ...form, prazo: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* 6. Custos: Estimado e Real */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200 dark:border-zinc-800">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Valor Estimado (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.valorEstimado}
+                      onChange={(e) => setForm({ ...form, valorEstimado: e.target.value })}
+                      placeholder="0,00"
+                      className="w-full bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                      Valor Real / Final (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.valorReal}
+                      onChange={(e) => setForm({ ...form, valorReal: e.target.value })}
+                      placeholder="0,00"
+                      className="w-full bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* 7. Observações Internas */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                    Observações Internas
+                  </label>
+                  <input
+                    type="text"
+                    value={form.observacao}
+                    onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+                    placeholder="Notas adicionais, número de nota fiscal, garantia das peças..."
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Botões do Modal */}
+                <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-semibold text-xs cursor-pointer transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center space-x-1.5 transition cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{saving ? "Salvando..." : editingOrdem ? "Salvar Alterações" : "Criar Ordem de Serviço"}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </Shell>
+  );
 }
