@@ -281,9 +281,10 @@ function ParametrosContent() {
   const [statusFilterEmpresa, setStatusFilterEmpresa] = useState("TODOS");
   const [showLiberarModal, setShowLiberarModal] = useState(false);
   const [empresaLiberar, setEmpresaLiberar] = useState<any>(null);
-  const [liberarTipo, setLiberarTipo] = useState<"MESES" | "DIAS" | "CUSTOM">("MESES");
+  const [liberarTipo, setLiberarTipo] = useState<"MESES" | "DIAS" | "CUSTOM" | "MANTER">("MESES");
   const [liberarQtd, setLiberarQtd] = useState(1);
-  const [liberarPlano, setLiberarPlano] = useState("MENSAL");
+  const [liberarPlano, setLiberarPlano] = useState("PROFISSIONAL");
+  const [liberarStatus, setLiberarStatus] = useState("ATIVO");
   const [liberarDataCustom, setLiberarDataCustom] = useState("");
   const [submittingLiberar, setSubmittingLiberar] = useState(false);
   const [disparandoAvisos, setDisparandoAvisos] = useState(false);
@@ -595,11 +596,17 @@ function ParametrosContent() {
   };
 
   const handleOpenLiberarModal = (emp: any) => {
+    if (Object.keys(saasPlanos).length === 0) {
+      carregarPlanosSaaS();
+    }
     setEmpresaLiberar(emp);
     setLiberarTipo("MESES");
     setLiberarQtd(1);
-    setLiberarPlano("MENSAL");
-    setLiberarDataCustom("");
+    setLiberarPlano(emp.planoAtual || "PROFISSIONAL");
+    setLiberarStatus(emp.statusAssinatura || "ATIVO");
+    setLiberarDataCustom(
+      emp.dataFimAcesso ? new Date(emp.dataFimAcesso).toISOString().split("T")[0] : ""
+    );
     setShowLiberarModal(true);
   };
 
@@ -617,17 +624,17 @@ function ParametrosContent() {
           quantidade: liberarQtd,
           dataExpiracaoCustom: liberarDataCustom,
           plano: liberarPlano,
-          status: "ATIVO",
+          status: liberarStatus,
         }),
       });
       const data = await res.json();
       if (res.ok) {
         setShowLiberarModal(false);
         await loadEmpresasSaaS();
-        toast.success(data.message || "Acesso liberado com sucesso!");
-        setFeedback({ type: "success", message: `✅ ${data.message || "Acesso liberado com sucesso!"}` });
+        toast.success(data.message || "Acesso e plano atribuídos com sucesso!");
+        setFeedback({ type: "success", message: `✅ ${data.message || "Acesso e plano atribuídos com sucesso!"}` });
       } else {
-        toast.error(data.error || "Erro ao liberar acesso");
+        toast.error(data.error || "Erro ao atualizar plano da empresa");
       }
     } catch (e: any) {
       toast.error(`Erro: ${e.message}`);
@@ -4144,79 +4151,149 @@ function ParametrosContent() {
           </div>
         )}
 
-        {/* MODAL LIBERAR / RENOVAR ACESSO DE EMPRESA */}
+        {/* MODAL LIBERAR / RENOVAR ACESSO E ATRIBUIR PLANO DE EMPRESA */}
         {showLiberarModal && empresaLiberar && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[92vh] my-auto overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[92vh] my-auto overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <Unlock className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                    Liberar / Renovar Acesso
-                  </h3>
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                    <Unlock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                      Atribuir Plano & Liberar Acesso
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Defina o plano SaaS, status da assinatura e período de validade
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowLiberarModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-                <span className="text-slate-500 block">Empresa:</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{empresaLiberar.nomeFantasia}</span>
-                <span className="text-slate-400 text-[11px] block">{empresaLiberar.cnpj}</span>
+              {/* Informações da Empresa */}
+              <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{empresaLiberar.nomeFantasia}</span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    Atual: {empresaLiberar.planoAtual || "TRIAL"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                  <span>CNPJ: {empresaLiberar.cnpj}</span>
+                  <span>
+                    Validade Atual:{" "}
+                    <strong className="text-slate-700 dark:text-slate-300">
+                      {empresaLiberar.dataFimAcesso ? new Date(empresaLiberar.dataFimAcesso).toLocaleDateString("pt-BR") : "Indefinida"}
+                    </strong>
+                  </span>
+                </div>
               </div>
 
               <form onSubmit={handleConfirmarLiberacao} className="space-y-4 text-xs">
+                {/* 1. SELEÇÃO DO PLANO ATRIBUÍDO */}
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Período de Liberação</label>
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    Plano Atribuído
+                  </label>
+                  <select
+                    value={liberarPlano}
+                    onChange={(e) => setLiberarPlano(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
+                  >
+                    {Object.keys(saasPlanos).length > 0 ? (
+                      Object.keys(saasPlanos)
+                        .filter((slug) => slug !== "MESTRE")
+                        .map((slug) => {
+                          const p = saasPlanos[slug] || {};
+                          return (
+                            <option key={slug} value={slug}>
+                              {p.name || slug} {p.priceMonthly ? `(R$ ${p.priceMonthly.toFixed(2).replace(".", ",")}/mês)` : ""}
+                            </option>
+                          );
+                        })
+                    ) : (
+                      <>
+                        <option value="ESSENCIAL">Plano Essencial (R$ 79,00/mês)</option>
+                        <option value="PROFISSIONAL">Plano Profissional (R$ 149,00/mês)</option>
+                        <option value="GESTAO">Plano Gestão (R$ 249,00/mês)</option>
+                        <option value="EMPRESARIAL">Plano Empresarial (R$ 399,00/mês)</option>
+                        <option value="ENTERPRISE">Plano Enterprise (R$ 699,00/mês)</option>
+                        <option value="TRIAL">TRIAL (Teste Grátis)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                {/* 2. STATUS DA ASSINATURA */}
+                <div>
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    Status da Assinatura
+                  </label>
+                  <select
+                    value={liberarStatus}
+                    onChange={(e) => setLiberarStatus(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="ATIVO">🟢 ATIVO (Acesso Total Liberado)</option>
+                    <option value="TRIAL">🔵 TRIAL (Período de Teste Grátis)</option>
+                    <option value="BLOQUEADO">🔴 BLOQUEADO (Acesso Suspenso)</option>
+                    <option value="EXPIRADO">⚪ EXPIRADO (Aguardando Pagamento)</option>
+                  </select>
+                </div>
+
+                {/* 3. PERÍODO DE VALIDADE / PRORROGAÇÃO */}
+                <div>
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    Validade do Acesso / Prorrogação
+                  </label>
                   <select
                     value={liberarTipo}
                     onChange={(e) => setLiberarTipo(e.target.value as any)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-slate-100"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                   >
-                    <option value="MESES">Meses (ex: 1 mês, 3 meses, 12 meses)</option>
-                    <option value="DIAS">Dias (ex: 7 dias, 15 dias, 30 dias)</option>
-                    <option value="CUSTOM">Data de Vencimento Específica</option>
+                    <option value="MESES">Adicionar Meses (ex: +1 mês, +3 meses, +12 meses)</option>
+                    <option value="DIAS">Adicionar Dias (ex: +7 dias, +15 dias, +30 dias)</option>
+                    <option value="CUSTOM">Definir Data Exata de Vencimento</option>
+                    <option value="MANTER">Manter Data Atual (Apenas mudar Plano/Status)</option>
                   </select>
                 </div>
 
                 {liberarTipo === "MESES" && (
                   <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Quantidade de Meses</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Quantidade de Meses a Adicionar</label>
                     <select
                       value={liberarQtd}
-                      onChange={(e) => {
-                        const qtd = Number(e.target.value);
-                        setLiberarQtd(qtd);
-                        if (qtd === 1) setLiberarPlano("MENSAL");
-                        else if (qtd === 3) setLiberarPlano("TRIMESTRAL");
-                        else if (qtd === 6) setLiberarPlano("SEMESTRAL");
-                        else if (qtd === 12) setLiberarPlano("ANUAL");
-                      }}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      onChange={(e) => setLiberarQtd(Number(e.target.value))}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 font-bold text-slate-900 dark:text-slate-100"
                     >
-                      <option value="1">+1 Mês (Plano Mensal)</option>
-                      <option value="3">+3 Meses (Plano Trimestral)</option>
-                      <option value="6">+6 Meses (Plano Semestral)</option>
-                      <option value="12">+12 Meses (Plano Anual)</option>
+                      <option value="1">+1 Mês</option>
+                      <option value="2">+2 Meses</option>
+                      <option value="3">+3 Meses (Trimestral)</option>
+                      <option value="6">+6 Meses (Semestral)</option>
+                      <option value="12">+12 Meses (1 Ano)</option>
+                      <option value="24">+24 Meses (2 Anos)</option>
                     </select>
                   </div>
                 )}
 
                 {liberarTipo === "DIAS" && (
                   <div>
-                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Quantidade de Dias</label>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Quantidade de Dias a Adicionar</label>
                     <input
                       type="number"
                       min="1"
                       required
                       value={liberarQtd}
                       onChange={(e) => setLiberarQtd(Number(e.target.value))}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 font-bold text-slate-900 dark:text-slate-100"
                     />
                   </div>
                 )}
@@ -4229,40 +4306,25 @@ function ParametrosContent() {
                       required
                       value={liberarDataCustom}
                       onChange={(e) => setLiberarDataCustom(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-bold text-slate-900 dark:text-slate-100"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 font-bold text-slate-900 dark:text-slate-100"
                     />
                   </div>
                 )}
-
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Identificação do Plano</label>
-                  <select
-                    value={liberarPlano}
-                    onChange={(e) => setLiberarPlano(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 font-semibold text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="TRIAL">TRIAL (Teste Grátis)</option>
-                    <option value="MENSAL">MENSAL</option>
-                    <option value="TRIMESTRAL">TRIMESTRAL</option>
-                    <option value="SEMESTRAL">SEMESTRAL</option>
-                    <option value="ANUAL">ANUAL</option>
-                  </select>
-                </div>
 
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
                   <button
                     type="button"
                     onClick={() => setShowLiberarModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-200 cursor-pointer transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submittingLiberar}
-                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-md disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-md shadow-amber-600/20 disabled:opacity-50 cursor-pointer transition"
                   >
-                    {submittingLiberar ? "Liberando..." : "Confirmar Liberação"}
+                    {submittingLiberar ? "Salvando..." : "Salvar & Atribuir Plano"}
                   </button>
                 </div>
               </form>

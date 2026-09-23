@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
         ? new Date(empresa.dataFimAcesso.getTime())
         : new Date();
 
-    if (tipo === "MESES") {
+    if (tipo === "MANTER") {
+      novaDataFimAcesso = empresa.dataFimAcesso || new Date(agora.getTime() + 30 * 24 * 60 * 60 * 1000);
+    } else if (tipo === "MESES") {
       const qtdMeses = Number(quantidade) || 1;
       baseDate.setMonth(baseDate.getMonth() + qtdMeses);
       novaDataFimAcesso = baseDate;
@@ -55,8 +57,8 @@ export async function POST(request: NextRequest) {
       novaDataFimAcesso = baseDate;
     }
 
-    const novoStatus = status || "ATIVO";
-    const novoPlano = plano || (tipo === "MESES" && quantidade === 12 ? "ANUAL" : "MENSAL");
+    const novoStatus = status || empresa.statusAssinatura || "ATIVO";
+    const novoPlano = (plano || empresa.planoAtual || "PROFISSIONAL").trim();
 
     const empresaAtualizada = await prisma.empresa.update({
       where: { id: empresaId },
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       empresa: empresaAtualizada,
-      message: `Acesso liberado com sucesso até ${novaDataFimAcesso.toLocaleDateString("pt-BR")}!`,
+      message: `Plano ${novoPlano} e status (${novoStatus}) atualizados com sucesso (Validade: ${novaDataFimAcesso.toLocaleDateString("pt-BR")})!`,
     });
   } catch (error: any) {
     console.error("Erro ao liberar acesso da empresa:", error);
