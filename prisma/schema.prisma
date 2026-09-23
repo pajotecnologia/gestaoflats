@@ -58,6 +58,11 @@ model Empresa {
   modelosChecklist      ModeloChecklist[]
   formasPagamento       FormaPagamento[]
   configuracaoParametros ConfiguracaoParametros?
+  reservas              Reserva[]
+  eventosContrato       ContratoEvento[]
+  eventosFinanceiros    FinanceiroEvento[]
+  documentos            ClienteDocumento[]
+  ordensServico         OrdemServico[]
 }
 
 model ConfiguracaoSaaS {
@@ -149,6 +154,9 @@ model Locatario {
   contratos          Contrato[]
   contasReceber      ContaReceber[]
   vistoriasChecklist VistoriaChecklist[]
+  reservas           Reserva[]
+  documentos         ClienteDocumento[]
+  ordensServico      OrdemServico[]
 }
 
 model Proprietario {
@@ -252,6 +260,8 @@ model Flat {
   contasPagar        ContaPagar[]
   repasses           RepasseProprietario[]
   vistoriasChecklist VistoriaChecklist[]
+  reservas           Reserva[]
+  ordensServico      OrdemServico[]
 }
 
 model ModeloChecklist {
@@ -331,6 +341,9 @@ model Contrato {
   contasReceber           ContaReceber[]
   repasses                RepasseProprietario[]
   vistoriasChecklist      VistoriaChecklist[]
+  eventos                 ContratoEvento[]
+  documentos              ClienteDocumento[]
+  reservas                Reserva[]
 }
 
 model VistoriaChecklist {
@@ -339,6 +352,8 @@ model VistoriaChecklist {
   empresa                 Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   contratoId              String?
   contrato                Contrato?   @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  reservaId               String?
+  reserva                 Reserva?    @relation(fields: [reservaId], references: [id], onDelete: SetNull)
   flatId                  String
   flat                    Flat        @relation(fields: [flatId], references: [id], onDelete: Cascade)
   locatarioId             String?
@@ -401,6 +416,7 @@ model ContaReceber {
   updatedAt      DateTime  @updatedAt
 
   repasses       RepasseProprietario[]
+  eventosFinanceiros FinanceiroEvento[]
 }
 
 model RepasseProprietario {
@@ -452,6 +468,7 @@ model ContaPagar {
   status         String      @default("PENDENTE") // PENDENTE, PAGO, ATRASADO
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  eventosFinanceiros FinanceiroEvento[]
 }
 
 model FormaPagamento {
@@ -489,4 +506,136 @@ model CobrancaAssinaturaSaaS {
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 }
+
+model Reserva {
+  id                String    @id @default(uuid())
+  empresaId         String
+  empresa           Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  locatarioId       String
+  locatario         Locatario @relation(fields: [locatarioId], references: [id], onDelete: Cascade)
+  flatId            String
+  flat              Flat      @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  contratoId        String?
+  contrato          Contrato? @relation(fields: [contratoId], references: [id], onDelete: SetNull)
+  codigo            String    @unique
+  dataEntrada       DateTime
+  dataSaida         DateTime
+  horaEntrada       String?
+  horaSaida         String?
+  quantidadePessoas Int       @default(1)
+  valorDiaria       Float     @default(0)
+  quantidadeDiarias Int       @default(1)
+  desconto          Float     @default(0)
+  taxas             Float     @default(0)
+  caucao            Float     @default(0)
+  valorTotal        Float     @default(0)
+  valorRecebido     Float     @default(0)
+  valorPendente     Float     @default(0)
+  origem            String?
+  observacao        String?
+  status            String    @default("SOLICITADA") // SOLICITADA, PRE_RESERVA, AGUARDANDO_PAGAMENTO, CONFIRMADA, CHECK_IN, EM_ESTADIA, CHECK_OUT, FINALIZADA, CANCELADA
+  dataCheckIn       DateTime?
+  dataCheckOut      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([empresaId, dataEntrada, dataSaida])
+  @@index([flatId, dataEntrada, dataSaida])
+  @@index([locatarioId])
+
+  vistorias VistoriaChecklist[]
+}
+
+model ContratoEvento {
+  id         String   @id @default(uuid())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  contratoId String
+  contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  tipo       String   // EMISSAO, ASSINATURA, RENOVACAO, REAJUSTE, RESCISAO, CANCELAMENTO, ALTERACAO
+  descricao  String
+  dadosJson  String?
+  usuarioId  String?
+  criadoEm   DateTime @default(now())
+
+  @@index([empresaId, contratoId, criadoEm])
+}
+
+model ClienteDocumento {
+  id            String     @id @default(uuid())
+  empresaId     String
+  empresa       Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  locatarioId   String
+  locatario     Locatario  @relation(fields: [locatarioId], references: [id], onDelete: Cascade)
+  contratoId    String?
+  contrato      Contrato?  @relation(fields: [contratoId], references: [id], onDelete: SetNull)
+  tipo          String
+  titulo        String
+  descricao     String?
+  arquivoUrl    String?
+  mimeType      String?
+  tamanhoBytes  Int?
+  dataDocumento DateTime?
+  validade      DateTime?
+  status        String     @default("ATIVO")
+  criadoEm      DateTime   @default(now())
+  atualizadoEm  DateTime   @updatedAt
+
+  @@index([empresaId, locatarioId])
+  @@index([contratoId])
+  @@index([validade])
+}
+
+model OrdemServico {
+  id             String    @id @default(uuid())
+  empresaId      String
+  empresa        Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  locatarioId    String?
+  locatario      Locatario? @relation(fields: [locatarioId], references: [id], onDelete: SetNull)
+  flatId         String?
+  flat           Flat?     @relation(fields: [flatId], references: [id], onDelete: SetNull)
+  codigo         String    @unique
+  titulo         String
+  descricao      String?
+  categoria      String    @default("MANUTENCAO")
+  prioridade     String    @default("MEDIA")
+  status         String    @default("ABERTA")
+  responsavel    String?
+  fornecedorNome String?
+  valorEstimado  Float     @default(0)
+  valorReal      Float     @default(0)
+  dataAbertura   DateTime  @default(now())
+  prazo          DateTime?
+  dataConclusao  DateTime?
+  observacao     String?
+  fotosJson      String?
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  @@index([empresaId, status])
+  @@index([empresaId, flatId])
+  @@index([locatarioId])
+  @@index([prazo])
+}
+
+model FinanceiroEvento {
+  id            String        @id @default(uuid())
+  empresaId     String
+  empresa       Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  tipo          String        // LANCAMENTO, BAIXA, PARCIAL, ESTORNO, ALTERACAO
+  contaReceberId String?
+  contaReceber  ContaReceber? @relation(fields: [contaReceberId], references: [id], onDelete: Cascade)
+  contaPagarId  String?
+  contaPagar    ContaPagar?   @relation(fields: [contaPagarId], references: [id], onDelete: Cascade)
+  valor         Float?
+  descricao     String
+  dadosJson     String?
+  usuarioId     String?
+  criadoEm     DateTime      @default(now())
+
+  @@index([empresaId, criadoEm])
+  @@index([contaReceberId])
+  @@index([contaPagarId])
+}
+
 
