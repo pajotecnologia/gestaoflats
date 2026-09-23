@@ -69,3 +69,104 @@ export const DEFAULT_CONTRATO_HTML = `<h2 style="text-align: center; color: #000
     </td>
   </tr>
 </table>`;
+
+export const CONTRATO_CHACARA_EVENTOS_HTML = `<h2 style="text-align: center; color: #000000; font-family: Arial, sans-serif; font-weight: bold; font-size: 18px; margin-bottom: 20px;">CONTRATO DE LOCAÇÃO DE CHÁCARA PARA EVENTOS E TEMPORADA</h2>
+
+<p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>LOCADOR (Proprietário / Administradora):</strong><br/>
+  <strong>Nome / Razão Social:</strong> {{empresa.razaoSocial}} (Nome Fantasia: {{empresa.nomeFantasia}})<br/>
+  <strong>CPF / CNPJ:</strong> {{empresa.cnpj}}<br/>
+  <strong>Endereço:</strong> {{empresa.enderecoCompleto}}<br/>
+  <strong>Telefone / E-mail:</strong> {{empresa.telefone}} / {{empresa.email}}
+</p>
+
+<p style="text-align: justify; line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>LOCATÁRIO (Cliente / Organizador):</strong><br/>
+  <strong>Nome completo:</strong> {{locatario.nome}}<br/>
+  <strong>CPF / CNPJ:</strong> {{locatario.cpf}} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>RG:</strong> {{locatario.rg}}<br/>
+  <strong>Qualificação:</strong> {{locatario.qualificacaoCompleta}}<br/>
+  <strong>Endereço:</strong> {{locatario.endereco}}<br/>
+  <strong>Telefone / WhatsApp:</strong> {{locatario.telefone}} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>E-mail:</strong> {{locatario.email}}
+</p>
+
+<hr style="border: 0; border-top: 1px solid #000000; margin: 18px 0;" />
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 1ª – DO OBJETO</strong><br/>
+  O presente contrato tem como objeto a locação por temporada do imóvel denominado <strong>{{local.nome}}</strong> (Espaço / Chácara nº <strong>{{flat.numero}}</strong>), situada em <strong>{{local.enderecoCompleto}}</strong>, exclusivamente para a realização do evento e confraternização (<strong>{{flat.descricao}}</strong>), respeitadas as normas vigentes e a capacidade máxima estipulada para o imóvel.
+</p>
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 2ª – DO PRAZO E HORÁRIO</strong><br/>
+  A locação terá o prazo total de <strong>{{duracao}}</strong>, com início em <strong>{{contrato.dataEmissao}}</strong> e término impreterivelmente em <strong>{{contrato.dataFinal}}</strong>.<br/>
+  <strong>Parágrafo único:</strong> A permanência do LOCATÁRIO após o horário estipulado gerará multa diária / por hora excedente calculada proporcionalmente ao valor da diária, sem prejuízo da exigência de desocupação imediata.
+</p>
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 3ª – DO VALOR E FORMA DE PAGAMENTO</strong><br/>
+  O valor total da locação é de <strong>{{contrato.valorMensal}}</strong> ({{contrato.valorExtenso}}), que deverá ser pago via <strong>{{contrato.formaPagamento}}</strong> (Banco: <strong>{{contrato.bancoNome}}</strong>, Chave PIX / Conta: <strong>{{contrato.bancoDadosConta}}</strong>), da seguinte forma:<br/>
+  <strong>a) Sinal / Reserva:</strong> R$ <strong>{{contrato.valorCaucao}}</strong> pagos via PIX / Transferência na data de assinatura deste contrato para garantia de reserva da data;<br/>
+  <strong>b) Saldo Restante:</strong> Saldo complementar quitado até a data de entrada no imóvel / vencimento em <strong>{{contrato.diaVencimento}}</strong>, sendo condição indispensável para a entrega das chaves e liberação do acesso.
+</p>
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 4ª – DAS REGRAS E DA LEI DO SILÊNCIO</strong><br/>
+  O LOCATÁRIO obriga-se a respeitar rigorosamente a legislação vigente sobre o limite de som e perturbação do sossego público:<br/>
+  <strong>I.</strong> O som automotivo ou amplificado externo deverá respeitar o limite de decibéis permitido por lei e ser reduzido / desligado impreterivelmente às <strong>22:00 horas</strong> (conforme a lei do silêncio local e regulamento do condomínio/chácara);<br/>
+  <strong>II.</strong> É expressamente proibido estacionar veículos em locais que obstruam a circulação de vizinhos, vias de acesso ou portões de serviço.
+</p>
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 5ª – DOS DANOS E DA LIMPEZA</strong><br/>
+  O imóvel é entregue limpo e em perfeito estado de conservação, devendo ser devolvido nas mesmas condições:<br/>
+  <strong>I.</strong> O LOCATÁRIO responsabiliza-se civil e criminalmente por quaisquer danos causados ao patrimônio, móveis, plantas, piscina ou instalações da chácara, sejam causados por si, seus prestadores de serviço ou seus convidados;<br/>
+  <strong>II.</strong> O lixo produzido no evento deve ser recolhido e acondicionado em sacos próprios e resistentes nos locais indicados pelo LOCADOR.
+</p>
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 6ª – DO CANCELAMENTO E DESISTÊNCIA</strong><br/>
+  Em caso de desistência por parte do LOCATÁRIO com menos de 30 (trinta) dias de antecedência da data agendada para o evento, o valor do sinal não será devolvido, retido como taxa indenizatória compensatória.
+</p>
+
+<p style="line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px;">
+  <strong>CLÁUSULA 7ª – DO FORO</strong><br/>
+  Para dirimir quaisquer dúvidas oriundas deste contrato, as partes elegem o foro da Comarca de <strong>{{empresa.cidade}} - {{empresa.estado}}</strong>.
+</p>
+
+<p style="text-align: right; line-height: 1.6; color: #000000; font-family: Arial, sans-serif; font-size: 13px; margin-top: 25px;">
+  {{empresa.cidade}} - {{empresa.estado}}, {{contrato.dataEmissao}}.
+</p>
+
+<br/><br/>
+
+<table style="width: 100%; margin-top: 30px; text-align: center; color: #000000; font-family: Arial, sans-serif;">
+  <tr>
+    <td style="width: 50%; color: #000000; vertical-align: top;">
+      ___________________________________<br/>
+      <strong>{{empresa.nomeFantasia}}</strong><br/>
+      CNPJ: {{empresa.cnpj}}<br/>
+      <strong>LOCADOR</strong>
+    </td>
+    <td style="width: 50%; color: #000000; vertical-align: top;">
+      ___________________________________<br/>
+      <strong>{{locatario.nome}}</strong><br/>
+      CPF: {{locatario.cpf}}<br/>
+      <strong>LOCATÁRIO</strong>
+    </td>
+  </tr>
+</table>`;
+
+export const SYSTEM_CONTRACT_TEMPLATES = [
+  {
+    id: "padrao-flat",
+    titulo: "Contrato Padrão de Locação Residencial de Flat",
+    descricao: "Ideal para locação residencial de flats, apartamentos e estúdios.",
+    conteudoHtml: DEFAULT_CONTRATO_HTML,
+  },
+  {
+    id: "chacara-eventos",
+    titulo: "Contrato de Locação de Chácara para Eventos",
+    descricao: "Contrato para locação por temporada de chácaras, sítios, casas de campo e espaços de eventos com regras de barulho e caução.",
+    conteudoHtml: CONTRATO_CHACARA_EVENTOS_HTML,
+  },
+];

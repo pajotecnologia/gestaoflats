@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sanitizeInput } from "@/lib/validation";
-import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
+import { SYSTEM_CONTRACT_TEMPLATES } from "@/lib/defaultContractTemplate";
 
 export async function GET() {
   const session = await getAuthSessionOrFallback();
@@ -16,14 +16,19 @@ export async function GET() {
   });
 
   if (modelos.length === 0) {
-    const modeloPadrao = await prisma.modeloContrato.create({
-      data: {
-        empresaId: session.empresaId,
-        titulo: "Contrato Padrão de Locação Residencial de Flat",
-        conteudoHtml: DEFAULT_CONTRATO_HTML,
-      },
+    for (const sysMod of SYSTEM_CONTRACT_TEMPLATES) {
+      await prisma.modeloContrato.create({
+        data: {
+          empresaId: session.empresaId,
+          titulo: sysMod.titulo,
+          conteudoHtml: sysMod.conteudoHtml,
+        },
+      });
+    }
+    modelos = await prisma.modeloContrato.findMany({
+      where: { empresaId: session.empresaId },
+      orderBy: { titulo: "asc" },
     });
-    modelos = [modeloPadrao];
   }
 
   return NextResponse.json({ modelos });

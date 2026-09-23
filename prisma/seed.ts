@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { DEFAULT_CONTRATO_HTML } from "../src/lib/defaultContractTemplate";
+import { DEFAULT_CONTRATO_HTML, CONTRATO_CHACARA_EVENTOS_HTML } from "../src/lib/defaultContractTemplate";
 
 const prisma = new PrismaClient();
 
@@ -149,12 +149,20 @@ async function main() {
     },
   });
 
-  // 8. Criar Modelo de Contrato Padrão
+  // 8. Criar Modelos de Contrato Padrão
   const modeloContrato = await prisma.modeloContrato.create({
     data: {
       empresaId: empresa.id,
       titulo: "Contrato Padrão de Locação Residencial de Flat",
       conteudoHtml: DEFAULT_CONTRATO_HTML,
+    },
+  });
+
+  await prisma.modeloContrato.create({
+    data: {
+      empresaId: empresa.id,
+      titulo: "Contrato de Locação de Chácara para Eventos",
+      conteudoHtml: CONTRATO_CHACARA_EVENTOS_HTML,
     },
   });
 

@@ -5,6 +5,7 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 ---
 
 ## 📑 ÍNDICE DE VERSÕES
+- [v2.29.16 - Modelo Padrão de Contrato de Locação de Chácara para Eventos](#v22916---modelo-padrão-de-contrato-de-locação-de-chácara-para-eventos)
 - [v2.29.15 - Emissão de Cobrança SaaS no Banco Inter sob Demanda via Botão](#v22915---emissão-de-cobrança-saas-no-banco-inter-sob-demanda-via-botão)
 - [v2.29.14 - Eliminação de Flash de Preços no Checkout com Skeleton Loading](#v22914---eliminação-de-flash-de-preços-no-checkout-com-skeleton-loading)
 - [v2.29.13 - Padronização do Percentual de Economia Anual (10%)](#v22913---padronização-do-percentual-de-economia-anual-10)
@@ -19,6 +20,23 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 - [v2.29.4 - Conciliação Automática no Contas a Pagar e Caixa do Dia](#v2294---conciliação-automática-no-contas-a-pagar-e-caixa-do-dia)
 - [v2.29.3 - Integração Financeira Nativa da Ordem de Serviço (O.S.)](#v2293---integração-financeira-nativa-da-ordem-de-serviço-os)
 - [v2.29.2 - Atualização Reativa de Status da Vistoria sem F5](#v2292---atualização-reativa-de-status-da-vistoria-sem-f5)
+
+---
+
+### v2.29.16 - Modelo Padrão de Contrato de Locação de Chácara para Eventos
+- **Data**: 23/09/2026
+- **Arquivos**:
+  - `src/lib/defaultContractTemplate.ts`
+  - `src/app/api/modelos-contrato/route.ts`
+  - `src/app/contratos/modelos/page.tsx`
+  - `prisma/seed.ts`
+  - `src/lib/version.ts`
+  - `package.json`
+- **Funcionalidade Entregue**:
+  - Criação do modelo oficial de **Contrato de Locação de Chácara para Eventos e Temporada** com suporte integral às variáveis dinâmicas do sistema.
+  - O contrato abrange qualificação completa do Locador e Locatário, objeto da chácara/espaço, vigência e horário limite, valores com sinal/reserva e saldo restante, regras de convivência e lei do silêncio (22:00h), danos ao patrimônio e recolhimento de lixo, política de cancelamento/desistência e foro da comarca.
+  - Disponibilização de botões de atalho (*Modelos Prontos*) no editor visual A4 (`/contratos/modelos`) para carregar o modelo de chácara ou o modelo residencial de flat com 1 clique.
+  - Sincronização automática no banco de dados para todas as empresas e inclusão nos seeds oficiais do sistema.
 
 ---
 

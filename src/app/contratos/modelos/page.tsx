@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, memo, forwardRef } from "react";
 import Shell from "@/components/layout/Shell";
 import { replaceContractVariables } from "@/lib/validation";
-import { DEFAULT_CONTRATO_HTML } from "@/lib/defaultContractTemplate";
+import { DEFAULT_CONTRATO_HTML, SYSTEM_CONTRACT_TEMPLATES } from "@/lib/defaultContractTemplate";
 import {
   FileCode,
   Maximize2,
@@ -176,6 +176,14 @@ export default function ModelosContratoPage() {
     setTitulo("");
     setEditorHtml(defaultContentHtml);
     setFeedback("✨ Novo modelo em branco pronto para edição.");
+  };
+
+  const handleCarregarModeloFabrica = (sysMod: any) => {
+    setSelectedModeloId(null);
+    setTitulo(sysMod.titulo);
+    setEditorHtml(sysMod.conteudoHtml);
+    setFeedback(`✨ Modelo oficial "${sysMod.titulo}" carregado no editor! Clique em Salvar Documento para registrá-lo.`);
+    toast.success(`Modelo "${sysMod.titulo}" carregado no editor!`);
   };
 
   const handleForceBlackAllText = () => {
@@ -597,14 +605,30 @@ export default function ModelosContratoPage() {
               </h3>
             </div>
 
-            <button
-              type="button"
-              onClick={handleNovoModelo}
-              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold flex items-center space-x-1.5 transition"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Criar Novo Modelo em Branco</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-400 mr-1 hidden md:inline">Modelos Prontos:</span>
+              {SYSTEM_CONTRACT_TEMPLATES.map((sys) => (
+                <button
+                  key={sys.id}
+                  type="button"
+                  onClick={() => handleCarregarModeloFabrica(sys)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold flex items-center gap-1 transition"
+                  title={sys.descricao}
+                >
+                  <span>{sys.id === "chacara-eventos" ? "🌳" : "🏡"}</span>
+                  <span>{sys.titulo.replace("Contrato de Locação de ", "").replace("Contrato Padrão de Locação ", "")}</span>
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={handleNovoModelo}
+                className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold flex items-center space-x-1.5 transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Em Branco</span>
+              </button>
+            </div>
           </div>
 
           {modelos.length === 0 ? (
