@@ -37,9 +37,10 @@ import {
   Activity,
   ArrowRight,
   ShieldCheck,
-  CheckCircle,
-  FileDown,
   Info,
+  Wrench,
+  ClipboardCheck,
+  FileSignature,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -79,6 +80,7 @@ export default function DashboardPage() {
   const kpis = stats?.kpis || {};
   const analytics = stats?.analytics || {};
   const alertas = stats?.alertas || {};
+  const pendencias = stats?.pendencias || {};
   const chartTimeline = stats?.chartTimeline || [];
   const atividadesRecentes = stats?.atividadesRecentes || [];
   const locais = stats?.locaisPerformance || [];
@@ -417,7 +419,164 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        )}
+        {/* ================================================================= */}
+        {/* 2.5 CENTRAL DE PENDÊNCIAS OPERACIONAIS EM TEMPO REAL               */}
+        {/* ================================================================= */}
+        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-zinc-800/60 pb-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                  Central de Pendências Operacionais
+                  <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-200 dark:border-indigo-800/60">
+                    Ação Imediata
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                  Itens críticos e rotinas que exigem atenção da equipe hoje.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+            {/* 1. Contratos aguardando assinatura */}
+            <Link
+              href="/contratos"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-rose-400 dark:hover:border-rose-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Assinaturas</span>
+                <FileSignature className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-rose-600 dark:text-rose-400">
+                  {pendencias.contratosAguardandoAssinatura || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  Contratos pendentes
+                </div>
+              </div>
+            </Link>
+
+            {/* 2. Reservas aguardando pagamento */}
+            <Link
+              href="/agenda"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-amber-400 dark:hover:border-amber-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Reservas</span>
+                <Clock className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-amber-600 dark:text-amber-400">
+                  {pendencias.reservasAguardando || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  Aguardando pgto/conf.
+                </div>
+              </div>
+            </Link>
+
+            {/* 3. Contas vencidas */}
+            <Link
+              href="/financeiro/receber"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-rose-400 dark:hover:border-rose-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Inadimplência</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-rose-600 dark:text-rose-400">
+                  {pendencias.contasVencidas || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  {formatCurrency(pendencias.valorInadimplente || 0)}
+                </div>
+              </div>
+            </Link>
+
+            {/* 4. Vistorias pendentes de assinatura */}
+            <Link
+              href="/vistorias"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-yellow-400 dark:hover:border-yellow-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Vistorias</span>
+                <ClipboardCheck className="w-3.5 h-3.5 text-yellow-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-yellow-600 dark:text-yellow-400">
+                  {pendencias.vistoriasPendentesAssinatura || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  Laudos não assinados
+                </div>
+              </div>
+            </Link>
+
+            {/* 5. Check-ins Hoje */}
+            <Link
+              href="/agenda"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-emerald-400 dark:hover:border-emerald-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Check-ins</span>
+                <KeyRound className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                  {pendencias.checkInsHoje || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  Entradas de hoje
+                </div>
+              </div>
+            </Link>
+
+            {/* 6. Check-outs Hoje */}
+            <Link
+              href="/agenda"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-blue-400 dark:hover:border-blue-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Check-outs</span>
+                <Calendar className="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-blue-600 dark:text-blue-400">
+                  {pendencias.checkOutsHoje || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  Saídas de hoje
+                </div>
+              </div>
+            </Link>
+
+            {/* 7. Ordens de Serviço */}
+            <Link
+              href="/ordens-servico"
+              className="group p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/70 dark:border-zinc-800/70 hover:border-violet-400 dark:hover:border-violet-600/60 transition-all duration-200 flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Manutenção</span>
+                <Wrench className="w-3.5 h-3.5 text-violet-500 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="mt-2">
+                <div className="text-xl font-black text-violet-600 dark:text-violet-400">
+                  {pendencias.ordensServicoAbertas || 0}
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
+                  OS em aberto
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
 
         {/* ================================================================= */}
         {/* 3. GRÁFICOS INTERATIVOS (ÁREA / LINHA E ROSCA / BARRAS)           */}

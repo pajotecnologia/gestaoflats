@@ -229,10 +229,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. Atualizar flat para OCUPADO
+    // 3. Atualizar flat de forma inteligente (RESERVADO se data futura, OCUPADO se data atual/passada)
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dtEmissaoZero = new Date(dtEmissao);
+    dtEmissaoZero.setHours(0, 0, 0, 0);
+    const novoStatusFlat = dtEmissaoZero > hoje ? "RESERVADO" : "OCUPADO";
+
     await prisma.flat.update({
       where: { id: flatId },
-      data: { status: "OCUPADO" },
+      data: { status: novoStatusFlat },
     });
 
     // Gerar parcelas no Contas a Receber

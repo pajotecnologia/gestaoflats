@@ -32,7 +32,12 @@ import {
   SlidersHorizontal,
   Link as LinkIcon,
   ShieldCheck,
+  ArrowRightLeft,
+  DollarSign,
+  AlertOctagon,
+  Layers,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/validation";
 import { toast, ConfirmDialog } from "@/components/ui";
 
 export default function VistoriasPage() {
@@ -42,6 +47,18 @@ export default function VistoriasPage() {
   const [locatarios, setLocatarios] = useState<any[]>([]);
   const [empresaData, setEmpresaData] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Estado do Comparador Entrada × Saída
+  const [showComparadorModal, setShowComparadorModal] = useState(false);
+  const [comparadorFlatId, setComparadorFlatId] = useState("");
+  const [comparadorEntradaId, setComparadorEntradaId] = useState("");
+  const [comparadorSaidaId, setComparadorSaidaId] = useState("");
+  const [cobrancaDescricao, setCobrancaDescricao] = useState("");
+  const [cobrancaValor, setCobrancaValor] = useState("");
+  const [cobrancaVencimento, setCobrancaVencimento] = useState(
+    new Date(Date.now() + 5 * 86400000).toISOString().split("T")[0]
+  );
+  const [cobrancaSubmitting, setCobrancaSubmitting] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -425,7 +442,29 @@ export default function VistoriasPage() {
             </div>
           </div>
 
-          <div className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                const flatComVistoria = flats.find((f) =>
+                  vistorias.some((v) => v.flatId === f.id && v.tipoVistoria === "ENTRADA") &&
+                  vistorias.some((v) => v.flatId === f.id && v.tipoVistoria === "SAIDA")
+                ) || flats[0];
+                if (flatComVistoria) {
+                  setComparadorFlatId(flatComVistoria.id);
+                  const entrada = vistorias.find((v) => v.flatId === flatComVistoria.id && v.tipoVistoria === "ENTRADA");
+                  const saida = vistorias.find((v) => v.flatId === flatComVistoria.id && v.tipoVistoria === "SAIDA");
+                  if (entrada) setComparadorEntradaId(entrada.id);
+                  if (saida) setComparadorSaidaId(saida.id);
+                }
+                setShowComparadorModal(true);
+              }}
+              className="w-full sm:w-auto min-h-[44px] py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 font-semibold text-slate-800 dark:text-zinc-200 text-xs border border-slate-300/80 dark:border-zinc-700 flex items-center justify-center space-x-2 transition cursor-pointer"
+            >
+              <ArrowRightLeft className="w-4 h-4 text-indigo-500" />
+              <span>Comparar Entrada × Saída</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -1139,7 +1178,395 @@ export default function VistoriasPage() {
           confirmText="Excluir Laudo"
           cancelText="Cancelar"
           variant="danger"
-        />
+        {/* MODAL COMPARADOR ENTRADA × SAÍDA */}
+        {showComparadorModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div className="w-full max-w-5xl my-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/80 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400">
+                    <ArrowRightLeft className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                      Comparador Pericial: Vistoria de Entrada × Saída
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                        Auditoria de Avarias
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
+                      Confronte o estado do imóvel na entrega das chaves versus devolução e gere cobranças de danos.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowComparadorModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Seletor de Imóvel e Vistorias */}
+              <div className="p-4 border-b border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-zinc-400 mb-1">
+                    1. Selecione o Imóvel
+                  </label>
+                  <select
+                    value={comparadorFlatId}
+                    onChange={(e) => {
+                      const fId = e.target.value;
+                      setComparadorFlatId(fId);
+                      const ent = vistorias.find((v) => v.flatId === fId && v.tipoVistoria === "ENTRADA");
+                      const sai = vistorias.find((v) => v.flatId === fId && v.tipoVistoria === "SAIDA");
+                      setComparadorEntradaId(ent ? ent.id : "");
+                      setComparadorSaidaId(sai ? sai.id : "");
+                    }}
+                    className="w-full text-xs font-semibold rounded-xl bg-white dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 px-3 py-2 text-slate-900 dark:text-zinc-100"
+                  >
+                    <option value="">Selecione um imóvel...</option>
+                    {flats.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.local?.nome ? `${f.local.nome} - ` : ""}Flat {f.numero} ({f.tipoImovel || "Imóvel"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-zinc-400 mb-1">
+                    2. Laudo de Entrada
+                  </label>
+                  <select
+                    value={comparadorEntradaId}
+                    onChange={(e) => setComparadorEntradaId(e.target.value)}
+                    className="w-full text-xs rounded-xl bg-white dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 px-3 py-2 text-slate-900 dark:text-zinc-100"
+                  >
+                    <option value="">Selecione a vistoria de entrada...</option>
+                    {vistorias
+                      .filter((v) => (!comparadorFlatId || v.flatId === comparadorFlatId) && v.tipoVistoria === "ENTRADA")
+                      .map((v) => (
+                        <option key={v.id} value={v.id}>
+                          Entrada: {new Date(v.dataVistoria || v.createdAt).toLocaleDateString("pt-BR")} - {v.locatario?.nome || "Locatário"}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-600 dark:text-zinc-400 mb-1">
+                    3. Laudo de Saída
+                  </label>
+                  <select
+                    value={comparadorSaidaId}
+                    onChange={(e) => setComparadorSaidaId(e.target.value)}
+                    className="w-full text-xs rounded-xl bg-white dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 px-3 py-2 text-slate-900 dark:text-zinc-100"
+                  >
+                    <option value="">Selecione a vistoria de saída...</option>
+                    {vistorias
+                      .filter((v) => (!comparadorFlatId || v.flatId === comparadorFlatId) && v.tipoVistoria === "SAIDA")
+                      .map((v) => (
+                        <option key={v.id} value={v.id}>
+                          Saída: {new Date(v.dataVistoria || v.createdAt).toLocaleDateString("pt-BR")} - {v.locatario?.nome || "Locatário"}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Corpo da Comparação */}
+              {(() => {
+                const entradaObj = vistorias.find((v) => v.id === comparadorEntradaId);
+                const saidaObj = vistorias.find((v) => v.id === comparadorSaidaId);
+
+                const parseItens = (itensJson: any) => {
+                  if (!itensJson) return [];
+                  try {
+                    const p = typeof itensJson === "string" ? JSON.parse(itensJson) : itensJson;
+                    if (Array.isArray(p)) return p;
+                    if (p && Array.isArray(p.itens)) return p.itens;
+                    return [];
+                  } catch {
+                    return [];
+                  }
+                };
+
+                const itensEntrada = parseItens(entradaObj?.itensJson);
+                const itensSaida = parseItens(saidaObj?.itensJson);
+
+                if (!entradaObj || !saidaObj) {
+                  return (
+                    <div className="p-12 text-center text-slate-500 dark:text-zinc-400 space-y-3">
+                      <ArrowRightLeft className="w-10 h-10 mx-auto opacity-30 text-indigo-500 animate-pulse" />
+                      <p className="text-sm font-semibold">
+                        Selecione um Laudo de Entrada e um Laudo de Saída para comparar os cômodos e itens inspecionados.
+                      </p>
+                    </div>
+                  );
+                }
+
+                // Cruzamento de Itens
+                const itensMap = new Map<string, { entrada?: any; saida?: any; categoria: string; item: string }>();
+                itensEntrada.forEach((it: any) => {
+                  const key = `${it.categoria || it.ambiente || "Geral"}___${it.item || it.nome || "Item"}`;
+                  itensMap.set(key, {
+                    categoria: it.categoria || it.ambiente || "Geral",
+                    item: it.item || it.nome || "Item",
+                    entrada: it,
+                  });
+                });
+                itensSaida.forEach((it: any) => {
+                  const key = `${it.categoria || it.ambiente || "Geral"}___${it.item || it.nome || "Item"}`;
+                  const existing = itensMap.get(key) || {
+                    categoria: it.categoria || it.ambiente || "Geral",
+                    item: it.item || it.nome || "Item",
+                  };
+                  existing.saida = it;
+                  itensMap.set(key, existing);
+                });
+
+                const listaComparada = Array.from(itensMap.values());
+                const totalConferidos = listaComparada.length;
+                const avariasEncontradas = listaComparada.filter(
+                  (c) => (c.saida?.status === "AVARIA" || c.saida?.status === "RUIM") && c.entrada?.status !== "AVARIA"
+                );
+                const atencoesEncontradas = listaComparada.filter(
+                  (c) => c.saida?.status === "ATENCAO" && c.entrada?.status === "OK"
+                );
+                const semAlteracao = totalConferidos - avariasEncontradas.length - atencoesEncontradas.length;
+
+                return (
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+                    {/* Resumo Pericial */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800">
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400">Itens Auditados</span>
+                        <div className="text-xl font-black text-slate-900 dark:text-zinc-100 mt-1">{totalConferidos}</div>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Sem Alteração</span>
+                        <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{semAlteracao}</div>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60">
+                        <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Com Atenção</span>
+                        <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">{atencoesEncontradas.length}</div>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60">
+                        <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">Avarias / Danos</span>
+                        <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1">{avariasEncontradas.length}</div>
+                      </div>
+                    </div>
+
+                    {/* Tabela Comparativa */}
+                    <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-zinc-950/90 text-slate-700 dark:text-zinc-300 font-bold border-b border-slate-200 dark:border-zinc-800">
+                            <th className="p-3">Cômodo / Item</th>
+                            <th className="p-3">Vistoria de Entrada</th>
+                            <th className="p-3">Vistoria de Saída</th>
+                            <th className="p-3 text-center">Diagnóstico Pericial</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/70">
+                          {listaComparada.map((comp, idx) => {
+                            const stEntrada = String(comp.entrada?.status || "OK").toUpperCase();
+                            const stSaida = String(comp.saida?.status || "OK").toUpperCase();
+                            const isDano = (stSaida === "AVARIA" || stSaida === "RUIM") && stEntrada !== "AVARIA";
+                            const isAtencao = stSaida === "ATENCAO" && stEntrada === "OK";
+
+                            return (
+                              <tr
+                                key={idx}
+                                className={`hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors ${
+                                  isDano
+                                    ? "bg-rose-50/50 dark:bg-rose-950/20"
+                                    : isAtencao
+                                    ? "bg-amber-50/50 dark:bg-amber-950/20"
+                                    : ""
+                                }`}
+                              >
+                                <td className="p-3">
+                                  <div className="font-semibold text-slate-900 dark:text-zinc-100">{comp.item}</div>
+                                  <div className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase tracking-wide">
+                                    {comp.categoria}
+                                  </div>
+                                </td>
+
+                                <td className="p-3">
+                                  <div className="flex items-center space-x-1.5">
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                        stEntrada === "OK" || stEntrada === "BOM"
+                                          ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
+                                          : stEntrada === "ATENCAO"
+                                          ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400"
+                                          : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400"
+                                      }`}
+                                    >
+                                      {stEntrada}
+                                    </span>
+                                  </div>
+                                  {comp.entrada?.obs && (
+                                    <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1">
+                                      {comp.entrada.obs}
+                                    </div>
+                                  )}
+                                </td>
+
+                                <td className="p-3">
+                                  <div className="flex items-center space-x-1.5">
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                        stSaida === "OK" || stSaida === "BOM"
+                                          ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400"
+                                          : stSaida === "ATENCAO"
+                                          ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400"
+                                          : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400"
+                                      }`}
+                                    >
+                                      {stSaida}
+                                    </span>
+                                  </div>
+                                  {comp.saida?.obs && (
+                                    <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1">
+                                      {comp.saida.obs}
+                                    </div>
+                                  )}
+                                </td>
+
+                                <td className="p-3 text-center">
+                                  {isDano ? (
+                                    <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      <span>Avaria Detectada</span>
+                                    </span>
+                                  ) : isAtencao ? (
+                                    <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
+                                      <AlertCircle className="w-3 h-3" />
+                                      <span>Desgaste / Atenção</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>Conforme</span>
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Módulo de Geração de Cobrança Financeira de Avaria */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 space-y-4">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                          <DollarSign className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-zinc-100">
+                            Lançar Cobrança Direta no Contas a Receber
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                            Gera uma parcela de ressarcimento para o locatário{" "}
+                            <strong>{saidaObj.locatario?.nome || entradaObj.locatario?.nome || "Locatário"}</strong>.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-1">
+                            Descrição das Avarias / Reparos
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Pintura manchada no quarto e controle do ar-condicionado danificado"
+                            value={cobrancaDescricao}
+                            onChange={(e) => setCobrancaDescricao(e.target.value)}
+                            className="w-full text-xs rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-800 px-3 py-2 text-slate-900 dark:text-zinc-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-1">
+                            Valor Total da Cobrança (R$)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="0,00"
+                            value={cobrancaValor}
+                            onChange={(e) => setCobrancaValor(e.target.value)}
+                            className="w-full text-xs font-bold rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-800 px-3 py-2 text-slate-900 dark:text-zinc-100"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-zinc-800/80">
+                        <button
+                          type="button"
+                          disabled={cobrancaSubmitting || !cobrancaValor}
+                          onClick={async () => {
+                            const targetLocatarioId = saidaObj.locatarioId || entradaObj.locatarioId;
+                            if (!targetLocatarioId) {
+                              toast.error("Locatário não identificado para vincular a cobrança.");
+                              return;
+                            }
+                            if (!cobrancaValor || parseFloat(cobrancaValor) <= 0) {
+                              toast.error("Informe o valor da avaria.");
+                              return;
+                            }
+
+                            setCobrancaSubmitting(true);
+                            try {
+                              const res = await fetch("/api/vistorias/cobrar-avaria", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  locatarioId: targetLocatarioId,
+                                  contratoId: saidaObj.contratoId || entradaObj.contratoId,
+                                  descricaoAvaria: cobrancaDescricao || "Ressarcimento de danos ao imóvel",
+                                  valorAvaria: cobrancaValor,
+                                  dataVencimento: cobrancaVencimento,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (res.ok && data.success) {
+                                toast.success("✅ Cobrança de avaria lançada no Contas a Receber com sucesso!");
+                                setCobrancaDescricao("");
+                                setCobrancaValor("");
+                                setShowComparadorModal(false);
+                              } else {
+                                toast.error(data.error || "Erro ao lançar cobrança de avaria.");
+                              }
+                            } catch (err) {
+                              toast.error("Erro de conexão ao lançar cobrança.");
+                            } finally {
+                              setCobrancaSubmitting(false);
+                            }
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 font-bold text-white text-xs shadow-md shadow-rose-500/20 flex items-center space-x-1.5 transition disabled:opacity-50"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          <span>
+                            {cobrancaSubmitting ? "Lançando..." : "Emitir Cobrança de Avaria"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
       </div>
     </Shell>
   );

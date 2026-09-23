@@ -5,7 +5,32 @@ import Link from "next/link";
 import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
-import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera, Calendar, CalendarCheck, CalendarX, Clock, Search, RotateCcw, AlertTriangle } from "lucide-react";
+import {
+  FileText,
+  Plus,
+  X,
+  FileCheck,
+  CheckCircle2,
+  AlertCircle,
+  Camera,
+  Calendar,
+  CalendarCheck,
+  CalendarX,
+  Clock,
+  Search,
+  RotateCcw,
+  AlertTriangle,
+  UserCheck,
+  Building2,
+  CreditCard,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+  Sparkles,
+  Send,
+  FileSignature,
+} from "lucide-react";
+import { formatCurrency } from "@/lib/validation";
 import { toast } from "@/components/ui";
 
 export default function ContratosPage() {
@@ -18,6 +43,7 @@ export default function ContratosPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingContrato, setEditingContrato] = useState<any | null>(null);
+  const [wizardStep, setWizardStep] = useState<number>(1);
   const [filtroStatus, setFiltroStatus] = useState<"TODOS" | "VENCIDOS" | "VENCENDO" | "EM_DIA">("TODOS");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -292,6 +318,7 @@ export default function ContratosPage() {
     setMultaRescisaoMeses("3");
     setSelectedVistoriaId("");
     setErrorMsg("");
+    setWizardStep(1);
     setShowModal(true);
   };
 
@@ -315,6 +342,7 @@ export default function ContratosPage() {
     setMultaRescisaoMeses(String(contrato.multaRescisaoMeses ?? 3));
     setSelectedVistoriaId("");
     setErrorMsg("");
+    setWizardStep(1);
     setShowModal(true);
   };
 
@@ -655,21 +683,73 @@ export default function ContratosPage() {
           </div>
         )}
 
-        {/* Modal Emissão / Edição de Contrato */}
+        {/* Modal Emissão / Edição de Contrato (Wizard Pipeline de 5 Etapas) */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95">
+              {/* Header do Wizard */}
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
-                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span>{editingContrato ? "Editar Contrato de Locação" : "Emissão de Novo Contrato de Aluguel"}</span>
-                </h3>
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      {editingContrato ? "Editar Contrato de Locação" : "Pipeline de Emissão de Contrato"}
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+                        Etapa {wizardStep} de 5
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Fluxo guiado de emissão com validação anti-conflito, vistoria e geração financeira.
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Barra de Progresso / Stepper */}
+              <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                {[
+                  { step: 1, label: "Cliente", icon: UserCheck },
+                  { step: 2, label: "Imóvel", icon: Building2 },
+                  { step: 3, label: "Valores", icon: CreditCard },
+                  { step: 4, label: "Vistoria", icon: FileCheck },
+                  { step: 5, label: "Revisão", icon: CheckCircle2 },
+                ].map((s) => {
+                  const IconComp = s.icon;
+                  const isActive = wizardStep === s.step;
+                  const isCompleted = wizardStep > s.step;
+                  return (
+                    <button
+                      key={s.step}
+                      type="button"
+                      onClick={() => {
+                        if (isCompleted || s.step < wizardStep) {
+                          setWizardStep(s.step);
+                        }
+                      }}
+                      className={`p-2 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between ${
+                        isActive
+                          ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-500 text-blue-600 dark:text-blue-400 shadow-xs"
+                          : isCompleted
+                          ? "bg-slate-50 dark:bg-slate-950 border-emerald-400/60 dark:border-emerald-600/60 text-emerald-600 dark:text-emerald-400 cursor-pointer"
+                          : "bg-slate-50/50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <IconComp className="w-3.5 h-3.5 shrink-0" />
+                        <span className="text-[10px] font-bold">0{s.step}</span>
+                      </div>
+                      <span className="text-[11px] font-bold mt-1 truncate">{s.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {errorMsg && (
@@ -679,81 +759,374 @@ export default function ContratosPage() {
               )}
 
               <form onSubmit={handleEmitirContrato} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Selecionar Locatário
-                  </label>
-                  <select
-                    required
-                    value={locatarioId}
-                    onChange={(e) => handleLocatarioChange(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">-- Escolha o Locatário --</option>
-                    {locatarios.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.nome} ({loc.cpf})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Selecionar Flat / Unidade
-                  </label>
-                  <select
-                    required
-                    value={flatId}
-                    onChange={(e) => handleFlatChange(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium"
-                  >
-                    <option value="">-- Escolha o Flat --</option>
-                    {flats.map((flat) => {
-                      const isCurrentEditingFlat = editingContrato && editingContrato.flatId === flat.id;
-                      const isAvailable = flat.status === "DISPONIVEL" || isCurrentEditingFlat;
-                      return (
-                        <option
-                          key={flat.id}
-                          value={flat.id}
-                          className={isAvailable ? "font-bold text-emerald-600" : "text-slate-400"}
-                        >
-                          {flat.local?.nome} - {flat.numero} ({isCurrentEditingFlat ? "🔵 IMÓVEL DESTE CONTRATO" : isAvailable ? "🟢 DISPONÍVEL" : flat.status === "OCUPADO" ? "🔵 OCUPADO (Indisponível)" : "🟡 MANUTENÇÃO (Indisponível)"})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {/* ETAPA 1: Vistoria de Entrada Vinculada ao Flat */}
-                {flatId && (
-                  <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <span>1º Passo: Vistoria de Entrada do Imóvel</span>
+                {/* ========================================================= */}
+                {/* ETAPA 1: LOCATÁRIO / CLIENTE                             */}
+                {/* ========================================================= */}
+                {wizardStep === 1 && (
+                  <div className="space-y-4 animate-in fade-in">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Selecione o Locatário / Cliente
                       </label>
-                      <button
-                        type="button"
-                        onClick={handleAbrirVistoria}
-                        className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition flex items-center space-x-1 shadow-xs"
+                      <select
+                        required
+                        value={locatarioId}
+                        onChange={(e) => handleLocatarioChange(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 font-medium"
                       >
-                        <Camera className="w-3 h-3" />
-                        <span>Nova Vistoria</span>
-                      </button>
+                        <option value="">-- Escolha o Locatário --</option>
+                        {locatarios.map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.nome} ({loc.cpf})
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {vistoriaStatusInfo.checking ? (
-                      <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
-                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        <span>Buscando vistorias de entrada disponíveis para este imóvel...</span>
+                    {locatarioId && (() => {
+                      const sel = locatarios.find((l) => l.id === locatarioId);
+                      if (!sel) return null;
+                      return (
+                        <div className="p-3.5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/60 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                              <UserCheck className="w-4 h-4 text-blue-600" />
+                              <span>Ficha Cadastral do Cliente</span>
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-200/80 dark:bg-blue-900 text-blue-900 dark:text-blue-100">
+                              CPF Válido
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300 pt-1">
+                            <div><strong>Nome:</strong> {sel.nome}</div>
+                            <div><strong>CPF:</strong> {sel.cpf}</div>
+                            <div><strong>WhatsApp / Telefone:</strong> {sel.telefone || "Não informado"}</div>
+                            <div><strong>E-mail:</strong> {sel.email || "Não informado"}</div>
+                            <div className="sm:col-span-2"><strong>Endereço:</strong> {sel.endereco || "Não informado"}</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* ETAPA 2: IMÓVEL & VIGÊNCIA                                */}
+                {/* ========================================================= */}
+                {wizardStep === 2 && (
+                  <div className="space-y-4 animate-in fade-in">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+                        Selecione o Flat / Imóvel
+                      </label>
+                      <select
+                        required
+                        value={flatId}
+                        onChange={(e) => handleFlatChange(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 font-semibold"
+                      >
+                        <option value="">-- Escolha o Imóvel --</option>
+                        {flats.map((flat) => {
+                          const isCurrentEditingFlat = editingContrato && editingContrato.flatId === flat.id;
+                          const isAvailable = flat.status === "DISPONIVEL" || isCurrentEditingFlat;
+                          return (
+                            <option
+                              key={flat.id}
+                              value={flat.id}
+                              className={isAvailable ? "font-bold text-emerald-600" : "text-slate-400"}
+                            >
+                              {flat.local?.nome ? `${flat.local.nome} - ` : ""}Flat {flat.numero} ({flat.tipoImovel || "Imóvel"}) - {isCurrentEditingFlat ? "🔵 IMÓVEL DESTE CONTRATO" : isAvailable ? "🟢 DISPONÍVEL" : flat.status === "OCUPADO" ? "🔵 OCUPADO" : "🟡 MANUTENÇÃO"}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          Data de Início
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={dataEmissao}
+                          onChange={(e) => setDataEmissao(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium"
+                        />
                       </div>
-                    ) : availableVistorias.length > 0 ? (
-                      <div className="space-y-2.5">
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          Tipo de Vigência
+                        </label>
+                        <select
+                          value={tipoValidade}
+                          onChange={(e) => {
+                            const nextType = e.target.value as "MESES" | "DIAS";
+                            setTipoValidade(nextType);
+                            if (nextType === "DIAS" && parseInt(validadeValor, 10) > 365) {
+                              setValidadeValor("30");
+                            } else if (nextType === "MESES" && parseInt(validadeValor, 10) > 48) {
+                              setValidadeValor("12");
+                            }
+                          }}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                        >
+                          <option value="MESES">📅 Meses</option>
+                          <option value="DIAS">☀️ Dias (Temporada)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {tipoValidade === "MESES" ? "Prazo (Meses)" : "Prazo (Dias)"}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={tipoValidade === "MESES" ? "48" : "365"}
+                          required
+                          value={validadeValor}
+                          onChange={(e) => setValidadeValor(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          {tipoValidade === "MESES" ? "Aluguel Mensal (R$)" : "Valor Total (R$)"}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          value={valorMensal}
+                          onChange={(e) => setValorMensal(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Verificação anti-conflito */}
+                    {flatId && (
+                      <div className="pt-1">
+                        {disponibilidadeInfo.checking ? (
+                          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
+                            <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                            <span>Verificando disponibilidade de datas na agenda...</span>
+                          </div>
+                        ) : disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel ? (
+                          <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800/80 text-red-800 dark:text-red-200 space-y-2">
+                            <div className="flex items-start space-x-2.5">
+                              <CalendarX className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <span className="text-xs font-black uppercase text-red-700 dark:text-red-300 tracking-wide">
+                                  ❌ Período Indisponível na Agenda
+                                </span>
+                                <p className="text-xs font-semibold text-red-900 dark:text-red-200">
+                                  {disponibilidadeInfo.mensagem}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : disponibilidadeInfo.checked && disponibilidadeInfo.disponivel ? (
+                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-2.5">
+                            <CalendarCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                                ✅ Período 100% Livre na Agenda ({disponibilidadeInfo.dataInicioFormatada} ➔ {disponibilidadeInfo.dataFimFormatada})
+                              </span>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* ETAPA 3: CONDIÇÕES FINANCEIRAS                            */}
+                {/* ========================================================= */}
+                {wizardStep === 3 && (
+                  <div className="space-y-4 animate-in fade-in">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                        <CreditCard className="w-4 h-4 text-indigo-500" />
+                        <span>Forma de Pagamento & Vencimento</span>
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                            Selecionar Vistoria de Entrada Disponível:
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Dia de Vencimento
                           </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            required
+                            value={diaVencimento}
+                            onChange={(e) => setDiaVencimento(e.target.value)}
+                            placeholder="Ex: 5"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Forma de Pagamento
+                          </label>
+                          <select
+                            value={formaPagamento}
+                            onChange={(e) => setFormaPagamento(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                          >
+                            <option value="PIX">⚡ PIX</option>
+                            <option value="BOLETO">📄 Boleto Bancário</option>
+                            <option value="TRANSFERENCIA">🏦 Transferência / TED</option>
+                            <option value="DINHEIRO">💵 Dinheiro</option>
+                            <option value="CARTAO">💳 Cartão</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Nome do Banco
+                          </label>
+                          <input
+                            type="text"
+                            value={bancoNome}
+                            onChange={(e) => setBancoNome(e.target.value)}
+                            placeholder="Ex: Banco Inter, Itaú, Nubank..."
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Dados da Conta / Chave PIX
+                          </label>
+                          <input
+                            type="text"
+                            value={bancoDadosConta}
+                            onChange={(e) => setBancoDadosConta(e.target.value)}
+                            placeholder="Ex: Chave PIX CNPJ / Ag e Conta"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                        <span>⚖️ Multas, Juros & Caução</span>
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Multa por Atraso (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={multaAtrasoPercentual}
+                            onChange={(e) => setMultaAtrasoPercentual(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Juros de Mora Mensal (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={jurosAtrasoPercentual}
+                            onChange={(e) => setJurosAtrasoPercentual(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Valor Caução (R$)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={valorCaucao}
+                            onChange={(e) => setValorCaucao(e.target.value)}
+                            placeholder="0.00"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Parcelas Caução
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="12"
+                            value={caucaoParcelas}
+                            onChange={(e) => setCaucaoParcelas(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Multa Rescisão (Meses)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="12"
+                            value={multaRescisaoMeses}
+                            onChange={(e) => setMultaRescisaoMeses(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* ETAPA 4: VISTORIA & MODELO DE CONTRATO                    */}
+                {/* ========================================================= */}
+                {wizardStep === 4 && (
+                  <div className="space-y-4 animate-in fade-in">
+                    {/* Vistoria de Entrada */}
+                    <div className="space-y-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <span>Vistoria de Entrada Vinculada</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleAbrirVistoria}
+                          className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition flex items-center space-x-1 shadow-xs"
+                        >
+                          <Camera className="w-3 h-3" />
+                          <span>Fazer Nova Vistoria</span>
+                        </button>
+                      </div>
+
+                      {availableVistorias.length > 0 ? (
+                        <div className="space-y-2.5">
                           <select
                             value={selectedVistoriaId}
                             onChange={(e) => {
@@ -764,396 +1137,194 @@ export default function ContratosPage() {
                             }}
                             className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
                           >
-                            {availableVistorias.map((v) => {
-                              const isThisLoc = locatarioId && (v.locatarioId === locatarioId || v.locatario?.id === locatarioId);
-                              return (
-                                <option key={v.id} value={v.id}>
-                                  📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} {isThisLoc ? "★ [Locatário Selecionado]" : ""} {v.locatario?.nome ? `• Locatário: ${v.locatario.nome}` : ""} (Flat {v.flat?.numero})
-                                </option>
-                              );
-                            })}
-                            <option value="none">-- Não vincular nenhuma vistoria agora --</option>
+                            {availableVistorias.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} {v.locatario?.nome ? `• Locatário: ${v.locatario.nome}` : ""} (Flat {v.flat?.numero})
+                              </option>
+                            ))}
+                            <option value="none">-- Não vincular vistoria agora --</option>
                           </select>
-                        </div>
 
-                        {selectedVistoriaId && selectedVistoriaId !== "none" && (
-                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-3 shadow-xs">
-                            <div className="flex items-center space-x-2.5">
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              <div>
-                                <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
-                                  <span>✓ Vistoria Pronta para Vinculação Exclusiva</span>
-                                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
-                                    {vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos
+                          {selectedVistoriaId && selectedVistoriaId !== "none" && (
+                            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-3">
+                              <div className="flex items-center space-x-2.5">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <div>
+                                  <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase">
+                                    ✓ Laudo Fotográfico Selecionado ({vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos)
                                   </span>
-                                </span>
-                                <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
-                                  Status: <strong>{vistoriaStatusInfo.statusAssinatura}</strong>. O laudo com as fotos será anexado permanentemente a este contrato.
-                                </p>
+                                  <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
+                                    Status: <strong>{vistoriaStatusInfo.statusAssinatura}</strong>.
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={handleAbrirVistoria}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1 shadow-xs"
-                            >
-                              <FileCheck className="w-3.5 h-3.5" />
-                              <span>Revisar</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                        <div className="flex items-center space-x-2.5">
-                          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                          <div>
-                            <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase">
-                              ⚠️ Nenhuma Vistoria Disponível
-                            </span>
-                            <p className="text-[11px] text-amber-700/90 dark:text-amber-400 mt-0.5">
-                              Nenhuma vistoria de entrada livre encontrada para este imóvel. Você pode criar uma agora ou no menu <strong>Vistorias & Checklists</strong>.
-                            </p>
-                          </div>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleAbrirVistoria}
-                          className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1.5 shadow-xs self-start sm:self-center"
-                        >
-                          <Camera className="w-3.5 h-3.5" />
-                          <span>Fazer Vistoria Agora</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
-                    2º Passo: Condições do Contrato de Locação
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Modelo de Contrato (Opcional)
-                  </label>
-                  <select
-                    value={modeloContratoId}
-                    onChange={(e) => setModeloContratoId(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">-- Nenhum modelo selecionado --</option>
-                    {modelos.map((mod) => (
-                      <option key={mod.id} value={mod.id}>
-                        {mod.titulo}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Data de Emissão
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={dataEmissao}
-                      onChange={(e) => setDataEmissao(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Tipo de Vigência
-                    </label>
-                    <select
-                      value={tipoValidade}
-                      onChange={(e) => {
-                        const nextType = e.target.value as "MESES" | "DIAS";
-                        setTipoValidade(nextType);
-                        if (nextType === "DIAS" && parseInt(validadeValor, 10) > 365) {
-                          setValidadeValor("30");
-                        } else if (nextType === "MESES" && parseInt(validadeValor, 10) > 48) {
-                          setValidadeValor("12");
-                        }
-                      }}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
-                    >
-                      <option value="MESES">📅 Meses</option>
-                      <option value="DIAS">☀️ Dias (Diárias / Temporada)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {tipoValidade === "MESES" ? "Prazo (Meses)" : "Prazo (Dias)"}
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max={tipoValidade === "MESES" ? "48" : "365"}
-                      required
-                      value={validadeValor}
-                      onChange={(e) => setValidadeValor(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      {tipoValidade === "MESES" ? "Valor Mensal (R$)" : "Valor do Período (R$)"}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={valorMensal}
-                      onChange={(e) => setValorMensal(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-bold"
-                    />
-                  </div>
-                </div>
-
-                {/* Validação em Tempo Real de Disponibilidade na Agenda */}
-                {flatId && (
-                  <div className="pt-1">
-                    {disponibilidadeInfo.checking ? (
-                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
-                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
-                        <span>Verificando disponibilidade de datas na agenda...</span>
-                      </div>
-                    ) : disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel ? (
-                      <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800/80 text-red-800 dark:text-red-200 space-y-2 shadow-xs">
-                        <div className="flex items-start space-x-2.5">
-                          <CalendarX className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <span className="text-xs font-black uppercase text-red-700 dark:text-red-300 tracking-wide flex items-center gap-1.5">
-                              <span>❌ Período Indisponível na Agenda</span>
-                            </span>
-                            <p className="text-xs font-semibold text-red-900 dark:text-red-200">
-                              {disponibilidadeInfo.mensagem}
-                            </p>
-                            {disponibilidadeInfo.conflitos && disponibilidadeInfo.conflitos.length > 0 && (
-                              <div className="mt-2 text-[11px] bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-lg border border-red-200 dark:border-red-900 space-y-1.5 shadow-xs">
-                                <span className="font-bold text-slate-900 dark:text-slate-100 block border-b border-slate-100 dark:border-slate-800 pb-1">
-                                  Reserva(s) / Contrato(s) Conflitante(s):
-                                </span>
-                                {disponibilidadeInfo.conflitos.map((c: any) => (
-                                  <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between text-slate-700 dark:text-slate-300 gap-1">
-                                    <span>👤 <strong>{c.locatarioNome}</strong> ({c.tipoValidade === "DIAS" ? `${c.validadeDias} dias` : `${c.validadeMeses} meses`})</span>
-                                    <span className="font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded text-[10px]">
-                                      {c.dataInicioFormatada} até {c.dataFimFormatada}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <p className="text-[11px] text-red-700 dark:text-red-400 mt-1 font-medium flex items-center gap-1">
-                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                              <span>Para continuar, selecione outra data de início ou altere o prazo da locação.</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : disponibilidadeInfo.checked && disponibilidadeInfo.disponivel ? (
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-2.5 shadow-xs">
-                        <CalendarCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <div>
-                          <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                            <span>✅ Período 100% Livre na Agenda</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-black">
-                              {disponibilidadeInfo.dataInicioFormatada} ➔ {disponibilidadeInfo.dataFimFormatada}
-                            </span>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-between">
+                          <span className="text-xs text-amber-800 dark:text-amber-300 font-semibold">
+                            Nenhuma vistoria livre encontrada para este imóvel.
                           </span>
-                          <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                            Nenhum conflito de reserva/contrato encontrado para este imóvel nestas datas.
-                          </p>
+                          <button
+                            type="button"
+                            onClick={handleAbrirVistoria}
+                            className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
+                          >
+                            Criar Agora
+                          </button>
                         </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* Bloco 1: Condições de Pagamento & Dados Bancários */}
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
-                    <span>💳 Pagamento & Dados Bancários</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Pagamento até o dia (Vencimento)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="31"
-                        required
-                        value={diaVencimento}
-                        onChange={(e) => setDiaVencimento(e.target.value)}
-                        placeholder="Ex: 5"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
-                      />
+                      )}
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Forma de Pagamento
+                    {/* Modelo de Contrato */}
+                    <div className="space-y-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                        Modelo de Contrato (Template A4)
                       </label>
                       <select
-                        value={formaPagamento}
-                        onChange={(e) => setFormaPagamento(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                        value={modeloContratoId}
+                        onChange={(e) => setModeloContratoId(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium"
                       >
-                        <option value="PIX">⚡ PIX</option>
-                        <option value="BOLETO">📄 Boleto Bancário</option>
-                        <option value="TRANSFERENCIA">🏦 Transferência / TED / DOC</option>
-                        <option value="DINHEIRO">💵 Dinheiro em Espécie</option>
-                        <option value="CARTAO">💳 Cartão de Crédito/Débito</option>
+                        <option value="">-- Nenhum modelo (Usar layout padrão) --</option>
+                        {modelos.map((mod) => (
+                          <option key={mod.id} value={mod.id}>
+                            {mod.titulo}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Nome do Banco
-                      </label>
-                      <input
-                        type="text"
-                        value={bancoNome}
-                        onChange={(e) => setBancoNome(e.target.value)}
-                        placeholder="Ex: Banco do Brasil, Bradesco, Itaú..."
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
+                {/* ========================================================= */}
+                {/* ETAPA 5: CONFERÊNCIA & EMISSÃO                            */}
+                {/* ========================================================= */}
+                {wizardStep === 5 && (
+                  <div className="space-y-4 animate-in fade-in">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+                      <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <Sparkles className="w-4 h-4 text-indigo-500" />
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                          Resumo Geral dos Termos do Contrato
+                        </h4>
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Dados da Conta / Chave PIX
-                      </label>
-                      <input
-                        type="text"
-                        value={bancoDadosConta}
-                        onChange={(e) => setBancoDadosConta(e.target.value)}
-                        placeholder="Ex: Ag: 0001 / Conta: 12345-6 / PIX: 12.345.678/0001-90"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                      />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">Locatário</span>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">
+                            {locatarios.find((l) => l.id === locatarioId)?.nome || "Não selecionado"}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            CPF: {locatarios.find((l) => l.id === locatarioId)?.cpf || "---"}
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">Imóvel</span>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">
+                            Flat {flats.find((f) => f.id === flatId)?.numero || "---"}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            Condomínio: {flats.find((f) => f.id === flatId)?.local?.nome || "---"}
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">Vigência & Datas</span>
+                          <div className="font-bold text-slate-900 dark:text-slate-100">
+                            {validadeValor} {tipoValidade === "MESES" ? "Meses" : "Dias"}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            Início: {dataEmissao ? new Date(dataEmissao + "T00:00:00").toLocaleDateString("pt-BR") : "---"}
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">Valor & Vencimento</span>
+                          <div className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                            {formatCurrency(parseFloat(valorMensal || "0"))} {tipoValidade === "MESES" ? "/mês" : "total"}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            Vencimento dia {diaVencimento} • Forma: {formaPagamento}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                )}
+
+                {/* Barra de Navegação do Wizard (Voltar / Avançar / Emitir) */}
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                  {wizardStep > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep((prev) => Math.max(1, prev - 1))}
+                      className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center space-x-1.5 transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Voltar</span>
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+
+                  {wizardStep < 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Validação Etapa 1
+                        if (wizardStep === 1) {
+                          if (!locatarioId) {
+                            toast.warning("Selecione um locatário para prosseguir.");
+                            return;
+                          }
+                        }
+                        // Validação Etapa 2
+                        if (wizardStep === 2) {
+                          if (!flatId) {
+                            toast.warning("Selecione um flat/imóvel.");
+                            return;
+                          }
+                          if (!valorMensal || parseFloat(valorMensal) <= 0) {
+                            toast.warning("Informe o valor do aluguel.");
+                            return;
+                          }
+                          if (!editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel) {
+                            toast.error("O período está indisponível na agenda. Ajuste as datas para prosseguir.");
+                            return;
+                          }
+                        }
+                        setWizardStep((prev) => Math.min(5, prev + 1));
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-white text-xs shadow-md flex items-center space-x-1.5 transition cursor-pointer"
+                    >
+                      <span>Avançar</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={submitting || (!editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel)}
+                      className={`px-6 py-2.5 rounded-xl font-bold text-white text-xs shadow-lg transition flex items-center space-x-2 ${
+                        !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
+                          ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70"
+                          : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 cursor-pointer shadow-emerald-500/20"
+                      }`}
+                    >
+                      <FileSignature className="w-4 h-4" />
+                      <span>
+                        {submitting
+                          ? "Processando..."
+                          : editingContrato
+                          ? "Salvar Alterações"
+                          : "Emitir Contrato & Gerar Parcelas"}
+                      </span>
+                    </button>
+                  )}
                 </div>
-
-                {/* Bloco 2: Encargos, Caução & Multa Rescisória */}
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
-                    <span>⚖️ Multas, Juros, Caução & Rescisão</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Multa por Atraso (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={multaAtrasoPercentual}
-                        onChange={(e) => setMultaAtrasoPercentual(e.target.value)}
-                        placeholder="Ex: 2.0"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Juros de Mora (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={jurosAtrasoPercentual}
-                        onChange={(e) => setJurosAtrasoPercentual(e.target.value)}
-                        placeholder="Ex: 1.0"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Valor Caução (R$)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={valorCaucao}
-                        onChange={(e) => setValorCaucao(e.target.value)}
-                        placeholder="Ex: 2500.00"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Equivalente a (Parcelas)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="12"
-                        value={caucaoParcelas}
-                        onChange={(e) => setCaucaoParcelas(e.target.value)}
-                        placeholder="Ex: 1"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Multa Rescisão (Meses)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="12"
-                        value={multaRescisaoMeses}
-                        onChange={(e) => setMultaRescisaoMeses(e.target.value)}
-                        placeholder="Ex: 3"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting || (!editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel)}
-                  className={`w-full py-2.5 rounded-xl font-semibold text-white text-xs shadow-md transition flex items-center justify-center space-x-2 ${
-                    !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
-                      ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70"
-                      : "bg-blue-600 hover:bg-blue-500 cursor-pointer"
-                  }`}
-                >
-                  <span>
-                    {submitting
-                      ? "Salvando..."
-                      : !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
-                      ? "❌ Período Indisponível na Agenda (Altere as Datas)"
-                      : editingContrato
-                      ? "Salvar Alterações do Contrato"
-                      : "Emitir Contrato & Gerar Link de Assinatura"}
-                  </span>
-                </button>
               </form>
             </div>
           </div>

@@ -229,6 +229,40 @@ export async function GET(request: NextRequest) {
   const totalVistoriasSaida = await prisma.vistoriaChecklist.count({
     where: { empresaId, tipoVistoria: "SAIDA" },
   });
+  const totalVistoriasPendentesAssinatura = await prisma.vistoriaChecklist.count({
+    where: { empresaId, statusAssinatura: "PENDENTE" },
+  });
+
+  // 7.1 Reservas e Ordens de Serviço (Pendências Operacionais)
+  const [
+    totalReservasAguardando,
+    todasReservas,
+    totalOrdensServicoAbertas,
+  ] = await Promise.all([
+    prisma.reserva.count({
+      where: {
+        empresaId,
+        status: { in: ["SOLICITADA", "PRE_RESERVA", "AGUARDANDO_PAGAMENTO"] },
+      },
+    }),
+    prisma.reserva.findMany({
+      where: { empresaId },
+      include: { flat: { include: { local: true } }, locatario: true },
+      orderBy: { dataEntrada: "asc" },
+      take: 20,
+    }),
+    prisma.ordemServico.count({
+      where: {
+        empresaId,
+        status: { in: ["ABERTA", "EM_ATENDIMENTO", "AGUARDANDO_PECA"] },
+      },
+    }),
+  ]);
+
+  // Contratos aguardando assinatura
+  const contratosAguardandoAssinatura = todosContratos.filter(
+    (c) => c.status === "ATIVO" && c.statusAssinatura === "PENDENTE"
+  );
 
   // 8. Performance por Local / Empreendimento
   const locaisPerformance = todosLocais.map((loc) => {
@@ -707,6 +741,16 @@ export async function GET(request: NextRequest) {
     locaisPerformance,
     formasPagamento,
     despesasCategorias,
+    pendencias: {
+      contratosAguardandoAssinatura: contratosAguardandoAssinatura.length,
+      reservasAguardando: totalReservasAguardando,
+      contasVencidas: inadimplencias.length,
+      valorInadimplente: totalInadimplenteGeral,
+      vistoriasPendentesAssinatura: totalVistoriasPendentesAssinatura,
+      ordensServicoAbertas: totalOrdensServicoAbertas,
+      checkInsHoje: diariasProximas.filter((d) => d.tipoEvento === "CHECK_IN_HOJE").length,
+      checkOutsHoje: diariasProximas.filter((d) => d.tipoEvento === "CHECK_OUT_HOJE").length,
+    },
     alertas: {
       inadimplencias,
       contratosVencendo,
