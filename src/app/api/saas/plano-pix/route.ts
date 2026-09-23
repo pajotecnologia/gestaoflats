@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     let valor = cicloParam === "ANUAL" ? targetPlan.priceYearlyTotal : targetPlan.priceMonthly;
     let nomePlano = `${targetPlan.name} (${cicloParam === "ANUAL" ? "Anual com Desconto" : "Mensal"})`;
     let periodoTexto = cicloParam === "ANUAL" 
-      ? `12 meses de acesso (Economia de até 20% • R$ ${targetPlan.priceYearlyMonthlyEquivalent.toFixed(2)}/mês equivalente)`
+      ? `12 meses de acesso (Economia de 10% • R$ ${targetPlan.priceYearlyMonthlyEquivalent.toFixed(2)}/mês equivalente)`
       : `1 mês de acesso completo • Até ${targetPlan.limits.maxProperties} imóveis`;
 
     let empresaNome = "Minha Empresa";

@@ -18,7 +18,7 @@ export interface PlanDefinition {
   priceMonthly: number;
   priceQuarterly?: number; // Trimestral
   priceSemiannual?: number; // Semestral
-  priceYearlyMonthlyEquivalent: number; // valor mensal quando cobrado anualmente (~15-20% desconto)
+  priceYearlyMonthlyEquivalent: number; // valor mensal quando cobrado anualmente (~10% de desconto)
   priceYearlyTotal: number;
   
   // Limites Numéricos de Capacidade
