@@ -409,10 +409,11 @@ function ParametrosContent() {
   };
 
   const handleDeleteCustomPlan = (slug: string) => {
+    const planName = saasPlanos[slug]?.name || slug;
     openConfirm({
-      title: "Excluir Plano Personalizado",
-      description: `Tem certeza que deseja excluir o plano personalizado "${slug}"?`,
-      confirmText: "Excluir",
+      title: "Excluir Plano SaaS",
+      description: `Tem certeza que deseja excluir o plano "${planName}" (${slug}) da matriz de planos?`,
+      confirmText: "Sim, Excluir",
       variant: "danger",
       onConfirm: async () => {
         setSalvandoPlanos(true);
@@ -428,8 +429,13 @@ function ParametrosContent() {
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            toast.success("Plano personalizado excluído!");
-            carregarPlanosSaaS();
+            toast.success(data.message || `Plano "${planName}" excluído com sucesso!`);
+            setSaasPlanos((prev) => {
+              const updated = { ...prev };
+              delete updated[slug];
+              return updated;
+            });
+            await carregarPlanosSaaS();
           } else {
             toast.error(data.error || "Erro ao excluir plano.");
           }
@@ -3441,16 +3447,14 @@ function ParametrosContent() {
                                 <span className="text-[10px]">Avançado</span>
                               </button>
 
-                              {(p.isCustom || !["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL"].includes(slug)) && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteCustomPlan(slug)}
-                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition"
-                                  title="Excluir Plano Personalizado"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCustomPlan(slug)}
+                                className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition cursor-pointer"
+                                title={`Excluir Plano ${p.name || slug}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
 

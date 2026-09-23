@@ -14,15 +14,21 @@ export async function GET(request: NextRequest) {
       : false;
 
     const config = await prisma.configuracaoSaaS.findFirst();
-    let planos: Record<string, PlanDefinition> = { ...SAAS_PLANS };
+    let planos: Record<string, PlanDefinition>;
 
     if (config?.planosConfigJson) {
       try {
         const custom = JSON.parse(config.planosConfigJson);
-        planos = { ...SAAS_PLANS, ...custom };
+        planos = { ...custom };
+        // Garante que TRIAL e MESTRE sempre existam internamente
+        if (!planos.TRIAL) planos.TRIAL = SAAS_PLANS.TRIAL;
+        if (!planos.MESTRE) planos.MESTRE = SAAS_PLANS.MESTRE;
       } catch (e) {
         console.error("Erro ao fazer parse de planosConfigJson:", e);
+        planos = { ...SAAS_PLANS };
       }
+    } else {
+      planos = { ...SAAS_PLANS };
     }
 
     // Se for SuperAdmin, retorna todos os planos para gestão no painel
@@ -94,11 +100,17 @@ async function handleSavePlanos(request: NextRequest) {
     const { planos, plano, planoId, action } = body;
 
     const config = await prisma.configuracaoSaaS.findFirst();
-    let currentPlans: Record<string, PlanDefinition> = { ...SAAS_PLANS };
+    let currentPlans: Record<string, PlanDefinition>;
     if (config?.planosConfigJson) {
       try {
-        currentPlans = { ...SAAS_PLANS, ...JSON.parse(config.planosConfigJson) };
-      } catch (e) {}
+        currentPlans = JSON.parse(config.planosConfigJson);
+        if (!currentPlans.TRIAL) currentPlans.TRIAL = SAAS_PLANS.TRIAL;
+        if (!currentPlans.MESTRE) currentPlans.MESTRE = SAAS_PLANS.MESTRE;
+      } catch (e) {
+        currentPlans = { ...SAAS_PLANS };
+      }
+    } else {
+      currentPlans = { ...SAAS_PLANS };
     }
 
     // 1. Restaurar Padrão de Fábrica
@@ -160,7 +172,7 @@ async function handleSavePlanos(request: NextRequest) {
       });
     }
 
-    // 3. Excluir Plano Customizado
+    // 3. Excluir Plano (Qualquer plano comercial ou customizado)
     if (action === "delete_plano" || request.method === "DELETE") {
       const rawIdentifier = body.slug || planoId || body.id;
       if (!rawIdentifier) {
@@ -179,15 +191,16 @@ async function handleSavePlanos(request: NextRequest) {
       }
 
       if (!targetSlug || !currentPlans[targetSlug]) {
-        return NextResponse.json({ error: `Plano personalizado "${rawIdentifier}" não encontrado ou já excluído.` }, { status: 404 });
+        return NextResponse.json({ error: `Plano "${rawIdentifier}" não encontrado ou já excluído.` }, { status: 404 });
       }
 
-      // Não permite excluir planos base obrigatórios
-      const isCore = ["ESSENCIAL", "PROFISSIONAL", "GESTAO", "EMPRESARIAL", "TRIAL", "MESTRE"].includes(targetSlug);
-      if (isCore) {
-        return NextResponse.json({ error: "Os 4 planos base do sistema não podem ser excluídos, apenas editados." }, { status: 400 });
+      // Apenas TRIAL e MESTRE são protegidos contra exclusão (sistêmicos)
+      const isProtected = ["TRIAL", "MESTRE"].includes(targetSlug.toUpperCase());
+      if (isProtected) {
+        return NextResponse.json({ error: `O plano de sistema "${targetSlug}" é protegido internamente e não pode ser excluído.` }, { status: 400 });
       }
 
+      const planName = currentPlans[targetSlug]?.name || targetSlug;
       delete currentPlans[targetSlug];
       const jsonString = JSON.stringify(currentPlans);
 
@@ -199,7 +212,7 @@ async function handleSavePlanos(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Plano personalizado "${targetSlug}" excluído com sucesso!`,
+        message: `Plano "${planName}" (${targetSlug}) excluído com sucesso!`,
         planos: currentPlans,
       });
     }
