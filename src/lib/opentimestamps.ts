@@ -2,7 +2,7 @@ import { calculateSha256 } from './cryptoUtils';
 export { calculateSha256 };
 
 // Importação segura do javascript-opentimestamps
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line
 const OpenTimestamps = require('javascript-opentimestamps');
 
 export interface OpenTimestampsResult {

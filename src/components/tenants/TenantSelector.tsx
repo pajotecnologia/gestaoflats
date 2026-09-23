@@ -99,6 +99,7 @@ export function TenantSelector() {
       >
         <div className="flex items-center space-x-2.5 min-w-0">
           {activeTenant?.logomarcaUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={getMediaUrl(activeTenant.logomarcaUrl)}
               alt={activeTenant.name}

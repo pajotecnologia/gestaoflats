@@ -72,7 +72,10 @@ export default function AgendaCalendar(props: Props) {
     [reservations, selectedFlatId, selectedStatus]
   );
 
-  const anchor = view === "month" ? new Date(month.getFullYear(), month.getMonth(), 1) : month;
+  const anchor = useMemo(
+    () => (view === "month" ? new Date(month.getFullYear(), month.getMonth(), 1) : month),
+    [view, month]
+  );
   const monthLabel = anchor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const weekDays = useMemo(() => {
     const start = monday(anchor);
