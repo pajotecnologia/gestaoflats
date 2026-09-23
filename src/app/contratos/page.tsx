@@ -1,12 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
-import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
-import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera, Calendar, CalendarCheck, CalendarX, Clock } from "lucide-react";
-import { toast } from "@/components/ui";
+import { FileText, Plus, X, Image as ImageIcon } from "lucide-react";
 
 export default function ContratosPage() {
   const [contratos, setContratos] = useState<any[]>([]);
@@ -17,11 +14,6 @@ export default function ContratosPage() {
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingContrato, setEditingContrato] = useState<any | null>(null);
-
-  // Modal de Vistoria Aberto a partir da Emissão de Contrato
-  const [showChecklistModal, setShowChecklistModal] = useState(false);
-  const [checklistFlat, setChecklistFlat] = useState<any>(null);
 
   // Form State Emissão Contrato
   const [locatarioId, setLocatarioId] = useState("");
@@ -31,24 +23,6 @@ export default function ContratosPage() {
   const [tipoValidade, setTipoValidade] = useState<"MESES" | "DIAS">("MESES");
   const [validadeValor, setValidadeValor] = useState("12");
   const [valorMensal, setValorMensal] = useState("");
-
-  // Estado de Verificação em Tempo Real da Disponibilidade na Agenda
-  const [disponibilidadeInfo, setDisponibilidadeInfo] = useState<{
-    checking: boolean;
-    checked: boolean;
-    disponivel: boolean;
-    mensagem: string;
-    dataInicioFormatada?: string;
-    dataFimFormatada?: string;
-    duracao?: number;
-    tipoValidade?: string;
-    conflitos?: any[];
-  }>({
-    checking: false,
-    checked: false,
-    disponivel: true,
-    mensagem: "",
-  });
 
   // Novos Campos de Condições Financeiras e Regras do Contrato
   const [diaVencimento, setDiaVencimento] = useState("5");
@@ -61,22 +35,9 @@ export default function ContratosPage() {
   const [caucaoParcelas, setCaucaoParcelas] = useState("0");
   const [multaRescisaoMeses, setMultaRescisaoMeses] = useState("3");
 
-  // Informações da Vistoria de Entrada Vinculada
-  const [availableVistorias, setAvailableVistorias] = useState<any[]>([]);
-  const [selectedVistoriaId, setSelectedVistoriaId] = useState<string>("");
-  const [vistoriaStatusInfo, setVistoriaStatusInfo] = useState<{
-    checking: boolean;
-    existe: boolean;
-    itensCount: number;
-    fotosCount: number;
-    statusAssinatura: string;
-  }>({
-    checking: false,
-    existe: false,
-    itensCount: 0,
-    fotosCount: 0,
-    statusAssinatura: "PENDENTE",
-  });
+  // Fotos Anexadas do Flat
+  const [availableFlatFotos, setAvailableFlatFotos] = useState<string[]>([]);
+  const [selectedFotosToAttach, setSelectedFotosToAttach] = useState<string[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -107,251 +68,59 @@ export default function ContratosPage() {
     loadData();
   }, []);
 
-  const updateVistoriaInfoFromObject = (vistoria: any) => {
-    if (!vistoria) {
-      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
-      return;
-    }
-    let itens = [];
-    let totalFotos = 0;
-    try {
-      const parsed = JSON.parse(vistoria.itensJson || "[]");
-      itens = Array.isArray(parsed) ? parsed : (parsed.itens || []);
-      itens.forEach((it: any) => {
-        if (it.fotosUrl && Array.isArray(it.fotosUrl)) {
-          totalFotos += it.fotosUrl.length;
-        }
-      });
-    } catch (e) {}
-
-    setVistoriaStatusInfo({
-      checking: false,
-      existe: true,
-      itensCount: itens.length,
-      fotosCount: totalFotos,
-      statusAssinatura: vistoria.statusAssinatura || "PENDENTE",
-    });
-  };
-
-  const checkVistoriaForFlat = async (selectedFlatId: string, selectedLocatarioId?: string) => {
-    const activeLocId = selectedLocatarioId !== undefined ? selectedLocatarioId : locatarioId;
-    if (!selectedFlatId && !activeLocId) {
-      setAvailableVistorias([]);
-      setSelectedVistoriaId("");
-      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
-      return;
-    }
-
-    setVistoriaStatusInfo((prev) => ({ ...prev, checking: true }));
-    try {
-      let url = `/api/vistorias?tipoVistoria=ENTRADA&apenasDisponiveis=true`;
-      if (selectedFlatId && activeLocId) {
-        url += `&flatId=${selectedFlatId}&locatarioId=${activeLocId}&flatOuLocatario=true`;
-      } else if (selectedFlatId) {
-        url += `&flatId=${selectedFlatId}`;
-      } else if (activeLocId) {
-        url += `&locatarioId=${activeLocId}`;
-      }
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (res.ok && data.vistorias && data.vistorias.length > 0) {
-        setAvailableVistorias(data.vistorias);
-        // Priorizar vistoria assinada para o locatário selecionado
-        const matchLocAndAssinado = activeLocId ? data.vistorias.find((v: any) => v.locatarioId === activeLocId && v.statusAssinatura?.includes("ASSINADO")) : null;
-        const matchLoc = activeLocId ? data.vistorias.find((v: any) => v.locatarioId === activeLocId) : null;
-        const matchAssinado = data.vistorias.find((v: any) => v.statusAssinatura?.includes("ASSINADO"));
-        const preferred = matchLocAndAssinado || matchLoc || matchAssinado || data.vistorias[0];
-
-        setSelectedVistoriaId(preferred.id);
-        updateVistoriaInfoFromObject(preferred);
-      } else {
-        setAvailableVistorias([]);
-        setSelectedVistoriaId("");
-        setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
-      }
-    } catch (e) {
-      setAvailableVistorias([]);
-      setSelectedVistoriaId("");
-      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
-    }
-  };
-
-  // Verificação em Tempo Real da Disponibilidade de Datas na Agenda
-  useEffect(() => {
-    if (!flatId || !dataEmissao || !validadeValor) {
-      setDisponibilidadeInfo({
-        checking: false,
-        checked: false,
-        disponivel: true,
-        mensagem: "",
-      });
-      return;
-    }
-
-    let active = true;
-    setDisponibilidadeInfo((prev) => ({ ...prev, checking: true }));
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/contratos/verificar-disponibilidade?flatId=${flatId}&dataEmissao=${dataEmissao}&tipoValidade=${tipoValidade}&validadeValor=${validadeValor}`
-        );
-        const data = await res.json();
-        if (active) {
-          if (res.ok) {
-            setDisponibilidadeInfo({
-              checking: false,
-              checked: true,
-              disponivel: data.disponivel,
-              mensagem: data.mensagem,
-              dataInicioFormatada: data.dataInicioFormatada,
-              dataFimFormatada: data.dataFimFormatada,
-              duracao: data.duracao,
-              tipoValidade: data.tipoValidade,
-              conflitos: data.conflitos || [],
-            });
-          } else {
-            setDisponibilidadeInfo({
-              checking: false,
-              checked: true,
-              disponivel: false,
-              mensagem: data.error || "Erro ao verificar disponibilidade de datas.",
-            });
-          }
-        }
-      } catch (e) {
-        if (active) {
-          setDisponibilidadeInfo({
-            checking: false,
-            checked: true,
-            disponivel: true,
-            mensagem: "",
-          });
-        }
-      }
-    }, 200);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [flatId, dataEmissao, tipoValidade, validadeValor]);
-
-  const handleLocatarioChange = (selectedLocatarioId: string) => {
-    setLocatarioId(selectedLocatarioId);
-    checkVistoriaForFlat(flatId, selectedLocatarioId);
-  };
-
   const handleFlatChange = (selectedFlatId: string) => {
     if (!selectedFlatId) {
       setFlatId("");
-      checkVistoriaForFlat("", locatarioId);
+      setAvailableFlatFotos([]);
+      setSelectedFotosToAttach([]);
       return;
     }
 
     const flatSelected = flats.find((f) => f.id === selectedFlatId);
     if (flatSelected) {
-      if (flatSelected.status === "MANUTENCAO") {
-        toast.error(
-          `O imóvel "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente em MANUTENÇÃO. Altere o status para DISPONÍVEL antes de emitir contrato.`
+      if (flatSelected.status !== "DISPONIVEL") {
+        const statusText = flatSelected.status === "OCUPADO" ? "OCUPADO" : "EM MANUTENÇÃO";
+        alert(
+          `⚠️ NÃO É POSSÍVEL EMITIR CONTRATO\n\nO flat "${flatSelected.numero}" (${flatSelected.local?.nome || "Condomínio"}) encontra-se atualmente ${statusText}.\n\nApenas imóveis com status DISPONÍVEL podem ser selecionados para a emissão de novos contratos.`
         );
         setFlatId("");
-        setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+        setAvailableFlatFotos([]);
+        setSelectedFotosToAttach([]);
         return;
       }
 
       setFlatId(selectedFlatId);
       if (flatSelected.valorPadrao) setValorMensal(flatSelected.valorPadrao.toString());
-      checkVistoriaForFlat(selectedFlatId, locatarioId);
+      const fotos: string[] = flatSelected.fotosUrl ? JSON.parse(flatSelected.fotosUrl) : [];
+      setAvailableFlatFotos(fotos);
+      setSelectedFotosToAttach(fotos);
     } else {
-      setVistoriaStatusInfo({ checking: false, existe: false, itensCount: 0, fotosCount: 0, statusAssinatura: "PENDENTE" });
+      setAvailableFlatFotos([]);
+      setSelectedFotosToAttach([]);
     }
   };
 
-  const handleOpenNewContrato = () => {
-    setEditingContrato(null);
-    setLocatarioId("");
-    setFlatId("");
-    setModeloContratoId("");
-    setDataEmissao(new Date().toISOString().split("T")[0]);
-    setTipoValidade("MESES");
-    setValidadeValor("12");
-    setValorMensal("");
-    setDiaVencimento("5");
-    setFormaPagamento("PIX");
-    setBancoNome("");
-    setBancoDadosConta("");
-    setMultaAtrasoPercentual("2.0");
-    setJurosAtrasoPercentual("1.0");
-    setValorCaucao("0.00");
-    setCaucaoParcelas("0");
-    setMultaRescisaoMeses("3");
-    setSelectedVistoriaId("");
-    setErrorMsg("");
-    setShowModal(true);
-  };
-
-  const handleOpenEditContrato = (contrato: any) => {
-    setEditingContrato(contrato);
-    setLocatarioId(contrato.locatarioId || "");
-    setFlatId(contrato.flatId || "");
-    setModeloContratoId(contrato.modeloContratoId || "");
-    setDataEmissao(contrato.dataEmissao ? contrato.dataEmissao.split("T")[0] : new Date().toISOString().split("T")[0]);
-    setTipoValidade(contrato.tipoValidade || "MESES");
-    setValidadeValor(String(contrato.validadeDias || contrato.validadeMeses || 12));
-    setValorMensal(String(contrato.valorMensal || ""));
-    setDiaVencimento(String(contrato.diaVencimento || 5));
-    setFormaPagamento(contrato.formaPagamento || "PIX");
-    setBancoNome(contrato.bancoNome || "");
-    setBancoDadosConta(contrato.bancoDadosConta || "");
-    setMultaAtrasoPercentual(String(contrato.multaAtrasoPercentual ?? 2.0));
-    setJurosAtrasoPercentual(String(contrato.jurosAtrasoPercentual ?? 1.0));
-    setValorCaucao(String(contrato.valorCaucao ?? "0.00"));
-    setCaucaoParcelas(String(contrato.caucaoParcelas ?? 0));
-    setMultaRescisaoMeses(String(contrato.multaRescisaoMeses ?? 3));
-    setSelectedVistoriaId("");
-    setErrorMsg("");
-    setShowModal(true);
-  };
-
-  const handleAbrirVistoria = () => {
-    if (!flatId) {
-      toast.warning("Selecione um flat primeiro para realizar a vistoria.");
-      return;
-    }
-    const flatSelected = flats.find((f) => f.id === flatId);
-    if (flatSelected) {
-      setChecklistFlat(flatSelected);
-      setShowChecklistModal(true);
+  const toggleFotoSelection = (url: string) => {
+    if (selectedFotosToAttach.includes(url)) {
+      setSelectedFotosToAttach(selectedFotosToAttach.filter((u) => u !== url));
+    } else {
+      setSelectedFotosToAttach([...selectedFotosToAttach, url]);
     }
   };
 
   const handleEmitirContrato = async (e: React.FormEvent) => {
     e.preventDefault();
-    const isEditing = Boolean(editingContrato?.id);
-
-    if (!isEditing && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel) {
-      const msg = disponibilidadeInfo.mensagem || "O período selecionado está indisponível na agenda.";
-      setErrorMsg(msg);
-      toast.error(msg);
-      return;
-    }
-
     setSubmitting(true);
     setErrorMsg("");
 
     try {
-      const method = isEditing ? "PUT" : "POST";
       const res = await fetch("/api/contratos", {
-        method,
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingContrato?.id,
           locatarioId,
           flatId,
-          modeloContratoId: modeloContratoId || null,
+          modeloContratoId,
           dataEmissao,
           tipoValidade,
           validadeValor,
@@ -366,36 +135,28 @@ export default function ContratosPage() {
           valorCaucao: parseFloat(valorCaucao),
           caucaoParcelas: parseInt(caucaoParcelas, 10),
           multaRescisaoMeses: parseInt(multaRescisaoMeses, 10),
-          vistoriaEntradaId: selectedVistoriaId || null,
-          atualizarParcelasPendentes: true,
+          fotosAnexadasUrl: JSON.stringify(selectedFotosToAttach),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data.error || (isEditing ? "Erro ao salvar contrato." : "Erro ao emitir contrato."));
-        toast.error(data.error || (isEditing ? "Erro ao salvar contrato." : "Erro ao emitir contrato."));
+        setErrorMsg(data.error || "Erro ao emitir contrato.");
         setSubmitting(false);
         return;
       }
 
-      toast.success(isEditing ? "Contrato atualizado com sucesso!" : "Contrato emitido com sucesso!");
       setShowModal(false);
-      setEditingContrato(null);
       setLocatarioId("");
       setFlatId("");
       setValorMensal("");
       loadData();
     } catch (err) {
       setErrorMsg("Erro de rede ao conectar ao servidor.");
-      toast.error("Erro de rede ao conectar ao servidor.");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const contratosAtivos = contratos.filter((c) => c.status !== "FINALIZADO");
-  const contratosEncerradosCount = contratos.filter((c) => c.status === "FINALIZADO").length;
 
   return (
     <Shell>
@@ -407,68 +168,49 @@ export default function ContratosPage() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Gestão de Contratos de Locação (Ativos)</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 flex-wrap mt-0.5">
-                <span className="text-blue-600 dark:text-blue-400 font-bold">Fluxo:</span>
-                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">1º Vistoria de Entrada</span>
-                <span>➔</span>
-                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">2º Contrato de Locação</span>
-                <span>➔</span>
-                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">3º Vistoria de Saída</span>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Gestão de Contratos e Aluguéis</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Emissão, Vistoria de Entrada/Saída, Assinatura Digital e Acompanhamento das Parcelas
               </p>
             </div>
           </div>
 
-          <button
-            onClick={handleOpenNewContrato}
-            className="w-full sm:w-auto min-h-[44px] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Emitir Novo Contrato</span>
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => (window.location.href = "/contratos/novo")}
+              className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Assistente de Emissão</span>
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md flex items-center justify-center space-x-2 transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Emissão Rápida</span>
+            </button>
+          </div>
         </div>
 
-        {/* Abas de Navegação entre Contratos Ativos e Encerrados */}
-        <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-          <Link
-            href="/contratos"
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm shadow-blue-500/20"
-          >
-            <FileText className="w-4 h-4" />
-            <span>Contratos Ativos</span>
-            <span className="px-1.5 py-0.5 rounded-md bg-white/20 text-white text-[10px] font-black">
-              {contratosAtivos.length}
-            </span>
-          </Link>
-
-          <Link
-            href="/contratos/encerrados"
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>Contratos Encerrados</span>
-            {contratosEncerradosCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
-                {contratosEncerradosCount}
-              </span>
-            )}
-          </Link>
-        </div>
-
-        {/* Lista de Contratos Ativos */}
+        {/* Lista de Contratos */}
         {loading ? (
-          <div className="text-center py-12 text-xs text-slate-500 dark:text-slate-400">Carregando contratos ativos...</div>
-        ) : contratosAtivos.length === 0 ? (
+          <div className="text-center py-12 text-xs text-slate-500 dark:text-slate-400">Carregando contratos...</div>
+        ) : contratos.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-sm">
             <FileText className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">Nenhum contrato ativo no momento.</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">Nenhum contrato cadastrado ainda.</p>
             <p className="text-xs text-slate-500">
               Clique em "Emitir Novo Contrato" acima para iniciar a gestão de um flat.
             </p>
           </div>
         ) : (
           <div className="space-y-6">
-            {contratosAtivos.map((contrato) => (
+            {contratos.map((contrato) => (
+              <div key={contrato.id} className="space-y-2">
+                <div className="flex justify-end">
+                  <button onClick={() => (window.location.href = `/contratos/${contrato.id}`)} className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[11px] font-bold border border-blue-200 dark:border-blue-800">Abrir dossiê do contrato →</button>
+                </div>
               <GridMeses
                 key={contrato.id}
                 contratoId={contrato.id}
@@ -487,23 +229,21 @@ export default function ContratosPage() {
                 parcelas={contrato.contasReceber || []}
                 vistoriasChecklist={contrato.vistoriasChecklist || []}
                 empresaData={empresaData}
-                modeloContratoHtml={contrato.modeloContrato?.conteudoHtml}
-                contratoCompleto={contrato}
                 onBaixaSucesso={loadData}
-                onEditarContrato={handleOpenEditContrato}
               />
+              </div>
             ))}
           </div>
         )}
 
-        {/* Modal Emissão / Edição de Contrato */}
+        {/* Modal Emissão de Contrato com Anexo de Fotos */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center space-x-2">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span>{editingContrato ? "Editar Contrato de Locação" : "Emissão de Novo Contrato de Aluguel"}</span>
+                  <span>Emissão de Novo Contrato de Aluguel</span>
                 </h3>
                 <button
                   onClick={() => setShowModal(false)}
@@ -527,7 +267,7 @@ export default function ContratosPage() {
                   <select
                     required
                     value={locatarioId}
-                    onChange={(e) => handleLocatarioChange(e.target.value)}
+                    onChange={(e) => setLocatarioId(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
                   >
                     <option value="">-- Escolha o Locatário --</option>
@@ -549,132 +289,52 @@ export default function ContratosPage() {
                     onChange={(e) => handleFlatChange(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium"
                   >
-                    <option value="">-- Escolha o Flat --</option>
+                    <option value="">-- Escolha o Flat (Apenas Imóveis Disponíveis) --</option>
                     {flats.map((flat) => {
-                      const isCurrentEditingFlat = editingContrato && editingContrato.flatId === flat.id;
-                      const isAvailable = flat.status === "DISPONIVEL" || isCurrentEditingFlat;
+                      const isAvailable = flat.status === "DISPONIVEL";
                       return (
                         <option
                           key={flat.id}
                           value={flat.id}
                           className={isAvailable ? "font-bold text-emerald-600" : "text-slate-400"}
                         >
-                          {flat.local?.nome} - {flat.numero} ({isCurrentEditingFlat ? "🔵 IMÓVEL DESTE CONTRATO" : isAvailable ? "🟢 DISPONÍVEL" : flat.status === "OCUPADO" ? "🔵 OCUPADO (Indisponível)" : "🟡 MANUTENÇÃO (Indisponível)"})
+                          {flat.local?.nome} - {flat.numero} ({isAvailable ? "🟢 DISPONÍVEL" : flat.status === "OCUPADO" ? "🔵 OCUPADO (Indisponível)" : "🟡 MANUTENÇÃO (Indisponível)"})
                         </option>
                       );
                     })}
                   </select>
                 </div>
 
-                {/* ETAPA 1: Vistoria de Entrada Vinculada ao Flat */}
-                {flatId && (
-                  <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <span>1º Passo: Vistoria de Entrada do Imóvel</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleAbrirVistoria}
-                        className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition flex items-center space-x-1 shadow-xs"
-                      >
-                        <Camera className="w-3 h-3" />
-                        <span>Nova Vistoria</span>
-                      </button>
-                    </div>
-
-                    {vistoriaStatusInfo.checking ? (
-                      <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
-                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        <span>Buscando vistorias de entrada disponíveis para este imóvel...</span>
-                      </div>
-                    ) : availableVistorias.length > 0 ? (
-                      <div className="space-y-2.5">
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                            Selecionar Vistoria de Entrada Disponível:
-                          </label>
-                          <select
-                            value={selectedVistoriaId}
-                            onChange={(e) => {
-                              const vId = e.target.value;
-                              setSelectedVistoriaId(vId);
-                              const found = availableVistorias.find((v) => v.id === vId);
-                              updateVistoriaInfoFromObject(found);
-                            }}
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                {/* Selecionar Fotos do Flat para Anexar */}
+                {availableFlatFotos.length > 0 && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                      <ImageIcon className="w-4 h-4 text-blue-600" />
+                      <span>Anexar Fotos do Imóvel ao Contrato ({selectedFotosToAttach.length} selecionadas):</span>
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableFlatFotos.map((url, i) => {
+                        const isSelected = selectedFotosToAttach.includes(url);
+                        return (
+                          <div
+                            key={i}
+                            onClick={() => toggleFotoSelection(url)}
+                            className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition ${
+                              isSelected ? "border-blue-600" : "border-transparent opacity-50"
+                            }`}
                           >
-                            {availableVistorias.map((v) => {
-                              const isThisLoc = locatarioId && (v.locatarioId === locatarioId || v.locatario?.id === locatarioId);
-                              return (
-                                <option key={v.id} value={v.id}>
-                                  📅 {new Date(v.createdAt).toLocaleDateString("pt-BR")} | {v.statusAssinatura?.includes("ASSINADO") ? "🟢 ASSINADO" : "🟡 PENDENTE"} {isThisLoc ? "★ [Locatário Selecionado]" : ""} {v.locatario?.nome ? `• Locatário: ${v.locatario.nome}` : ""} (Flat {v.flat?.numero})
-                                </option>
-                              );
-                            })}
-                            <option value="none">-- Não vincular nenhuma vistoria agora --</option>
-                          </select>
-                        </div>
-
-                        {selectedVistoriaId && selectedVistoriaId !== "none" && (
-                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-3 shadow-xs">
-                            <div className="flex items-center space-x-2.5">
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              <div>
-                                <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 uppercase flex items-center gap-1.5">
-                                  <span>✓ Vistoria Pronta para Vinculação Exclusiva</span>
-                                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">
-                                    {vistoriaStatusInfo.itensCount} itens • {vistoriaStatusInfo.fotosCount} fotos
-                                  </span>
-                                </span>
-                                <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 mt-0.5">
-                                  Status: <strong>{vistoriaStatusInfo.statusAssinatura}</strong>. O laudo com as fotos será anexado permanentemente a este contrato.
-                                </p>
+                            <img src={url} alt="Foto Flat" className="w-full h-14 object-cover" />
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+                                ✓
                               </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={handleAbrirVistoria}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1 shadow-xs"
-                            >
-                              <FileCheck className="w-3.5 h-3.5" />
-                              <span>Revisar</span>
-                            </button>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                        <div className="flex items-center space-x-2.5">
-                          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                          <div>
-                            <span className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase">
-                              ⚠️ Nenhuma Vistoria Disponível
-                            </span>
-                            <p className="text-[11px] text-amber-700/90 dark:text-amber-400 mt-0.5">
-                              Nenhuma vistoria de entrada livre encontrada para este imóvel. Você pode criar uma agora ou no menu <strong>Vistorias & Checklists</strong>.
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAbrirVistoria}
-                          className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 transition flex items-center space-x-1.5 shadow-xs self-start sm:self-center"
-                        >
-                          <Camera className="w-3.5 h-3.5" />
-                          <span>Fazer Vistoria Agora</span>
-                        </button>
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
-                    2º Passo: Condições do Contrato de Locação
-                  </span>
-                </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -694,7 +354,7 @@ export default function ContratosPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Data de Emissão
@@ -759,66 +419,6 @@ export default function ContratosPage() {
                     />
                   </div>
                 </div>
-
-                {/* Validação em Tempo Real de Disponibilidade na Agenda */}
-                {flatId && (
-                  <div className="pt-1">
-                    {disponibilidadeInfo.checking ? (
-                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center space-x-2">
-                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
-                        <span>Verificando disponibilidade de datas na agenda...</span>
-                      </div>
-                    ) : disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel ? (
-                      <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800/80 text-red-800 dark:text-red-200 space-y-2 shadow-xs">
-                        <div className="flex items-start space-x-2.5">
-                          <CalendarX className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <span className="text-xs font-black uppercase text-red-700 dark:text-red-300 tracking-wide flex items-center gap-1.5">
-                              <span>❌ Período Indisponível na Agenda</span>
-                            </span>
-                            <p className="text-xs font-semibold text-red-900 dark:text-red-200">
-                              {disponibilidadeInfo.mensagem}
-                            </p>
-                            {disponibilidadeInfo.conflitos && disponibilidadeInfo.conflitos.length > 0 && (
-                              <div className="mt-2 text-[11px] bg-white/90 dark:bg-slate-900/90 p-2.5 rounded-lg border border-red-200 dark:border-red-900 space-y-1.5 shadow-xs">
-                                <span className="font-bold text-slate-900 dark:text-slate-100 block border-b border-slate-100 dark:border-slate-800 pb-1">
-                                  Reserva(s) / Contrato(s) Conflitante(s):
-                                </span>
-                                {disponibilidadeInfo.conflitos.map((c: any) => (
-                                  <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between text-slate-700 dark:text-slate-300 gap-1">
-                                    <span>👤 <strong>{c.locatarioNome}</strong> ({c.tipoValidade === "DIAS" ? `${c.validadeDias} dias` : `${c.validadeMeses} meses`})</span>
-                                    <span className="font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded text-[10px]">
-                                      {c.dataInicioFormatada} até {c.dataFimFormatada}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <p className="text-[11px] text-red-700 dark:text-red-400 mt-1 font-medium flex items-center gap-1">
-                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                              <span>Para continuar, selecione outra data de início ou altere o prazo da locação.</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : disponibilidadeInfo.checked && disponibilidadeInfo.disponivel ? (
-                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-2.5 shadow-xs">
-                        <CalendarCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <div>
-                          <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                            <span>✅ Período 100% Livre na Agenda</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-black">
-                              {disponibilidadeInfo.dataInicioFormatada} ➔ {disponibilidadeInfo.dataFimFormatada}
-                            </span>
-                          </span>
-                          <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                            Nenhum conflito de reserva/contrato encontrado para este imóvel nestas datas.
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
 
                 {/* Bloco 1: Condições de Pagamento & Dados Bancários */}
                 <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
@@ -978,46 +578,14 @@ export default function ContratosPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting || (!editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel)}
-                  className={`w-full py-2.5 rounded-xl font-semibold text-white text-xs shadow-md transition flex items-center justify-center space-x-2 ${
-                    !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
-                      ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-70"
-                      : "bg-blue-600 hover:bg-blue-500 cursor-pointer"
-                  }`}
+                  disabled={submitting}
+                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-xs shadow-md"
                 >
-                  <span>
-                    {submitting
-                      ? "Salvando..."
-                      : !editingContrato && disponibilidadeInfo.checked && !disponibilidadeInfo.disponivel
-                      ? "❌ Período Indisponível na Agenda (Altere as Datas)"
-                      : editingContrato
-                      ? "Salvar Alterações do Contrato"
-                      : "Emitir Contrato & Gerar Link de Assinatura"}
-                  </span>
+                  <span>{submitting ? "Gerando..." : "Emitir Contrato & Gerar Link de Assinatura"}</span>
                 </button>
               </form>
             </div>
           </div>
-        )}
-
-        {/* Modal de Checklist / Vistoria de Entrada */}
-        {showChecklistModal && checklistFlat && (
-          <ChecklistVistoriaModal
-            flatId={checklistFlat.id}
-            flatNumero={checklistFlat.numero}
-            locatarioId={locatarioId || undefined}
-            locatarioNome={locatarios.find((l) => l.id === locatarioId)?.nome}
-            locatarioCpf={locatarios.find((l) => l.id === locatarioId)?.cpf}
-            locatarioTelefone={locatarios.find((l) => l.id === locatarioId)?.telefone}
-            initialTipoVistoria="ENTRADA"
-            empresaData={empresaData}
-            onClose={() => {
-              setShowChecklistModal(false);
-              if (checklistFlat?.id) {
-                checkVistoriaForFlat(checklistFlat.id);
-              }
-            }}
-          />
         )}
       </div>
     </Shell>
