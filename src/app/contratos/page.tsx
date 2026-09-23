@@ -5,7 +5,7 @@ import Link from "next/link";
 import Shell from "@/components/layout/Shell";
 import GridMeses from "@/components/contratos/GridMeses";
 import ChecklistVistoriaModal from "@/components/flats/ChecklistVistoriaModal";
-import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera, Calendar, CalendarCheck, CalendarX, Clock } from "lucide-react";
+import { FileText, Plus, X, FileCheck, CheckCircle2, AlertCircle, Camera, Calendar, CalendarCheck, CalendarX, Clock, Search, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui";
 
 export default function ContratosPage() {
@@ -18,6 +18,8 @@ export default function ContratosPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingContrato, setEditingContrato] = useState<any | null>(null);
+  const [filtroStatus, setFiltroStatus] = useState<"TODOS" | "VENCIDOS" | "VENCENDO" | "EM_DIA">("TODOS");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modal de Vistoria Aberto a partir da Emissão de Contrato
   const [showChecklistModal, setShowChecklistModal] = useState(false);
@@ -394,8 +396,60 @@ export default function ContratosPage() {
     }
   };
 
+  const getContratoVencimentoInfo = (contrato: any) => {
+    const dtInicio = contrato.dataInicio ? new Date(contrato.dataInicio) : (contrato.dataEmissao ? new Date(contrato.dataEmissao) : new Date());
+    let dtFinal: Date | null = null;
+    if (contrato.dataFim) {
+      dtFinal = new Date(contrato.dataFim);
+    } else if (contrato.tipoValidade === "DIAS" && contrato.validadeDias) {
+      dtFinal = new Date(dtInicio.getTime() + contrato.validadeDias * 24 * 60 * 60 * 1000);
+    } else if (contrato.validadeMeses) {
+      dtFinal = new Date(dtInicio);
+      dtFinal.setMonth(dtFinal.getMonth() + contrato.validadeMeses);
+    }
+
+    if (!dtFinal) return { status: "EM_DIA", dias: 999 };
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const diffMs = dtFinal.getTime() - hoje.getTime();
+    const diasAteVencimento = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diasAteVencimento < 0) {
+      return { status: "VENCIDO", dias: diasAteVencimento };
+    } else if (diasAteVencimento <= 30) {
+      return { status: "VENCENDO", dias: diasAteVencimento };
+    }
+    return { status: "EM_DIA", dias: diasAteVencimento };
+  };
+
   const contratosAtivos = contratos.filter((c) => c.status !== "FINALIZADO");
   const contratosEncerradosCount = contratos.filter((c) => c.status === "FINALIZADO").length;
+
+  const countVencidos = contratosAtivos.filter((c) => getContratoVencimentoInfo(c).status === "VENCIDO").length;
+  const countVencendo = contratosAtivos.filter((c) => getContratoVencimentoInfo(c).status === "VENCENDO").length;
+  const countEmDia = contratosAtivos.filter((c) => getContratoVencimentoInfo(c).status === "EM_DIA").length;
+
+  const contratosFiltrados = contratosAtivos.filter((c) => {
+    const info = getContratoVencimentoInfo(c);
+    if (filtroStatus === "VENCIDOS" && info.status !== "VENCIDO") return false;
+    if (filtroStatus === "VENCENDO" && info.status !== "VENCENDO") return false;
+    if (filtroStatus === "EM_DIA" && info.status !== "EM_DIA") return false;
+
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const locatarioNome = c.locatario?.nome?.toLowerCase() || "";
+    const locatarioCpf = c.locatario?.cpf?.toLowerCase() || "";
+    const flatNumero = c.flat?.numero?.toLowerCase() || "";
+    const localNome = c.flat?.local?.nome?.toLowerCase() || "";
+
+    return (
+      locatarioNome.includes(term) ||
+      locatarioCpf.includes(term) ||
+      flatNumero.includes(term) ||
+      localNome.includes(term)
+    );
+  });
 
   return (
     <Shell>
@@ -414,7 +468,7 @@ export default function ContratosPage() {
                 <span>➔</span>
                 <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">2º Contrato de Locação</span>
                 <span>➔</span>
-                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">3º Vistoria de Saída</span>
+                <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-semibold text-slate-700 dark:text-slate-300">3º Vistoria de Saída / Renovação</span>
               </p>
             </div>
           </div>
@@ -428,7 +482,7 @@ export default function ContratosPage() {
           </button>
         </div>
 
-        {/* Abas de Navegação entre Contratos Ativos e Encerrados */}
+        {/* Abas Principais de Navegação entre Contratos Ativos e Encerrados */}
         <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-800 pb-2">
           <Link
             href="/contratos"
@@ -455,20 +509,125 @@ export default function ContratosPage() {
           </Link>
         </div>
 
+        {/* Barra de Filtros e Busca Rápida de Vencimento */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          {/* Sub-abas de Filtro de Vencimento */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setFiltroStatus("TODOS")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                filtroStatus === "TODOS"
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              <span>Todos</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 dark:bg-white/20 font-extrabold">
+                {contratosAtivos.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setFiltroStatus("VENCIDOS")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                filtroStatus === "VENCIDOS"
+                  ? "bg-rose-600 text-white shadow-sm shadow-rose-500/30"
+                  : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100"
+              }`}
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>Vencidos (Renovar/Encerrar)</span>
+              {countVencidos > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-200 dark:bg-rose-800 text-rose-900 dark:text-rose-100 font-extrabold animate-pulse">
+                  {countVencidos}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setFiltroStatus("VENCENDO")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                filtroStatus === "VENCENDO"
+                  ? "bg-amber-600 text-white shadow-sm shadow-amber-500/30"
+                  : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 hover:bg-amber-100"
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Vencendo em até 30d</span>
+              {countVencendo > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 font-extrabold">
+                  {countVencendo}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setFiltroStatus("EM_DIA")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                filtroStatus === "EM_DIA"
+                  ? "bg-emerald-600 text-white shadow-sm shadow-emerald-500/30"
+                  : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60 hover:bg-emerald-100"
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Em dia / Vigentes</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 font-extrabold">
+                {countEmDia}
+              </span>
+            </button>
+          </div>
+
+          {/* Busca por Inquilino, Flat ou CPF */}
+          <div className="relative w-full md:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar por inquilino, flat ou CPF..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Lista de Contratos Ativos */}
         {loading ? (
           <div className="text-center py-12 text-xs text-slate-500 dark:text-slate-400">Carregando contratos ativos...</div>
-        ) : contratosAtivos.length === 0 ? (
+        ) : contratosFiltrados.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-sm">
             <FileText className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">Nenhum contrato ativo no momento.</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">
+              {searchTerm || filtroStatus !== "TODOS"
+                ? "Nenhum contrato encontrado para os filtros selecionados."
+                : "Nenhum contrato ativo no momento."}
+            </p>
             <p className="text-xs text-slate-500">
-              Clique em "Emitir Novo Contrato" acima para iniciar a gestão de um flat.
+              {searchTerm || filtroStatus !== "TODOS" ? (
+                <button
+                  onClick={() => {
+                    setFiltroStatus("TODOS");
+                    setSearchTerm("");
+                  }}
+                  className="text-blue-600 hover:underline font-semibold"
+                >
+                  Limpar filtros de busca
+                </button>
+              ) : (
+                'Clique em "Emitir Novo Contrato" acima para iniciar a gestão de um flat.'
+              )}
             </p>
           </div>
         ) : (
           <div className="space-y-6">
-            {contratosAtivos.map((contrato) => (
+            {contratosFiltrados.map((contrato) => (
               <GridMeses
                 key={contrato.id}
                 contratoId={contrato.id}

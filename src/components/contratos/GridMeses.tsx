@@ -136,6 +136,30 @@ export default function GridMeses({
   const [loadingEncerramento, setLoadingEncerramento] = useState(false);
   const [loadingVistoriasSaida, setLoadingVistoriasSaida] = useState(false);
 
+  // Modal de Renovação de Contrato
+  const [showRenovarModal, setShowRenovarModal] = useState(false);
+  const [renovacaoMesmoImovel, setRenovacaoMesmoImovel] = useState(true);
+  const [renovacaoNovoFlatId, setRenovacaoNovoFlatId] = useState("");
+  const [renovacaoNovoValor, setRenovacaoNovoValor] = useState(valorMensal.toString());
+  const [renovacaoDataInicio, setRenovacaoDataInicio] = useState(new Date().toISOString().split("T")[0]);
+  const [renovacaoTipoValidade, setRenovacaoTipoValidade] = useState<"MESES" | "DIAS">("MESES");
+  const [renovacaoValidadeValor, setRenovacaoValidadeValor] = useState("12");
+  const [renovacaoDiaVencimento, setRenovacaoDiaVencimento] = useState("5");
+  const [renovacaoFormaPagamento, setRenovacaoFormaPagamento] = useState("PIX");
+  const [renovacaoModeloId, setRenovacaoModeloId] = useState("");
+  const [renovacaoMultaAtraso, setRenovacaoMultaAtraso] = useState("2.0");
+  const [renovacaoJurosAtraso, setRenovacaoJurosAtraso] = useState("1.0");
+  const [renovacaoMultaRescisao, setRenovacaoMultaRescisao] = useState("3");
+  const [renovacaoTransferirCaucao, setRenovacaoTransferirCaucao] = useState(true);
+  const [renovacaoNovoCaucao, setRenovacaoNovoCaucao] = useState("0.00");
+  const [renovacaoCaucaoParcelas, setRenovacaoCaucaoParcelas] = useState("0");
+  const [renovacaoVistoriaSaidaId, setRenovacaoVistoriaSaidaId] = useState("");
+  const [renovacaoVistoriaEntradaId, setRenovacaoVistoriaEntradaId] = useState("");
+  const [flatsDisponiveisRenovacao, setFlatsDisponiveisRenovacao] = useState<any[]>([]);
+  const [modelosRenovacao, setModelosRenovacao] = useState<any[]>([]);
+  const [loadingRenovacao, setLoadingRenovacao] = useState(false);
+  const [loadingDadosRenovacao, setLoadingDadosRenovacao] = useState(false);
+
   // Modal de Vincular Vistoria Existente
   const [showVincularModal, setShowVincularModal] = useState(false);
   const [vincularTipo, setVincularTipo] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
@@ -242,11 +266,34 @@ export default function GridMeses({
       else tipoLabel = `${m} Meses`;
     }
 
+    let diasAteVencimento: number | null = null;
+    let isVencido = false;
+    let isVencendoEmBreve = false;
+
+    if (finalParsed?.date) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(finalParsed.date);
+      target.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      diasAteVencimento = diffDays;
+      if (contratoCompleto?.status !== "FINALIZADO") {
+        if (diffDays < 0) {
+          isVencido = true;
+        } else if (diffDays <= 30) {
+          isVencendoEmBreve = true;
+        }
+      }
+    }
+
     return {
       dataEmissao: emissaoParsed?.formatted || "-",
       dataVencimento: finalParsed?.formatted || "-",
       tipoLabel,
       diaVencimento: contratoCompleto?.diaVencimento ? `Todo dia ${contratoCompleto.diaVencimento}` : undefined,
+      diasAteVencimento,
+      isVencido,
+      isVencendoEmBreve,
     };
   }, [contratoCompleto, tipoValidade, validadeDias, validadeMeses]);
 
@@ -379,6 +426,93 @@ export default function GridMeses({
       toast.error("Erro ao encerrar contrato: " + (err.message || err));
     } finally {
       setLoadingEncerramento(false);
+    }
+  };
+
+  const handleAbrirModalRenovacao = async () => {
+    setLoadingDadosRenovacao(true);
+    setShowRenovarModal(true);
+
+    let dtSugerida = new Date();
+    if (contratoCompleto?.dataFinal) {
+      const dtF = new Date(contratoCompleto.dataFinal);
+      dtF.setDate(dtF.getDate() + 1);
+      dtSugerida = dtF;
+    }
+    const dtSugeridaStr = dtSugerida.toISOString().split("T")[0];
+
+    setRenovacaoMesmoImovel(true);
+    setRenovacaoNovoFlatId(flatId || "");
+    setRenovacaoNovoValor(String(valorMensal || contratoCompleto?.valorMensal || ""));
+    setRenovacaoDataInicio(dtSugeridaStr);
+    setRenovacaoTipoValidade(tipoValidade === "DIAS" ? "DIAS" : "MESES");
+    setRenovacaoValidadeValor(String(validadeMeses || validadeDias || "12"));
+    setRenovacaoDiaVencimento(String(contratoCompleto?.diaVencimento || "5"));
+    setRenovacaoFormaPagamento(contratoCompleto?.formaPagamento || "PIX");
+    setRenovacaoModeloId(contratoCompleto?.modeloContratoId || "");
+    setRenovacaoMultaAtraso(String(contratoCompleto?.multaAtrasoPercentual ?? "2.0"));
+    setRenovacaoJurosAtraso(String(contratoCompleto?.jurosAtrasoPercentual ?? "1.0"));
+    setRenovacaoMultaRescisao(String(contratoCompleto?.multaRescisaoMeses ?? "3"));
+    setRenovacaoTransferirCaucao(Boolean(contratoCompleto?.valorCaucao && contratoCompleto.valorCaucao > 0));
+    setRenovacaoNovoCaucao("0.00");
+    setRenovacaoCaucaoParcelas("0");
+
+    try {
+      const [resFlats, resModelos] = await Promise.all([
+        fetch("/api/flats").then((r) => r.json()).catch(() => ({ flats: [] })),
+        fetch("/api/modelos-contrato").then((r) => r.json()).catch(() => ({ modelos: [] })),
+      ]);
+      setFlatsDisponiveisRenovacao(resFlats.flats || []);
+      setModelosRenovacao(resModelos.modelos || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingDadosRenovacao(false);
+    }
+  };
+
+  const handleConfirmarRenovacao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingRenovacao(true);
+
+    try {
+      const res = await fetch("/api/contratos/renovar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contratoAnteriorId: contratoId,
+          mesmoImovel: renovacaoMesmoImovel,
+          novoFlatId: renovacaoMesmoImovel ? flatId : renovacaoNovoFlatId,
+          novoValorMensal: parseFloat(renovacaoNovoValor),
+          tipoValidade: renovacaoTipoValidade,
+          validadeValor: renovacaoValidadeValor,
+          dataInicioRenovacao: renovacaoDataInicio,
+          diaVencimento: parseInt(renovacaoDiaVencimento, 10),
+          formaPagamento: renovacaoFormaPagamento,
+          modeloContratoId: renovacaoModeloId || undefined,
+          multaAtrasoPercentual: parseFloat(renovacaoMultaAtraso),
+          jurosAtrasoPercentual: parseFloat(renovacaoJurosAtraso),
+          multaRescisaoMeses: parseInt(renovacaoMultaRescisao, 10),
+          valorCaucao: parseFloat(renovacaoNovoCaucao || "0"),
+          caucaoParcelas: parseInt(renovacaoCaucaoParcelas || "0", 10),
+          transferirCaucaoAnterior: renovacaoTransferirCaucao,
+          vistoriaSaidaAntigaId: renovacaoVistoriaSaidaId || undefined,
+          vistoriaEntradaNovaId: renovacaoVistoriaEntradaId || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || "Contrato renovado com sucesso!");
+        setShowRenovarModal(false);
+        if (onBaixaSucesso) onBaixaSucesso();
+      } else {
+        toast.error(data.error || "Erro ao renovar contrato.");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao renovar contrato: " + (err.message || err));
+    } finally {
+      setLoadingRenovacao(false);
     }
   };
 
@@ -761,6 +895,14 @@ export default function GridMeses({
                 <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[10px] font-extrabold flex items-center gap-1">
                   <span>🏁 Contrato Encerrado</span>
                 </span>
+              ) : vencimentoInfo.isVencido ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black animate-pulse flex items-center gap-1 shadow-xs">
+                  <span>🚨 Vencido ({Math.abs(vencimentoInfo.diasAteVencimento || 0)}d)</span>
+                </span>
+              ) : vencimentoInfo.isVencendoEmBreve ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center gap-1 shadow-xs">
+                  <span>⚠️ Vence em {vencimentoInfo.diasAteVencimento} dias</span>
+                </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold flex items-center gap-1">
                   <span>🟢 Ativo</span>
@@ -901,8 +1043,24 @@ export default function GridMeses({
             )}
           </div>
 
-          {/* LINHA 4: EDITAR CONTRATO & ENCERRAMENTO */}
+          {/* LINHA 4: RENOVAR, EDITAR & ENCERRAMENTO */}
           <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            {contratoCompleto?.status !== "FINALIZADO" && (
+              <button
+                type="button"
+                onClick={handleAbrirModalRenovacao}
+                className={`py-1 px-3 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition shadow-xs flex-1 sm:flex-initial justify-center sm:justify-start ${
+                  vencimentoInfo.isVencido || vencimentoInfo.isVencendoEmBreve
+                    ? "bg-purple-600 hover:bg-purple-500 text-white ring-2 ring-purple-400/50 animate-pulse"
+                    : "bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900 border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300"
+                }`}
+                title="Renovar Contrato de Locação (Mesmo Imóvel ou Troca de Flat)"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Renovar Contrato</span>
+              </button>
+            )}
+
             {onEditarContrato && (
               <button
                 type="button"
@@ -1501,6 +1659,334 @@ export default function GridMeses({
                 >
                   {tipoEncerramento === "RESCISAO_ANTECIPADA" ? <Scale className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                   <span>{loadingEncerramento ? "Processando..." : tipoEncerramento === "RESCISAO_ANTECIPADA" ? "Efetivar Rescisão e Liberar Imóvel" : "Confirmar e Liberar Imóvel"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Renovação de Contrato */}
+      {showRenovarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2.5 rounded-2xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <span>Renovação de Contrato de Locação</span>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
+                      Novo Contrato
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {locatarioNome} • Imóvel Atual: <strong>{flatNumero}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRenovarModal(false)}
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarRenovacao} className="space-y-4">
+              {/* ETAPA 1: DESTINO DO IMÓVEL (MANTER OU TROCAR) */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  1. Destino do Imóvel para o Novo Período:
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenovacaoMesmoImovel(true);
+                      setRenovacaoNovoFlatId(flatId || "");
+                      setRenovacaoNovoValor(String(valorMensal || contratoCompleto?.valorMensal || ""));
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      renovacaoMesmoImovel
+                        ? "bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Permanecer no Flat Atual ({flatNumero})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRenovacaoMesmoImovel(false)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      !renovacaoMesmoImovel
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:text-purple-600"
+                    }`}
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Mudar de Imóvel (Troca de Flat)</span>
+                  </button>
+                </div>
+
+                {/* Se escolheu mudar de imóvel, exibe o seletor de flats disponíveis */}
+                {!renovacaoMesmoImovel && (
+                  <div className="p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900/80 space-y-2 animate-in fade-in">
+                    <label className="block text-[11px] font-bold text-purple-900 dark:text-purple-200">
+                      Selecione o Novo Flat / Imóvel de Destino:
+                    </label>
+                    <select
+                      required
+                      value={renovacaoNovoFlatId}
+                      onChange={(e) => {
+                        const selId = e.target.value;
+                        setRenovacaoNovoFlatId(selId);
+                        const selFlat = flatsDisponiveisRenovacao.find((f) => f.id === selId);
+                        if (selFlat && selFlat.valorPadrao) {
+                          setRenovacaoNovoValor(selFlat.valorPadrao.toString());
+                        }
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="">-- Escolha o novo imóvel --</option>
+                      {flatsDisponiveisRenovacao
+                        .filter((f) => f.id !== flatId)
+                        .map((f) => (
+                          <option key={f.id} value={f.id}>
+                            Flat {f.numero} - {f.local?.nome || "Geral"} ({f.status === "DISPONIVEL" ? "🟢 DISPONÍVEL" : f.status}) - R$ {f.valorPadrao || 0}/mês
+                          </option>
+                        ))}
+                    </select>
+                    <p className="text-[10.5px] text-purple-700 dark:text-purple-300">
+                      💡 Ao concluir, o Flat <strong>{flatNumero}</strong> ficará <strong>DISPONÍVEL</strong> e o novo imóvel será ocupado pelo locatário.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* ETAPA 2: VALORES E VIGÊNCIA */}
+              <div className="space-y-2.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  2. Condições Financeiras e Período da Renovação:
+                </label>
+
+                {/* Valor do Aluguel com Chips de Reajuste */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                      Novo Valor do Aluguel (R$):
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setRenovacaoNovoValor(String(valorMensal || contratoCompleto?.valorMensal || ""))}
+                        className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                      >
+                        Manter Atual
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const base = Number(valorMensal || contratoCompleto?.valorMensal || 0);
+                          setRenovacaoNovoValor((base * 1.05).toFixed(2));
+                        }}
+                        className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200"
+                      >
+                        +5% (IPCA)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const base = Number(valorMensal || contratoCompleto?.valorMensal || 0);
+                          setRenovacaoNovoValor((base * 1.10).toFixed(2));
+                        }}
+                        className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200"
+                      >
+                        +10%
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={renovacaoNovoValor}
+                    onChange={(e) => setRenovacaoNovoValor(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-black text-slate-900 dark:text-slate-100"
+                    placeholder="0,00"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Data de Início da Renovação:
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={renovacaoDataInicio}
+                      onChange={(e) => setRenovacaoDataInicio(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Duração ({renovacaoTipoValidade === "DIAS" ? "Dias" : "Meses"}):
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={renovacaoTipoValidade}
+                        onChange={(e) => setRenovacaoTipoValidade(e.target.value as any)}
+                        className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-bold"
+                      >
+                        <option value="MESES">Meses</option>
+                        <option value="DIAS">Dias</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        value={renovacaoValidadeValor}
+                        onChange={(e) => setRenovacaoValidadeValor(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Dia Vencimento:
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      required
+                      value={renovacaoDiaVencimento}
+                      onChange={(e) => setRenovacaoDiaVencimento(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Forma de Pagamento:
+                    </label>
+                    <select
+                      value={renovacaoFormaPagamento}
+                      onChange={(e) => setRenovacaoFormaPagamento(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="PIX">PIX</option>
+                      <option value="BOLETO">Boleto Bancário</option>
+                      <option value="CARTAO">Cartão de Crédito/Débito</option>
+                      <option value="DINHEIRO">Dinheiro</option>
+                      <option value="TRANSFERENCIA">Transferência / TED</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Modelo de Contrato:
+                    </label>
+                    <select
+                      value={renovacaoModeloId}
+                      onChange={(e) => setRenovacaoModeloId(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="">-- Modelo Padrão do Sistema --</option>
+                      {modelosRenovacao.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.titulo}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ETAPA 3: CAUÇÃO E GARANTIAS */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                <label className="flex items-center space-x-2 text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={renovacaoTransferirCaucao}
+                    onChange={(e) => setRenovacaoTransferirCaucao(e.target.checked)}
+                    className="rounded border-slate-300 bg-white dark:bg-slate-900 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>🛡️ Transferir / Manter Depósito Caução já pago no contrato anterior</span>
+                </label>
+
+                {!renovacaoTransferirCaucao && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                        Novo Depósito Caução (R$):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={renovacaoNovoCaucao}
+                        onChange={(e) => setRenovacaoNovoCaucao(e.target.value)}
+                        placeholder="0,00"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                        Parcelas do Caução:
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={renovacaoCaucaoParcelas}
+                        onChange={(e) => setRenovacaoCaucaoParcelas(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resumo do Fluxo */}
+              <div className="p-3 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/60 text-[11.5px] text-purple-900 dark:text-purple-200 space-y-1">
+                <p className="font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span>Resumo da Renovação Automática:</span>
+                </p>
+                <ul className="list-disc list-inside space-y-0.5 text-[11px] text-purple-800 dark:text-purple-300">
+                  <li>O contrato anterior será arquivado com status <strong>FINALIZADO</strong>.</li>
+                  <li>Um novo contrato de locação ativo será emitido para <strong>{locatarioNome}</strong>.</li>
+                  <li><strong>{renovacaoValidadeValor} novas parcelas</strong> de <strong>{formatCurrency(parseFloat(renovacaoNovoValor || "0"))}</strong> serão geradas no Contas a Receber.</li>
+                  <li>Um novo link para assinatura digital será disponibilizado e poderá ser enviado por WhatsApp.</li>
+                </ul>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex items-center space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRenovarModal(false)}
+                  className="w-1/3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingRenovacao}
+                  className="w-2/3 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-bold shadow-md flex items-center justify-center space-x-1.5 transition"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>{loadingRenovacao ? "Emitindo Renovação..." : "Confirmar Renovação e Emitir Contrato"}</span>
                 </button>
               </div>
             </form>
