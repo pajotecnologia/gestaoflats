@@ -472,6 +472,7 @@ model ContaPagar {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   eventosFinanceiros FinanceiroEvento[]
+  ordensServico      OrdemServico[]
 }
 
 model FormaPagamento {
@@ -612,6 +613,8 @@ model OrdemServico {
   dataConclusao  DateTime?
   observacao     String?
   fotosJson      String?
+  contaPagarId   String?
+  contaPagar     ContaPagar? @relation(fields: [contaPagarId], references: [id], onDelete: SetNull)
   criadoEm       DateTime  @default(now())
   atualizadoEm   DateTime  @updatedAt
 
@@ -619,6 +622,7 @@ model OrdemServico {
   @@index([empresaId, flatId])
   @@index([locatarioId])
   @@index([prazo])
+  @@index([contaPagarId])
 }
 
 model FinanceiroEvento {
