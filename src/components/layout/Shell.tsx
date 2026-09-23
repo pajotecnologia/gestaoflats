@@ -208,7 +208,7 @@ function ShellContent({ children }: ShellProps) {
     { label: "Formas de Pagamento", href: "/parametros?aba=formas", aba: "formas", icon: CreditCard },
     { label: "Banco Inter (Bolepix)", href: "/parametros?aba=inter", aba: "inter", icon: Zap },
     ...(user?.isSuperAdmin
-      ? [{ label: "⚡ Gestão SaaS & Assinaturas", href: "/parametros?aba=saas", aba: "saas", icon: Sparkles }]
+      ? [{ label: "Gestão SaaS", href: "/parametros?aba=saas", aba: "saas", icon: Sparkles }]
       : []),
   ];
 
@@ -388,16 +388,6 @@ function ShellContent({ children }: ShellProps) {
                 </div>
               )}
             </div>
-
-            {user?.isSuperAdmin && (
-              <Link
-                href="/parametros?aba=saas"
-                className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all duration-200"
-              >
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span>⚡ Gestão SaaS</span>
-              </Link>
-            )}
           </div>
         </nav>
 
