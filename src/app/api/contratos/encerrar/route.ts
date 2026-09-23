@@ -14,6 +14,11 @@ export async function POST(request: NextRequest) {
       contratoId,
       vistoriaSaidaId,
       cancelarParcelasPendentes = true,
+      tipoEncerramento = "NORMAL", // "NORMAL" | "RESCISAO_ANTECIPADA"
+      cobrarMulta = false,
+      valorMulta = 0,
+      tipoCalculoMulta = "PROPORCIONAL",
+      dataVencimentoMulta,
       motivo = "Término de vigência / Devolução de chaves",
     } = body;
 
@@ -82,18 +87,45 @@ export async function POST(request: NextRequest) {
         },
         data: {
           status: "CANCELADO",
-          observacao: `Cancelado no encerramento do contrato (${motivo})`,
+          observacao: `Cancelado no encerramento/rescisão do contrato (${motivo})`,
+        },
+      });
+    }
+
+    // 4. Gerar Lançamento de Multa Rescisória se aplicável
+    let contaMultaCriada = null;
+    const valMultaNum = parseFloat(String(valorMulta || 0));
+    if (cobrarMulta && valMultaNum > 0) {
+      const dVenc = dataVencimentoMulta ? new Date(dataVencimentoMulta) : new Date();
+      const mesRef = `${dVenc.getFullYear()}-${String(dVenc.getMonth() + 1).padStart(2, "0")}`;
+
+      contaMultaCriada = await prisma.contaReceber.create({
+        data: {
+          empresaId: session.empresaId,
+          locatarioId: contrato.locatarioId,
+          contratoId: contrato.id,
+          valor: valMultaNum,
+          dataVencimento: dVenc,
+          mesReferencia: mesRef,
+          numeroParcela: 99,
+          status: "PENDENTE",
+          formaPagamento: contrato.formaPagamento || "PIX",
+          observacao: `Multa por Rescisão Antecipada (${tipoCalculoMulta}) - Contrato Flat ${contrato.flat.numero} - ${motivo}`,
         },
       });
     }
 
     return NextResponse.json({
       success: true,
-      message: `Contrato encerrado com sucesso! O Flat ${contrato.flat.numero} agora está DISPONÍVEL.`,
+      message: tipoEncerramento === "RESCISAO_ANTECIPADA"
+        ? `Rescisão antecipada realizada com sucesso! O Flat ${contrato.flat.numero} foi liberado.${contaMultaCriada ? ` Multa rescisória de R$ ${valMultaNum.toFixed(2)} gerada no Contas a Receber.` : ""}`
+        : `Contrato encerrado com sucesso! O Flat ${contrato.flat.numero} agora está DISPONÍVEL.`,
       contrato: contratoAtualizado,
+      contaMulta: contaMultaCriada,
     });
   } catch (error: any) {
-    console.error("Erro ao encerrar contrato:", error);
-    return NextResponse.json({ error: error.message || "Erro ao encerrar contrato." }, { status: 500 });
+    console.error("Erro ao encerrar/rescindir contrato:", error);
+    return NextResponse.json({ error: error.message || "Erro ao encerrar/rescindir contrato." }, { status: 500 });
   }
 }
+

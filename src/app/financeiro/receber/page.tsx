@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Shell from "@/components/layout/Shell";
-import { formatCurrency, formatMesReferencia } from "@/lib/validation";
+import { formatCurrency, formatMesReferencia, calcularEncargosAtraso } from "@/lib/validation";
 import { generateReciboPDF, getReciboPDFBase64 } from "@/lib/pdfGenerator";
 // Import Layers icon
 import {
@@ -28,6 +28,7 @@ import {
   QrCode,
   Download,
   Layers,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "@/components/ui";
 
@@ -412,11 +413,35 @@ export default function ContasReceberPage() {
     setShowModal(true);
   };
 
+  const encargosInfo = React.useMemo(() => {
+    if (!baixaConta) return null;
+    const multaPercent = baixaConta.contrato?.multaAtrasoPercentual ?? 2.0;
+    const jurosPercent = baixaConta.contrato?.jurosAtrasoPercentual ?? 1.0;
+    return calcularEncargosAtraso(
+      Number(baixaConta.valor || 0),
+      baixaConta.dataVencimento,
+      dataPagamento,
+      multaPercent,
+      jurosPercent
+    );
+  }, [baixaConta, dataPagamento]);
+
   const handleOpenBaixaModal = (conta: any) => {
     setBaixaConta(conta);
-    setDataPagamento(new Date().toISOString().split("T")[0]);
+    const todayStr = new Date().toISOString().split("T")[0];
+    setDataPagamento(todayStr);
     setFormaPagamento(conta.formaPagamento || "PIX");
-    setValorPago(conta.valor ? conta.valor.toString() : "");
+    const multaPercent = conta.contrato?.multaAtrasoPercentual ?? 2.0;
+    const jurosPercent = conta.contrato?.jurosAtrasoPercentual ?? 1.0;
+    const enc = calcularEncargosAtraso(Number(conta.valor || 0), conta.dataVencimento, todayStr, multaPercent, jurosPercent);
+
+    if (conta.valorPago) {
+      setValorPago(conta.valorPago.toString());
+    } else if (enc.diasAtraso > 0) {
+      setValorPago(enc.totalComEncargos.toFixed(2));
+    } else {
+      setValorPago(conta.valor ? conta.valor.toString() : "");
+    }
     setShowBaixaModal(true);
   };
 
@@ -1234,6 +1259,59 @@ export default function ContasReceberPage() {
                   Ref: {formatMesReferencia(baixaConta.mesReferencia) || "Avulso"} | Flat: {baixaConta.contrato?.flat?.numero || "Geral"} | Valor Original: {formatCurrency(baixaConta.valor)}
                 </p>
               </div>
+
+              {/* Alerta Inteligente de Atraso e Encargos */}
+              {encargosInfo && encargosInfo.diasAtraso > 0 && (
+                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl text-xs space-y-2">
+                  <div className="flex items-center justify-between text-amber-900 dark:text-amber-200">
+                    <div className="flex items-center space-x-1.5 font-bold">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>Pagamento em atraso ({encargosInfo.diasAtraso} dias)</span>
+                    </div>
+                    <span className="text-[10px] bg-amber-200/80 dark:bg-amber-900/80 px-2 py-0.5 rounded-md font-mono font-bold">
+                      Venc: {new Date(baixaConta.dataVencimento).toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] bg-white/70 dark:bg-slate-900/70 p-2 rounded-xl border border-amber-200 dark:border-amber-900/60">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Multa ({encargosInfo.multaPercentual}%):</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-300">+{formatCurrency(encargosInfo.multaValor)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Juros ({encargosInfo.jurosPercentualMensal}% a.m.):</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-300">+{formatCurrency(encargosInfo.jurosValor)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Total c/ Encargos:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(encargosInfo.totalComEncargos)}</span>
+                    </div>
+                  </div>
+
+                  {/* Botões de Ação Rápida */}
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setValorPago(encargosInfo.totalComEncargos.toFixed(2))}
+                      className="flex-1 py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10.5px] font-bold transition flex items-center justify-center gap-1 shadow-xs"
+                      title="Aplica juros e multa calculados no valor a pagar"
+                    >
+                      <Zap className="w-3 h-3" />
+                      <span>Aplicar Encargos ({formatCurrency(encargosInfo.totalComEncargos)})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setValorPago(Number(baixaConta.valor).toFixed(2))}
+                      className="flex-1 py-1.5 px-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-[10.5px] font-bold transition flex items-center justify-center gap-1"
+                      title="Zera juros e multa, mantendo o valor original"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Zerar Encargos ({formatCurrency(baixaConta.valor)})</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleConfirmarBaixa} className="space-y-3">
                 <div>

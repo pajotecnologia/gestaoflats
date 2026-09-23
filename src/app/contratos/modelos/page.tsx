@@ -364,14 +364,24 @@ export default function ModelosContratoPage() {
   };
 
   const handleSwitchViewMode = (mode: "editor" | "code" | "preview") => {
-    if (mode === "code" && activeViewMode === "editor" && editorRef.current) {
-      setHtmlCodeValue(forceBlackText(editorRef.current.innerHTML));
-    } else if (mode === "editor" && activeViewMode === "code" && editorRef.current) {
-      editorRef.current.innerHTML = forceBlackText(htmlCodeValue);
-    } else if (mode === "preview") {
-      const rawHtml = activeViewMode === "code" ? htmlCodeValue : editorRef.current ? editorRef.current.innerHTML : defaultContentHtml;
-      const cleanHtml = forceBlackText(rawHtml);
+    let currentHtml = htmlCodeValue;
 
+    if (activeViewMode === "editor" && editorRef.current) {
+      currentHtml = forceBlackText(editorRef.current.innerHTML || htmlCodeValue || defaultContentHtml);
+      setHtmlCodeValue(currentHtml);
+    } else if (activeViewMode === "code") {
+      currentHtml = forceBlackText(htmlCodeValue || defaultContentHtml);
+      if (editorRef.current) {
+        editorRef.current.innerHTML = currentHtml;
+      }
+    }
+
+    if (mode === "editor" && editorRef.current) {
+      if (!editorRef.current.innerHTML.trim() || activeViewMode === "code") {
+        editorRef.current.innerHTML = currentHtml;
+      }
+      updateWordCount();
+    } else if (mode === "preview") {
       const mockContrato = {
         id: "CTR-2026-001",
         valorMensal: 2500,
@@ -426,7 +436,7 @@ export default function ModelosContratoPage() {
           cep: "50010-000",
         },
       };
-      setPreviewHtmlContent(replaceContractVariables(cleanHtml, mockContrato));
+      setPreviewHtmlContent(replaceContractVariables(currentHtml, mockContrato));
     }
     setActiveViewMode(mode);
   };
@@ -997,7 +1007,7 @@ export default function ModelosContratoPage() {
 
             {/* CONTEÚDO DA FOLHA OU TEXTAREA HTML */}
             <div className="p-8 sm:p-12 overflow-x-auto flex justify-center bg-slate-300 dark:bg-slate-950/80 min-h-[750px]">
-              {activeViewMode === "editor" && (
+              <div className={`w-full flex justify-center ${activeViewMode === "editor" ? "block" : "hidden"}`}>
                 <IsolatedEditorCanvas
                   ref={editorRef}
                   isDraggingOver={isDraggingOverCanvas}
@@ -1006,7 +1016,7 @@ export default function ModelosContratoPage() {
                   onDrop={handleDropTagOnCanvas}
                   onKeyUp={updateWordCount}
                 />
-              )}
+              </div>
 
               {activeViewMode === "code" && (
                 <div className="w-full max-w-[800px] min-h-[1050px] bg-slate-900 text-emerald-400 p-8 shadow-2xl border border-slate-800 rounded-sm font-mono text-xs leading-relaxed flex flex-col space-y-3">

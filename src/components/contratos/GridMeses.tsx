@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { formatCurrency, formatMesReferencia, replaceContractVariables } from "@/lib/validation";
+import {
+  formatCurrency,
+  formatMesReferencia,
+  replaceContractVariables,
+  calcularEncargosAtraso,
+  calcularMultaRescisoria,
+} from "@/lib/validation";
 import { generateReciboPDF, getReciboPDFBase64 } from "@/lib/pdfGenerator";
 import { getContratoPDFBase64 } from "@/lib/contractPdfGenerator";
 import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
@@ -30,6 +36,11 @@ import {
   Save,
   Calendar,
   Pencil,
+  Zap,
+  RotateCcw,
+  Percent,
+  Scale,
+  FileText,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 
@@ -106,8 +117,18 @@ export default function GridMeses({
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [targetTipoVistoria, setTargetTipoVistoria] = useState<"ENTRADA" | "SAIDA">("ENTRADA");
 
-  // Modal de Encerramento do Contrato
+  // Modal de Encerramento do Contrato & Rescisão Antecipada
   const [showEncerrarModal, setShowEncerrarModal] = useState(false);
+  const [tipoEncerramento, setTipoEncerramento] = useState<"NORMAL" | "RESCISAO_ANTECIPADA">("NORMAL");
+  const [dataRescisao, setDataRescisao] = useState(new Date().toISOString().split("T")[0]);
+  const [cobrarMultaRescisoria, setCobrarMultaRescisoria] = useState(true);
+  const [tipoCalculoMulta, setTipoCalculoMulta] = useState<"PROPORCIONAL" | "INTEGRAL" | "PERSONALIZADO">("PROPORCIONAL");
+  const [valorMultaCustom, setValorMultaCustom] = useState<string>("");
+  const [dataVencimentoMulta, setDataVencimentoMulta] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 5);
+    return d.toISOString().split("T")[0];
+  });
   const [vistoriasSaidaParaEncerramento, setVistoriasSaidaParaEncerramento] = useState<any[]>([]);
   const [selectedVistoriaSaidaId, setSelectedVistoriaSaidaId] = useState<string>("");
   const [cancelarParcelasFuturas, setCancelarParcelasFuturas] = useState(true);
@@ -229,9 +250,52 @@ export default function GridMeses({
     };
   }, [contratoCompleto, tipoValidade, validadeDias, validadeMeses]);
 
+  // Cálculo de encargos por atraso na baixa de parcela
+  const encargosParcela = React.useMemo(() => {
+    if (!selectedParcela) return null;
+    const multaPercent = contratoCompleto?.multaAtrasoPercentual ?? 2.0;
+    const jurosPercent = contratoCompleto?.jurosAtrasoPercentual ?? 1.0;
+    return calcularEncargosAtraso(
+      selectedParcela.valor,
+      selectedParcela.dataVencimento,
+      dataPagamento,
+      multaPercent,
+      jurosPercent
+    );
+  }, [selectedParcela, dataPagamento, contratoCompleto]);
+
+  // Cálculo da Multa Rescisória Contratual
+  const multaRescisoriaInfo = React.useMemo(() => {
+    const vMensal = valorMensal || contratoCompleto?.valorMensal || 0;
+    const dInicio = contratoCompleto?.dataEmissao || contratoCompleto?.createdAt;
+    const valMeses = contratoCompleto?.validadeMeses || (tipoValidade === "MESES" ? Number(validadeMeses || 12) : 12);
+    const mMeses = contratoCompleto?.multaRescisaoMeses ?? 3;
+
+    return calcularMultaRescisoria(vMensal, dInicio, dataRescisao, valMeses, mMeses);
+  }, [valorMensal, contratoCompleto, tipoValidade, validadeMeses, dataRescisao]);
+
+  const valorMultaEfetivo = React.useMemo(() => {
+    if (!cobrarMultaRescisoria) return 0;
+    if (tipoCalculoMulta === "PROPORCIONAL") return multaRescisoriaInfo.multaProporcional;
+    if (tipoCalculoMulta === "INTEGRAL") return multaRescisoriaInfo.multaIntegral;
+    return parseFloat(valorMultaCustom || "0") || 0;
+  }, [cobrarMultaRescisoria, tipoCalculoMulta, multaRescisoriaInfo, valorMultaCustom]);
+
   const handleOpenModal = (parcela: ParcelaItem) => {
     setSelectedParcela(parcela);
-    setValorPago(parcela.valorPago ? parcela.valorPago.toString() : parcela.valor.toString());
+    const todayStr = new Date().toISOString().split("T")[0];
+    setDataPagamento(todayStr);
+    const multaPercent = contratoCompleto?.multaAtrasoPercentual ?? 2.0;
+    const jurosPercent = contratoCompleto?.jurosAtrasoPercentual ?? 1.0;
+    const enc = calcularEncargosAtraso(parcela.valor, parcela.dataVencimento, todayStr, multaPercent, jurosPercent);
+
+    if (parcela.valorPago) {
+      setValorPago(parcela.valorPago.toString());
+    } else if (enc.diasAtraso > 0) {
+      setValorPago(enc.totalComEncargos.toFixed(2));
+    } else {
+      setValorPago(parcela.valor.toString());
+    }
     setShowModal(true);
     setMessageFeedback("");
   };
@@ -242,6 +306,14 @@ export default function GridMeses({
   };
 
   const handleAbrirModalEncerramento = async () => {
+    setTipoEncerramento("NORMAL");
+    setDataRescisao(new Date().toISOString().split("T")[0]);
+    setCobrarMultaRescisoria(true);
+    setTipoCalculoMulta("PROPORCIONAL");
+    setMotivoEncerramento("Término de vigência / Devolução de chaves");
+    const d5 = new Date();
+    d5.setDate(d5.getDate() + 5);
+    setDataVencimentoMulta(d5.toISOString().split("T")[0]);
     setShowEncerrarModal(true);
     setLoadingVistoriasSaida(true);
     try {
@@ -286,13 +358,18 @@ export default function GridMeses({
           contratoId,
           vistoriaSaidaId: selectedVistoriaSaidaId !== "none" ? selectedVistoriaSaidaId : null,
           cancelarParcelasPendentes: cancelarParcelasFuturas,
+          tipoEncerramento,
+          cobrarMulta: tipoEncerramento === "RESCISAO_ANTECIPADA" && cobrarMultaRescisoria && valorMultaEfetivo > 0,
+          valorMulta: valorMultaEfetivo,
+          tipoCalculoMulta,
+          dataVencimentoMulta,
           motivo: motivoEncerramento,
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success("Contrato encerrado com sucesso! O imóvel foi liberado.");
+        toast.success(data.message || "Contrato finalizado com sucesso! O imóvel foi liberado.");
         setShowEncerrarModal(false);
         if (onBaixaSucesso) onBaixaSucesso();
       } else {
@@ -974,6 +1051,59 @@ export default function GridMeses({
             )}
 
             <form onSubmit={handleBaixa} className="space-y-4">
+              {/* Alerta Inteligente de Atraso e Encargos */}
+              {encargosParcela && encargosParcela.diasAtraso > 0 && (
+                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-2xl text-xs space-y-2">
+                  <div className="flex items-center justify-between text-amber-900 dark:text-amber-200">
+                    <div className="flex items-center space-x-1.5 font-bold">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>Pagamento em atraso ({encargosParcela.diasAtraso} dias)</span>
+                    </div>
+                    <span className="text-[10px] bg-amber-200/80 dark:bg-amber-900/80 px-2 py-0.5 rounded-md font-mono font-bold">
+                      Venc: {new Date(selectedParcela.dataVencimento).toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] bg-white/70 dark:bg-slate-900/70 p-2 rounded-xl border border-amber-200 dark:border-amber-900/60">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Multa ({encargosParcela.multaPercentual}%):</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-300">+{formatCurrency(encargosParcela.multaValor)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Juros ({encargosParcela.jurosPercentualMensal}% a.m.):</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-300">+{formatCurrency(encargosParcela.jurosValor)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Total c/ Encargos:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(encargosParcela.totalComEncargos)}</span>
+                    </div>
+                  </div>
+
+                  {/* Botões de Ação Rápida */}
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setValorPago(encargosParcela.totalComEncargos.toFixed(2))}
+                      className="flex-1 py-1.5 px-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10.5px] font-bold transition flex items-center justify-center gap-1 shadow-xs"
+                      title="Aplica juros e multa calculados no valor a pagar"
+                    >
+                      <Zap className="w-3 h-3" />
+                      <span>Aplicar Encargos ({formatCurrency(encargosParcela.totalComEncargos)})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setValorPago(Number(selectedParcela.valor).toFixed(2))}
+                      className="flex-1 py-1.5 px-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-[10.5px] font-bold transition flex items-center justify-center gap-1"
+                      title="Zera juros e multa, mantendo o valor original da parcela"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Zerar Encargos ({formatCurrency(selectedParcela.valor)})</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -1078,18 +1208,18 @@ export default function GridMeses({
         />
       )}
 
-      {/* Modal de Encerramento do Contrato */}
+      {/* Modal de Encerramento e Rescisão Antecipada do Contrato */}
       {showEncerrarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100 max-h-[92vh] my-auto overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center space-x-2.5">
-                <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600">
-                  <XCircle className="w-5 h-5" />
+                <div className={`p-2 rounded-xl ${tipoEncerramento === "RESCISAO_ANTECIPADA" ? "bg-rose-100 dark:bg-rose-950 text-rose-600" : "bg-blue-100 dark:bg-blue-950 text-blue-600"}`}>
+                  {tipoEncerramento === "RESCISAO_ANTECIPADA" ? <Scale className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                 </div>
                 <div>
                   <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    Encerramento de Contrato
+                    {tipoEncerramento === "RESCISAO_ANTECIPADA" ? "Rescisão Antecipada de Contrato" : "Encerramento Normal de Contrato"}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {locatarioNome} • {flatNumero}
@@ -1104,17 +1234,190 @@ export default function GridMeses({
               </button>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-200 text-xs space-y-1">
-              <p className="font-bold flex items-center gap-1">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Atenção ao Encerrar a Locação:</span>
-              </p>
-              <p className="text-[11px] leading-relaxed">
-                Ao finalizar o contrato, o status do imóvel será automaticamente alterado para <strong>DISPONÍVEL</strong> e o contrato será arquivado como <strong>FINALIZADO</strong>.
-              </p>
+            {/* Alternador de Modo: Término Normal vs Rescisão Antecipada */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoEncerramento("NORMAL");
+                  setMotivoEncerramento("Término de vigência / Devolução de chaves");
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  tipoEncerramento === "NORMAL"
+                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Término de Prazo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoEncerramento("RESCISAO_ANTECIPADA");
+                  setMotivoEncerramento("Rescisão antecipada a pedido do locatário");
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  tipoEncerramento === "RESCISAO_ANTECIPADA"
+                    ? "bg-rose-600 text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-rose-600"
+                }`}
+              >
+                <Scale className="w-3.5 h-3.5" />
+                <span>Rescisão Antecipada</span>
+              </button>
             </div>
 
-            <form onSubmit={handleConfirmarEncerramento} className="space-y-4">
+            {/* Alerta de Rescisão Antecipada com Calculadora de Multa */}
+            {tipoEncerramento === "RESCISAO_ANTECIPADA" ? (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/80 space-y-3">
+                <div className="flex items-center justify-between text-rose-900 dark:text-rose-200 font-bold text-xs">
+                  <span className="flex items-center gap-1">
+                    <Scale className="w-4 h-4 text-rose-600 shrink-0" />
+                    Cálculo da Multa Contratual Rescisória:
+                  </span>
+                  <span className="text-[10.5px] bg-rose-200/80 dark:bg-rose-900 px-2 py-0.5 rounded font-mono font-bold">
+                    Cláusula: {multaRescisoriaInfo.multaRescisaoMeses} meses
+                  </span>
+                </div>
+
+                {/* Resumo do Contrato */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10.5px] bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60">
+                  <div>
+                    <span className="text-slate-500 block">Aluguel:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(multaRescisoriaInfo.valorMensal)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Vigência:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{multaRescisoriaInfo.validadeTotalMeses} meses</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Cumpridos:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{multaRescisoriaInfo.mesesCumpridos} meses</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Restantes:</span>
+                    <span className="font-bold text-rose-600 dark:text-rose-400">{multaRescisoriaInfo.mesesRestantes} meses</span>
+                  </div>
+                </div>
+
+                {/* Seleção do Tipo de Cálculo da Multa */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    Base de Cobrança da Multa:
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setTipoCalculoMulta("PROPORCIONAL")}
+                      className={`p-2 rounded-xl text-left border transition ${
+                        tipoCalculoMulta === "PROPORCIONAL"
+                          ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-rose-400"
+                      }`}
+                    >
+                      <span className="text-[10px] opacity-80 block font-semibold">Lei do Inquilinato</span>
+                      <span className="text-xs font-extrabold block">Proporcional</span>
+                      <span className="text-[11px] font-bold mt-0.5 block">{formatCurrency(multaRescisoriaInfo.multaProporcional)}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTipoCalculoMulta("INTEGRAL")}
+                      className={`p-2 rounded-xl text-left border transition ${
+                        tipoCalculoMulta === "INTEGRAL"
+                          ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-rose-400"
+                      }`}
+                    >
+                      <span className="text-[10px] opacity-80 block font-semibold">{multaRescisoriaInfo.multaRescisaoMeses} Meses Cheios</span>
+                      <span className="text-xs font-extrabold block">Integral</span>
+                      <span className="text-[11px] font-bold mt-0.5 block">{formatCurrency(multaRescisoriaInfo.multaIntegral)}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTipoCalculoMulta("PERSONALIZADO")}
+                      className={`p-2 rounded-xl text-left border transition ${
+                        tipoCalculoMulta === "PERSONALIZADO"
+                          ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-rose-400"
+                      }`}
+                    >
+                      <span className="text-[10px] opacity-80 block font-semibold">Valor Manual</span>
+                      <span className="text-xs font-extrabold block">Personalizado</span>
+                      <span className="text-[11px] font-bold mt-0.5 block">Isenção/Outro</span>
+                    </button>
+                  </div>
+                </div>
+
+                {tipoCalculoMulta === "PERSONALIZADO" && (
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Valor Personalizado da Multa Rescisória (R$):
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={valorMultaCustom}
+                      onChange={(e) => setValorMultaCustom(e.target.value)}
+                      placeholder="0,00 (Deixe 0 para isentar)"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                )}
+
+                {/* Vencimento da Multa e Checkbox */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Data da Rescisão:
+                    </label>
+                    <input
+                      type="date"
+                      value={dataRescisao}
+                      onChange={(e) => setDataRescisao(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Vencimento da Multa:
+                    </label>
+                    <input
+                      type="date"
+                      value={dataVencimentoMulta}
+                      onChange={(e) => setDataVencimentoMulta(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center space-x-2 text-xs font-bold text-rose-900 dark:text-rose-200 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={cobrarMultaRescisoria}
+                    onChange={(e) => setCobrarMultaRescisoria(e.target.checked)}
+                    className="rounded border-rose-400 bg-white dark:bg-slate-900 text-rose-600 focus:ring-rose-500"
+                  />
+                  <span>Gerar Cobrança da Multa ({formatCurrency(valorMultaEfetivo)}) no Contas a Receber</span>
+                </label>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-200 text-xs space-y-1">
+                <p className="font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Atenção ao Encerrar a Locação:</span>
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  Ao finalizar o contrato, o status do imóvel será automaticamente alterado para <strong>DISPONÍVEL</strong> e o contrato será arquivado como <strong>FINALIZADO</strong>.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmarEncerramento} className="space-y-3.5">
               {/* Selecionar Vistoria de Saída */}
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -1160,7 +1463,7 @@ export default function GridMeses({
               {/* Motivo do Encerramento */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Motivo / Observações do Encerramento
+                  Motivo / Observações {tipoEncerramento === "RESCISAO_ANTECIPADA" ? "da Rescisão" : "do Encerramento"}
                 </label>
                 <input
                   type="text"
@@ -1168,7 +1471,7 @@ export default function GridMeses({
                   value={motivoEncerramento}
                   onChange={(e) => setMotivoEncerramento(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
-                  placeholder="Ex: Término de vigência contratual / Entrega de chaves"
+                  placeholder={tipoEncerramento === "RESCISAO_ANTECIPADA" ? "Ex: Rescisão solicitada pelo locatário por mudança" : "Ex: Término de vigência contratual / Entrega de chaves"}
                 />
               </div>
 
@@ -1194,10 +1497,10 @@ export default function GridMeses({
                 <button
                   type="submit"
                   disabled={loadingEncerramento}
-                  className="w-2/3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-md flex items-center justify-center space-x-1.5 transition"
+                  className={`w-2/3 py-2.5 rounded-xl ${tipoEncerramento === "RESCISAO_ANTECIPADA" ? "bg-rose-600 hover:bg-rose-500" : "bg-blue-600 hover:bg-blue-500"} disabled:opacity-50 text-white text-xs font-bold shadow-md flex items-center justify-center space-x-1.5 transition`}
                 >
-                  <XCircle className="w-4 h-4" />
-                  <span>{loadingEncerramento ? "Encerrando..." : "Confirmar e Liberar Imóvel"}</span>
+                  {tipoEncerramento === "RESCISAO_ANTECIPADA" ? <Scale className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                  <span>{loadingEncerramento ? "Processando..." : tipoEncerramento === "RESCISAO_ANTECIPADA" ? "Efetivar Rescisão e Liberar Imóvel" : "Confirmar e Liberar Imóvel"}</span>
                 </button>
               </div>
             </form>

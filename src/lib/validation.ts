@@ -635,3 +635,140 @@ export function formatMesReferencia(mesRef?: string | null): string {
 
   return str;
 }
+
+/**
+ * Cálculo inteligente de encargos moratórios por atraso (Multa Contratual e Juros Moratórios Pro-Rata)
+ */
+export interface EncargosAtrasoResult {
+  diasAtraso: number;
+  multaPercentual: number;
+  multaValor: number;
+  jurosPercentualMensal: number;
+  jurosValor: number;
+  totalEncargos: number;
+  totalComEncargos: number;
+  valorOriginal: number;
+}
+
+export function calcularEncargosAtraso(
+  valorOriginal: number,
+  dataVencimentoStr: string | Date | null | undefined,
+  dataPagamentoStr: string | Date | null | undefined = new Date(),
+  multaPercentual: number = 2.0,
+  jurosPercentualMensal: number = 1.0
+): EncargosAtrasoResult {
+  const val = Number(valorOriginal || 0);
+  if (!dataVencimentoStr || val <= 0) {
+    return {
+      diasAtraso: 0,
+      multaPercentual,
+      multaValor: 0,
+      jurosPercentualMensal,
+      jurosValor: 0,
+      totalEncargos: 0,
+      totalComEncargos: val,
+      valorOriginal: val,
+    };
+  }
+
+  const parseToMidnight = (dInput: string | Date) => {
+    if (typeof dInput === "string") {
+      const clean = dInput.includes("T") ? dInput.split("T")[0] : dInput;
+      const parts = clean.split("-");
+      if (parts.length === 3) {
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      }
+    }
+    const d = new Date(dInput);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  const dVenc = parseToMidnight(dataVencimentoStr);
+  const dPag = parseToMidnight(dataPagamentoStr || new Date());
+
+  const diffMs = dPag.getTime() - dVenc.getTime();
+  const diasAtraso = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+  if (diasAtraso <= 0) {
+    return {
+      diasAtraso: 0,
+      multaPercentual,
+      multaValor: 0,
+      jurosPercentualMensal,
+      jurosValor: 0,
+      totalEncargos: 0,
+      totalComEncargos: val,
+      valorOriginal: val,
+    };
+  }
+
+  const mPercent = typeof multaPercentual === "number" ? multaPercentual : parseFloat(String(multaPercentual)) || 2.0;
+  const jPercent = typeof jurosPercentualMensal === "number" ? jurosPercentualMensal : parseFloat(String(jurosPercentualMensal)) || 1.0;
+
+  const multaValor = (val * mPercent) / 100;
+  const jurosValor = (val * (jPercent / 100) * (diasAtraso / 30));
+  const totalEncargos = multaValor + jurosValor;
+  const totalComEncargos = val + totalEncargos;
+
+  return {
+    diasAtraso,
+    multaPercentual: mPercent,
+    multaValor: Number(multaValor.toFixed(2)),
+    jurosPercentualMensal: jPercent,
+    jurosValor: Number(jurosValor.toFixed(2)),
+    totalEncargos: Number(totalEncargos.toFixed(2)),
+    totalComEncargos: Number(totalComEncargos.toFixed(2)),
+    valorOriginal: val,
+  };
+}
+
+/**
+ * Cálculo de Multa por Rescisão Antecipada (Lei do Inquilinato Art. 4º - Proporcional ou Integral)
+ */
+export interface MultaRescisoriaResult {
+  valorMensal: number;
+  multaRescisaoMeses: number;
+  validadeTotalMeses: number;
+  mesesCumpridos: number;
+  mesesRestantes: number;
+  multaIntegral: number;
+  multaProporcional: number;
+}
+
+export function calcularMultaRescisoria(
+  valorMensal: number,
+  dataInicio: string | Date | null | undefined,
+  dataRescisao: string | Date | null | undefined = new Date(),
+  validadeMeses: number = 12,
+  multaRescisaoMeses: number = 3
+): MultaRescisoriaResult {
+  const vMensal = Number(valorMensal || 0);
+  const mMeses = Number(multaRescisaoMeses || 3);
+  const totalMeses = Math.max(1, Number(validadeMeses || 12));
+
+  const dIni = dataInicio ? new Date(dataInicio) : new Date();
+  const dFim = dataRescisao ? new Date(dataRescisao) : new Date();
+
+  dIni.setHours(0, 0, 0, 0);
+  dFim.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.max(0, Math.floor((dFim.getTime() - dIni.getTime()) / (1000 * 60 * 60 * 24)));
+  // Meses cumpridos aproximados (30 dias por mês)
+  const mesesCumpridos = Math.min(totalMeses, Math.max(0, Math.floor(diffDays / 30)));
+  const mesesRestantes = Math.max(0, totalMeses - mesesCumpridos);
+
+  const multaIntegral = Number((vMensal * mMeses).toFixed(2));
+  const multaProporcional = Number(((multaIntegral / totalMeses) * mesesRestantes).toFixed(2));
+
+  return {
+    valorMensal: vMensal,
+    multaRescisaoMeses: mMeses,
+    validadeTotalMeses: totalMeses,
+    mesesCumpridos,
+    mesesRestantes,
+    multaIntegral,
+    multaProporcional,
+  };
+}
+
