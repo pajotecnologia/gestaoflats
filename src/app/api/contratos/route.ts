@@ -22,6 +22,7 @@ export async function GET() {
           orderBy: { numeroParcela: "asc" },
         },
         vistoriasChecklist: true,
+        eventos: { orderBy: { criadoEm: "desc" }, take: 30 },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -58,11 +59,9 @@ export async function POST(request: NextRequest) {
       valorCaucao = 0.0,
       caucaoParcelas = 0,
       multaRescisaoMeses = 3,
-      vistoriaEntradaId,
     } = await request.json();
 
-    const [anoE, mesE, diaE] = String(dataEmissao).split("T")[0].split("-").map(Number);
-    const dtEmissao = new Date(anoE, mesE - 1, diaE, 0, 0, 0, 0);
+    const dtEmissao = new Date(dataEmissao);
     const vlrMensalNum = parseFloat(valorMensal);
     const isDias = tipoValidade === "DIAS";
     const duracaoValor = parseInt(validadeValor || validadeMeses || (isDias ? "30" : "12"), 10);
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
     const mesesInt = isDias ? Math.max(1, Math.ceil(duracaoValor / 30)) : duracaoValor;
     const diasInt: number | null = isDias ? duracaoValor : null;
 
-    const dtFinal = new Date(dtEmissao.getTime());
+    const dtFinal = new Date(dtEmissao);
     if (isDias) {
       dtFinal.setDate(dtFinal.getDate() + duracaoValor);
     } else {
@@ -109,78 +108,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (flatObj.status === "MANUTENCAO") {
+    if (flatObj.status !== "DISPONIVEL") {
+      const statusText = flatObj.status === "OCUPADO" ? "OCUPADO" : "EM MANUTENÇÃO";
       return NextResponse.json(
-        { error: `O imóvel selecionado (${flatObj.numero}) está atualmente em MANUTENÇÃO e não pode receber contratos/reservas.` },
+        { error: `O flat selecionado (${flatObj.numero}) está atualmente como ${statusText} e não pode receber novos contratos.` },
         { status: 400 }
       );
-    }
-
-    // Validação de Conflito de Datas (Anti-Overbooking entre contratos ativos)
-    const conflitoData = await prisma.contrato.findFirst({
-      where: {
-        empresaId: session.empresaId,
-        flatId: flatId,
-        status: "ATIVO",
-        AND: [
-          { dataEmissao: { lt: dtFinal } },
-          { dataFinal: { gt: dtEmissao } },
-        ],
-      },
-      include: { locatario: true },
-    });
-
-    if (conflitoData) {
-      const dIni = conflitoData.dataEmissao.toLocaleDateString("pt-BR");
-      const dFim = conflitoData.dataFinal.toLocaleDateString("pt-BR");
-      return NextResponse.json(
-        {
-          error: `Conflito de Disponibilidade: O imóvel "${flatObj.numero}" já possui um contrato ativo para ${conflitoData.locatario.nome} no período de ${dIni} até ${dFim}. Selecione outro imóvel ou altere as datas.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // 1. Buscar Vistoria de Entrada Disponível ou Específica
-    let vistoriaExistente: any = null;
-
-    if (vistoriaEntradaId && vistoriaEntradaId !== "none") {
-      vistoriaExistente = await prisma.vistoriaChecklist.findFirst({
-        where: {
-          id: vistoriaEntradaId,
-          empresaId: session.empresaId,
-          flatId: flatId,
-        },
-      });
-
-      if (!vistoriaExistente) {
-        return NextResponse.json(
-          { error: "A vistoria de entrada selecionada não foi encontrada ou não pertence a este imóvel." },
-          { status: 400 }
-        );
-      }
-
-      if (vistoriaExistente.contratoId) {
-        return NextResponse.json(
-          { error: "A vistoria de entrada selecionada já está vinculada a outro contrato e não pode ser reutilizada para outro imóvel/contrato." },
-          { status: 400 }
-        );
-      }
-    } else if (vistoriaEntradaId !== "none") {
-      // Se não especificou ID e não marcou "none", busca vistoria disponível sem contrato vinculado
-      vistoriaExistente = await prisma.vistoriaChecklist.findFirst({
-        where: {
-          empresaId: session.empresaId,
-          flatId: flatId,
-          tipoVistoria: "ENTRADA",
-          contratoId: null,
-        },
-        orderBy: [
-          { statusAssinatura: "desc" },
-          { updatedAt: "desc" },
-          { createdAt: "desc" },
-        ],
-      });
     }
 
     const tokenAssinatura = crypto.randomBytes(16).toString("hex");
@@ -206,26 +139,14 @@ export async function POST(request: NextRequest) {
         valorCaucao: caucaoNum,
         caucaoParcelas: caucaoParcNum,
         multaRescisaoMeses: multaRescisaoNum,
-        fotosAnexadasUrl: null, // As fotos vêm da vistoria de entrada
-        anexoChecklistEntrada: vistoriaExistente?.itensJson || null,
+        fotosAnexadasUrl: fotosAnexadasUrl || null,
         tokenAssinatura,
         statusAssinatura: "PENDENTE",
         status: "ATIVO",
       },
     });
 
-    // 2. Vincular Vistoria de Entrada ao novo Contrato de forma exclusiva
-    if (vistoriaExistente) {
-      await prisma.vistoriaChecklist.update({
-        where: { id: vistoriaExistente.id },
-        data: {
-          contratoId: newContrato.id,
-          locatarioId: locatarioId,
-        },
-      });
-    }
-
-    // 3. Atualizar flat para OCUPADO
+    // Atualizar flat para OCUPADO
     await prisma.flat.update({
       where: { id: flatId },
       data: { status: "OCUPADO" },
@@ -270,44 +191,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Gerar Lançamento(s) de Depósito Caução / Garantia no Contas a Receber se valorCaucao > 0
-    if (caucaoNum > 0) {
-      const numParcCaucao = caucaoParcNum && caucaoParcNum > 1 ? caucaoParcNum : 1;
-      const vlrParcCaucao = parseFloat((caucaoNum / numParcCaucao).toFixed(2));
-
-      for (let cp = 1; cp <= numParcCaucao; cp++) {
-        const vencCaucao = new Date(dtEmissao);
-        if (cp > 1) {
-          vencCaucao.setMonth(vencCaucao.getMonth() + (cp - 1));
-          if (diaVencNum && diaVencNum >= 1 && diaVencNum <= 31) {
-            vencCaucao.setDate(Math.min(diaVencNum, 28));
-          }
-        }
-        const mesRefCaucao = `${vencCaucao.getFullYear()}-${String(vencCaucao.getMonth() + 1).padStart(2, "0")}`;
-        const vlrFinalCaucao =
-          cp === numParcCaucao
-            ? parseFloat((caucaoNum - vlrParcCaucao * (numParcCaucao - 1)).toFixed(2))
-            : vlrParcCaucao;
-
-        parcelasData.push({
-          empresaId: session.empresaId,
-          contratoId: newContrato.id,
-          locatarioId,
-          mesReferencia: mesRefCaucao,
-          numeroParcela: 0,
-          valor: vlrFinalCaucao,
-          dataVencimento: vencCaucao,
-          status: "PENDENTE",
-          observacao:
-            numParcCaucao > 1
-              ? `Depósito Caução (Parcela ${cp}/${numParcCaucao}) - Garantia Locatícia`
-              : "Depósito Caução - Garantia Locatícia",
-        });
-      }
-    }
-
     await prisma.contaReceber.createMany({
       data: parcelasData,
+    });
+
+    await prisma.contratoEvento.create({
+      data: {
+        empresaId: session.empresaId,
+        contratoId: newContrato.id,
+        tipo: "EMISSAO",
+        descricao: "Contrato emitido e parcelas financeiras geradas.",
+        dadosJson: JSON.stringify({ parcelas: parcelasData.length }),
+      },
     });
 
     return NextResponse.json({ contrato: newContrato, tokenAssinatura });
@@ -318,140 +213,66 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
-  if (!session) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-
+  if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   try {
-    const body = await request.json();
-    const {
-      id,
-      locatarioId,
-      flatId,
-      modeloContratoId,
-      dataEmissao,
-      tipoValidade = "MESES",
-      validadeValor,
-      validadeMeses,
-      validadeDias,
-      valorMensal,
-      diaVencimento,
-      formaPagamento,
-      bancoNome,
-      bancoDadosConta,
-      multaAtrasoPercentual,
-      jurosAtrasoPercentual,
-      valorCaucao,
-      caucaoParcelas,
-      multaRescisaoMeses,
-      atualizarParcelasPendentes = true,
-    } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "ID do contrato é obrigatório." }, { status: 400 });
-    }
-
-    const existingContrato = await prisma.contrato.findFirst({
-      where: { id, empresaId: session.empresaId },
-      include: { contasReceber: true },
-    });
-
-    if (!existingContrato) {
-      return NextResponse.json({ error: "Contrato não encontrado." }, { status: 404 });
-    }
-
-    const isDias = tipoValidade === "DIAS";
-    const duracaoValor = parseInt(validadeValor || validadeDias || validadeMeses || (isDias ? "30" : "12"), 10);
-    const mesesInt = isDias ? Math.max(1, Math.ceil(duracaoValor / 30)) : duracaoValor;
-    const diasInt: number | null = isDias ? duracaoValor : null;
-
-    let dtEmissao = existingContrato.dataEmissao;
-    if (dataEmissao) {
-      const [anoE, mesE, diaE] = String(dataEmissao).split("T")[0].split("-").map(Number);
-      dtEmissao = new Date(anoE, mesE - 1, diaE, 0, 0, 0, 0);
-    }
-
-    const dtFinal = new Date(dtEmissao.getTime());
-    if (isDias) {
-      dtFinal.setDate(dtFinal.getDate() + duracaoValor);
-    } else {
-      dtFinal.setMonth(dtFinal.getMonth() + duracaoValor);
-    }
-
-    const vlrMensalNum = valorMensal !== undefined && valorMensal !== null ? parseFloat(String(valorMensal)) : existingContrato.valorMensal;
-    const diaVencNum = diaVencimento !== undefined && diaVencimento !== null ? parseInt(String(diaVencimento), 10) : existingContrato.diaVencimento;
-    const multaNum = multaAtrasoPercentual !== undefined && multaAtrasoPercentual !== null ? parseFloat(String(multaAtrasoPercentual)) : existingContrato.multaAtrasoPercentual;
-    const jurosNum = jurosAtrasoPercentual !== undefined && jurosAtrasoPercentual !== null ? parseFloat(String(jurosAtrasoPercentual)) : existingContrato.jurosAtrasoPercentual;
-    const caucaoNum = valorCaucao !== undefined && valorCaucao !== null ? parseFloat(String(valorCaucao)) : existingContrato.valorCaucao;
-    const caucaoParcNum = caucaoParcelas !== undefined && caucaoParcelas !== null ? parseInt(String(caucaoParcelas), 10) : existingContrato.caucaoParcelas;
-    const multaRescisaoNum = multaRescisaoMeses !== undefined && multaRescisaoMeses !== null ? parseInt(String(multaRescisaoMeses), 10) : existingContrato.multaRescisaoMeses;
-
-    const updatedContrato = await prisma.contrato.update({
-      where: { id },
-      data: {
-        locatarioId: locatarioId || existingContrato.locatarioId,
-        flatId: flatId || existingContrato.flatId,
-        modeloContratoId: modeloContratoId !== undefined ? (modeloContratoId || null) : existingContrato.modeloContratoId,
-        dataEmissao: dtEmissao,
-        tipoValidade: isDias ? "DIAS" : "MESES",
-        validadeMeses: mesesInt,
-        validadeDias: diasInt,
-        dataFinal: dtFinal,
-        valorMensal: vlrMensalNum,
-        diaVencimento: diaVencNum,
-        formaPagamento: formaPagamento || existingContrato.formaPagamento,
-        bancoNome: bancoNome !== undefined ? (bancoNome || null) : existingContrato.bancoNome,
-        bancoDadosConta: bancoDadosConta !== undefined ? (bancoDadosConta || null) : existingContrato.bancoDadosConta,
-        multaAtrasoPercentual: multaNum,
-        jurosAtrasoPercentual: jurosNum,
-        valorCaucao: caucaoNum,
-        caucaoParcelas: caucaoParcNum,
-        multaRescisaoMeses: multaRescisaoNum,
-      },
-      include: {
-        locatario: true,
-        flat: { include: { local: true } },
-        modeloContrato: true,
-        contasReceber: { orderBy: { numeroParcela: "asc" } },
-        vistoriasChecklist: true,
-      },
-    });
-
-    // Se o valor do contrato ou locatário foi alterado e atualizarParcelasPendentes está ativo:
-    if (atualizarParcelasPendentes) {
-      // Atualizar parcelas de aluguel que continuam PENDENTES (não mexe nas que já estão PAGAS ou caução número 0)
-      const parcelasPendentes = await prisma.contaReceber.findMany({
-        where: {
-          contratoId: id,
-          status: "PENDENTE",
-          numeroParcela: { gt: 0 },
-        },
-      });
-
-      for (const p of parcelasPendentes) {
-        const updateData: any = {
-          valor: vlrMensalNum,
-          locatarioId: locatarioId || existingContrato.locatarioId,
-        };
-
-        // Se o dia de vencimento mudou, ajusta a dataVencimento da parcela pendente mantendo mês/ano
-        if (diaVencNum && diaVencNum >= 1 && diaVencNum <= 31) {
-          const currentVenc = new Date(p.dataVencimento);
-          currentVenc.setDate(Math.min(diaVencNum, 28));
-          updateData.dataVencimento = currentVenc;
+    const { id, acao, ...body } = await request.json();
+    if (!id || !acao) return NextResponse.json({ error: "ID do contrato e ação são obrigatórios." }, { status: 400 });
+    const contrato = await prisma.contrato.findFirst({ where: { id, empresaId: session.empresaId } });
+    if (!contrato) return NextResponse.json({ error: "Contrato não encontrado." }, { status: 404 });
+    const registrar = (tipo: string, descricao: string, dados?: unknown) => prisma.contratoEvento.create({ data: { empresaId: session.empresaId, contratoId: id, tipo, descricao, dadosJson: dados ? JSON.stringify(dados) : null } });
+    if (acao === "RENOVAR") {
+      const quantidade = Math.max(1, Number(body.quantidade || 12));
+      const unidade = body.unidade === "DIAS" ? "DIAS" : "MESES";
+      const novaDataFinal = new Date(contrato.dataFinal);
+      if (unidade === "DIAS") novaDataFinal.setDate(novaDataFinal.getDate() + quantidade); else novaDataFinal.setMonth(novaDataFinal.getMonth() + quantidade);
+      const atualizado = await prisma.contrato.update({ where: { id }, data: { dataFinal: novaDataFinal, status: "ATIVO" } });
+      if (unidade === "MESES") {
+        const novasParcelas: any[] = [];
+        const ultimaParcela = await prisma.contaReceber.aggregate({ where: { contratoId: id }, _max: { numeroParcela: true } });
+        const parcelaInicial = (ultimaParcela._max.numeroParcela || 0) + 1;
+        for (let i = 1; i <= quantidade; i++) {
+          const vencimento = new Date(contrato.dataFinal);
+          vencimento.setMonth(vencimento.getMonth() + i);
+          const mesRef = `${vencimento.getFullYear()}-${String(vencimento.getMonth() + 1).padStart(2, "0")}`;
+          novasParcelas.push({ empresaId: session.empresaId, contratoId: id, locatarioId: contrato.locatarioId, mesReferencia: mesRef, numeroParcela: parcelaInicial + i - 1, valor: contrato.valorMensal, dataVencimento: vencimento, status: "PENDENTE", observacao: "Parcela gerada pela renovação contratual" });
         }
-
-        await prisma.contaReceber.update({
-          where: { id: p.id },
-          data: updateData,
-        });
+        if (novasParcelas.length) await prisma.contaReceber.createMany({ data: novasParcelas });
       }
+      await registrar("RENOVACAO", `Contrato renovado por ${quantidade} ${unidade.toLowerCase()}.`, { quantidade, unidade, dataAnterior: contrato.dataFinal, novaDataFinal });
+      return NextResponse.json({ contrato: atualizado });
     }
-
-    return NextResponse.json({ success: true, contrato: updatedContrato });
-  } catch (error: any) {
-    console.error("Erro ao atualizar contrato:", error);
-    return NextResponse.json({ error: error.message || "Erro ao atualizar contrato." }, { status: 500 });
-  }
+    if (acao === "REAJUSTAR") {
+      const novoValor = Number(body.valorMensal);
+      if (!Number.isFinite(novoValor) || novoValor <= 0) return NextResponse.json({ error: "Novo valor mensal inválido." }, { status: 400 });
+      const valorAnterior = contrato.valorMensal;
+      const atualizado = await prisma.contrato.update({ where: { id }, data: { valorMensal: novoValor } });
+      const pendentes = await prisma.contaReceber.count({ where: { contratoId: id, status: "PENDENTE" } });
+      if (pendentes) await prisma.contaReceber.updateMany({ where: { contratoId: id, status: "PENDENTE" }, data: { valor: novoValor } });
+      await registrar("REAJUSTE", `Valor mensal reajustado de R$ ${valorAnterior.toFixed(2)} para R$ ${novoValor.toFixed(2)}.`, { valorAnterior, novoValor, parcelasAtualizadas: pendentes });
+      return NextResponse.json({ contrato: atualizado, parcelasAtualizadas: pendentes });
+    }
+    if (acao === "RESCINDIR" || acao === "CANCELAR") {
+      const motivo = String(body.motivo || (acao === "RESCINDIR" ? "Rescisão contratual" : "Cancelamento contratual"));
+      const status = acao === "RESCINDIR" ? "FINALIZADO" : "CANCELADO";
+      const atualizado = await prisma.contrato.update({ where: { id }, data: { status } });
+      await prisma.flat.update({ where: { id: contrato.flatId }, data: { status: "DISPONIVEL" } });
+      await registrar(acao === "RESCINDIR" ? "RESCISAO" : "CANCELAMENTO", motivo, { motivo, data: new Date().toISOString() });
+      return NextResponse.json({ contrato: atualizado });
+    }
+    if (acao === "ALTERAR") {
+      const data: any = {};
+      if (body.diaVencimento !== undefined) data.diaVencimento = Number(body.diaVencimento);
+      if (body.formaPagamento !== undefined) data.formaPagamento = body.formaPagamento || null;
+      if (body.multaAtrasoPercentual !== undefined) data.multaAtrasoPercentual = Number(body.multaAtrasoPercentual);
+      if (body.jurosAtrasoPercentual !== undefined) data.jurosAtrasoPercentual = Number(body.jurosAtrasoPercentual);
+      if (body.valorCaucao !== undefined) data.valorCaucao = Number(body.valorCaucao);
+      if (body.multaRescisaoMeses !== undefined) data.multaRescisaoMeses = Number(body.multaRescisaoMeses);
+      if (body.bancoNome !== undefined) data.bancoNome = body.bancoNome || null;
+      if (body.bancoDadosConta !== undefined) data.bancoDadosConta = body.bancoDadosConta || null;
+      const atualizado = await prisma.contrato.update({ where: { id }, data });
+      await registrar("ALTERACAO", "Condições contratuais atualizadas.", data);
+      return NextResponse.json({ contrato: atualizado });
+    }
+    return NextResponse.json({ error: "Ação de contrato não suportada." }, { status: 400 });
+  } catch (error: any) { return NextResponse.json({ error: error.message || "Erro ao atualizar contrato." }, { status: 500 }); }
 }
-
