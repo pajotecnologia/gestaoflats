@@ -35,6 +35,7 @@ import {
   ArrowRightLeft,
   DollarSign,
   AlertOctagon,
+  AlertCircle,
   Layers,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/validation";
@@ -1178,6 +1179,8 @@ export default function VistoriasPage() {
           confirmText="Excluir Laudo"
           cancelText="Cancelar"
           variant="danger"
+        />
+
         {/* MODAL COMPARADOR ENTRADA × SAÍDA */}
         {showComparadorModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
@@ -1320,9 +1323,11 @@ export default function VistoriasPage() {
                 });
                 itensSaida.forEach((it: any) => {
                   const key = `${it.categoria || it.ambiente || "Geral"}___${it.item || it.nome || "Item"}`;
-                  const existing = itensMap.get(key) || {
+                  const existing: { entrada?: any; saida?: any; categoria: string; item: string } = itensMap.get(key) || {
                     categoria: it.categoria || it.ambiente || "Geral",
                     item: it.item || it.nome || "Item",
+                    entrada: undefined,
+                    saida: undefined,
                   };
                   existing.saida = it;
                   itensMap.set(key, existing);

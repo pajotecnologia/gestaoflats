@@ -41,6 +41,7 @@ import {
   Wrench,
   ClipboardCheck,
   FileSignature,
+  FileDown,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -419,6 +420,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        )}
+
         {/* ================================================================= */}
         {/* 2.5 CENTRAL DE PENDÊNCIAS OPERACIONAIS EM TEMPO REAL               */}
         {/* ================================================================= */}
