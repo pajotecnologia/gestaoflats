@@ -24,6 +24,7 @@ Serve como memória operacional para a inteligência artificial, desenvolvedores
    - [2.14 Painel de Parâmetros e Configurações](#214-painel-de-parâmetros-e-configurações)
    - [2.15 Módulo SaaS, Planos Dinâmicos e Renovação Automática](#215-módulo-saas-planos-dinâmicos-e-renovação-automática)
 3. [Padrões de Projeto e Regras Técnicas Estritas](#3-padrões-de-projeto-e-regras-técnicas-estritas)
+4. [Histórico de Entregas e Evolução do Software](#4-histórico-de-entregas-e-evolução-do-software)
 
 ---
 
@@ -226,3 +227,24 @@ Use este roteiro para criar vídeos didáticos, tutoriais de uso e materiais de 
    - Toda alteração de código deve ser comitada e enviada automaticamente via `git push origin master`.
    - A versão em `src/lib/version.ts` e `package.json` deve ser incrementada a cada nova entrega.
    - **REGRA ABSOLUTA**: Jamais rodar `npx next build` enquanto `next dev` estiver rodando localmente para evitar corrupção de cache CSS.
+
+---
+
+## 4. Histórico de Entregas e Evolução do Software
+
+O registro cronológico completo de todas as versões, causas raízes, refatorações técnicas e soluções implementadas encontra-se documentado detalhadamente no arquivo [HISTORICO_ENTREGAS_E_MELHORIAS.md](./HISTORICO_ENTREGAS_E_MELHORIAS.md).
+
+### Resumo das Versões Recentes:
+- **v2.29.14**: Eliminação de flash/sobreposição de preços no checkout (`/renovar`) com Skeleton Shimmer inicial até a confirmação dos preços reais do banco de dados.
+- **v2.29.13**: Padronização do percentual de economia anual para 10% no checkout, Landing Page e mensagens do PIX.
+- **v2.29.12**: Sincronização instantânea de valores de planos e ciclo no checkout SaaS (`/renovar`), cancelamento de requisições obsoletas (`AbortController`) e validação de valor exato ao emitir e recuperar cobranças e linha digitável do Banco Inter.
+- **v2.29.11**: Desbloqueio de exclusão de qualquer plano comercial na Matriz SaaS, mantendo protegidos contra exclusão apenas planos de sistema internos (`TRIAL` e `MESTRE`).
+- **v2.29.10**: Redesenho do modal de Liberação e Atribuição de Planos SaaS para seleção dinâmica de planos, status e controle de vigência.
+- **v2.29.9**: Padronização do menu *Gestão SaaS* no dropdown de Parâmetros e eliminação de botão redundante na barra lateral.
+- **v2.29.8**: Compatibilização unificada de cadastro SaaS na Landing Page (`password`/`senha`).
+- **v2.29.7**: Vinculação dinâmica da empresa proprietária ao cabeçalho da Ordem de Serviço em PDF.
+- **v2.29.6**: Criação do módulo de impressão de Ordem de Serviço em PDF no padrão *White Clean Universal*.
+- **v2.29.5**: Suporte a múltiplos anexos de notas fiscais e comprovantes de materiais na O.S.
+- **v2.29.4**: Conciliação automática de despesas de O.S. no *Contas a Pagar* e reflexo no *Caixa do Dia*.
+- **v2.29.2**: Atualização reativa em tempo real de laudos de vistoria assinados sem necessidade de F5.
+
