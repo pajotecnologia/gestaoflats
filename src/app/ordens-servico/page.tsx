@@ -41,9 +41,13 @@ import {
   Eye,
   Download,
   Camera,
+  Printer,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/validation";
 import { toast } from "sonner";
+import { generateOrdemServicoPDF } from "@/lib/ordemServicoPdfGenerator";
+import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 
 export interface NotaMaterialAnexo {
   id: string;
@@ -125,6 +129,8 @@ export default function OrdensServicoPage() {
   const [locatarios, setLocatarios] = useState<any[]>([]);
   const [fornecedores, setFornecedores] = useState<any[]>([]);
   const [formasPagamento, setFormasPagamento] = useState<any[]>([]);
+  const [empresaData, setEmpresaData] = useState<any>(null);
+  const [imprimindoOSId, setImprimindoOSId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -167,12 +173,14 @@ export default function OrdensServicoPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [resOrdens, resFlats, resLocatarios, resFornecedores, resFormas] = await Promise.all([
+      const [resOrdens, resFlats, resLocatarios, resFornecedores, resFormas, resMe, resEmpresa] = await Promise.all([
         fetch("/api/ordens-servico").then((r) => r.json()),
         fetch("/api/flats").then((r) => r.json()),
         fetch("/api/locatarios").then((r) => r.json()),
         fetch("/api/fornecedores").then((r) => r.json()).catch(() => ({ fornecedores: [] })),
         fetch("/api/formas-pagamento").then((r) => r.json()).catch(() => ({ formas: [] })),
+        fetch("/api/auth/me").then((r) => r.json()).catch(() => ({ user: null })),
+        fetch("/api/empresa").then((r) => r.json()).catch(() => null),
       ]);
 
       setOrdens(resOrdens.ordens || []);
@@ -180,6 +188,12 @@ export default function OrdensServicoPage() {
       setLocatarios(resLocatarios.locatarios || []);
       setFornecedores(resFornecedores.fornecedores || []);
       setFormasPagamento(resFormas.formas || []);
+
+      if (resEmpresa && resEmpresa.nomeFantasia) {
+        setEmpresaData(resEmpresa);
+      } else if (resMe?.user?.empresa) {
+        setEmpresaData(resMe.user.empresa);
+      }
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
       toast.error("Erro ao carregar ordens de serviço.");
@@ -191,6 +205,24 @@ export default function OrdensServicoPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleImprimirOS = async (ordem: OrdemServico) => {
+    try {
+      setImprimindoOSId(ordem.id);
+      const toastId = toast.loading(`Gerando PDF da O.S. ${ordem.codigo}...`);
+
+      const headerData = resolveHeaderData(ordem.flat?.local, empresaData);
+      await generateOrdemServicoPDF(ordem, headerData);
+
+      toast.dismiss(toastId);
+      toast.success(`PDF da O.S. ${ordem.codigo} gerado com sucesso!`);
+    } catch (err: any) {
+      console.error("Erro ao gerar PDF da O.S.:", err);
+      toast.error("Erro ao gerar documento da O.S.: " + (err.message || err));
+    } finally {
+      setImprimindoOSId(null);
+    }
+  };
 
   const parseNotas = (fotosJson?: string | null): NotaMaterialAnexo[] => {
     if (!fotosJson) return [];
@@ -800,6 +832,18 @@ export default function OrdensServicoPage() {
 
                     <div className="flex items-center gap-1">
                       <button
+                        onClick={() => handleImprimirOS(ordem)}
+                        disabled={imprimindoOSId === ordem.id}
+                        title="Imprimir O.S. (PDF oficial com fotos e comprovantes)"
+                        className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-400 hover:text-blue-600 transition cursor-pointer"
+                      >
+                        {imprimindoOSId === ordem.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                        ) : (
+                          <Printer className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
                         onClick={() => handleOpenEdit(ordem)}
                         title="Editar O.S. e Comprovantes"
                         className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 transition cursor-pointer"
@@ -1202,22 +1246,41 @@ export default function OrdensServicoPage() {
                 </div>
 
                 {/* Botões do Modal */}
-                <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200 dark:border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => setModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-semibold text-xs cursor-pointer transition"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center space-x-1.5 transition cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>{saving ? "Salvando..." : editingOrdem ? "Salvar Alterações" : "Criar Ordem de Serviço"}</span>
-                  </button>
+                <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-zinc-800">
+                  <div>
+                    {editingOrdem && (
+                      <button
+                        type="button"
+                        onClick={() => handleImprimirOS(editingOrdem)}
+                        disabled={imprimindoOSId === editingOrdem.id}
+                        className="px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer border border-blue-200 dark:border-blue-900"
+                      >
+                        {imprimindoOSId === editingOrdem.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                        ) : (
+                          <Printer className="w-3.5 h-3.5" />
+                        )}
+                        <span>Imprimir O.S. (PDF)</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-semibold text-xs cursor-pointer transition"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center space-x-1.5 transition cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>{saving ? "Salvando..." : editingOrdem ? "Salvar Alterações" : "Criar Ordem de Serviço"}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -1293,10 +1356,22 @@ export default function OrdensServicoPage() {
                 ))}
               </div>
 
-              <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-zinc-800">
+                <button
+                  onClick={() => handleImprimirOS(viewingNotasOrdem)}
+                  disabled={imprimindoOSId === viewingNotasOrdem.id}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-md shadow-blue-500/20"
+                >
+                  {imprimindoOSId === viewingNotasOrdem.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Printer className="w-3.5 h-3.5" />
+                  )}
+                  <span>Imprimir O.S. com Fotos</span>
+                </button>
                 <button
                   onClick={() => setViewingNotasOrdem(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold text-xs cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold text-xs cursor-pointer hover:bg-slate-200"
                 >
                   Fechar
                 </button>
