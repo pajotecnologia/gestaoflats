@@ -69,18 +69,44 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "ID do lançamento é obrigatório." }, { status: 400 });
     }
 
+    const current = await prisma.contaPagar.findFirst({
+      where: { id, empresaId: session.empresaId },
+    });
+
+    if (!current) {
+      return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404 });
+    }
+
+    const valorFinal = valor !== undefined ? parseFloat(valor) : current.valor;
+
     const updateData: any = {};
-    if (status) updateData.status = status;
+    if (status) {
+      updateData.status = status;
+      if (status === "PAGO") {
+        updateData.valorPago = valorFinal;
+        updateData.dataPagamento = dataPagamento ? new Date(dataPagamento) : new Date();
+      } else if (status === "PENDENTE" || status === "ATRASADO") {
+        updateData.valorPago = 0;
+        updateData.dataPagamento = null;
+      }
+    }
     if (descricao) updateData.descricao = descricao;
     if (fornecedorId !== undefined) updateData.fornecedorId = fornecedorId || null;
     if (localId !== undefined) updateData.localId = localId || null;
     if (flatId !== undefined) updateData.flatId = flatId || null;
-    if (valor) updateData.valor = parseFloat(valor);
+    if (valor !== undefined) {
+      updateData.valor = valorFinal;
+      if (current.status === "PAGO" || status === "PAGO") {
+        updateData.valorPago = valorFinal;
+      }
+    }
     if (dataVencimento) updateData.dataVencimento = new Date(dataVencimento);
-    if (dataPagamento !== undefined) updateData.dataPagamento = dataPagamento ? new Date(dataPagamento) : null;
+    if (dataPagamento !== undefined && status !== "PENDENTE" && status !== "ATRASADO") {
+      updateData.dataPagamento = dataPagamento ? new Date(dataPagamento) : null;
+    }
 
     const updatedConta = await prisma.contaPagar.update({
-      where: { id, empresaId: session.empresaId },
+      where: { id: current.id },
       data: updateData,
     });
 

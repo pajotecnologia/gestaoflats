@@ -16,11 +16,11 @@ export async function GET() {
     const now = new Date(); const in90 = new Date(now); in90.setDate(in90.getDate()+90);
     const ativos = contratos.filter(c=>c.status==="ATIVO");
     const ocupados = new Set(ativos.map(c=>c.flatId)).size;
-    const receita = receber.reduce((s,c)=>s+(c.valorPago||0),0);
-    const despesas = pagar.reduce((s,c)=>s+(c.valorPago||0),0);
-    const abertoReceber = receber.reduce((s,c)=>s+Math.max(c.valor-(c.valorPago||0),0),0);
-    const abertoPagar = pagar.reduce((s,c)=>s+Math.max(c.valor-(c.valorPago||0),0),0);
-    const vencidasReceber = receber.filter(c=>c.dataVencimento<now && Math.max(c.valor-(c.valorPago||0),0)>0).length;
+    const receita = receber.filter(c => c.status === "PAGO" || (c.status === "PARCIAL" && Number(c.valorPago || 0) > 0)).reduce((s,c) => s + Number(c.valorPago || (c.status === "PAGO" ? c.valor : 0)), 0);
+    const despesas = pagar.filter(c => c.status === "PAGO" || (c.status === "PARCIAL" && Number(c.valorPago || 0) > 0)).reduce((s,c) => s + Number(c.valorPago || (c.status === "PAGO" ? c.valor : 0)), 0);
+    const abertoReceber = receber.filter(c => c.status !== "PAGO" && c.status !== "CANCELADO").reduce((s,c) => s + Math.max(c.valor - (c.valorPago || 0), 0), 0);
+    const abertoPagar = pagar.filter(c => c.status !== "PAGO" && c.status !== "CANCELADO").reduce((s,c) => s + Math.max(c.valor - (c.valorPago || 0), 0), 0);
+    const vencidasReceber = receber.filter(c => c.status === "ATRASADO" && Math.max(c.valor - (c.valorPago || 0), 0) > 0).length;
     const contratosVencendo = ativos.filter(c=>c.dataFinal<=in90).sort((a,b)=>a.dataFinal.getTime()-b.dataFinal.getTime()).slice(0,10).map(c=>({id:c.id,locatario:c.locatario.nome,flat:c.flat.numero,dataFinal:c.dataFinal}));
     const osAbertas = ordens.filter(o=>!["CONCLUIDA","CANCELADA"].includes(o.status));
     const porFlat = flats.map(flat=>{
