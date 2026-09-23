@@ -47,7 +47,6 @@ import {
 import { formatCurrency } from "@/lib/validation";
 import { toast } from "sonner";
 import { generateOrdemServicoPDF } from "@/lib/ordemServicoPdfGenerator";
-import { resolveHeaderData } from "@/lib/pdfHeaderBuilder";
 
 export interface NotaMaterialAnexo {
   id: string;
@@ -76,6 +75,20 @@ interface OrdemServico {
   observacao: string | null;
   fotosJson?: string | null;
   contaPagarId?: string | null;
+  empresa?: {
+    id: string;
+    nomeFantasia: string;
+    razaoSocial: string;
+    cnpj: string;
+    telefone?: string | null;
+    email?: string | null;
+    endereco?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+    cep?: string | null;
+    logomarcaUrl?: string | null;
+  } | null;
   contaPagar?: {
     id: string;
     valor: number;
@@ -89,6 +102,20 @@ interface OrdemServico {
     id: string;
     numero: string;
     tipoImovel?: string;
+    empresa?: {
+      id: string;
+      nomeFantasia: string;
+      razaoSocial: string;
+      cnpj: string;
+      telefone?: string | null;
+      email?: string | null;
+      endereco?: string | null;
+      bairro?: string | null;
+      cidade?: string | null;
+      estado?: string | null;
+      cep?: string | null;
+      logomarcaUrl?: string | null;
+    } | null;
     local?: {
       id: string;
       nome: string;
@@ -211,8 +238,7 @@ export default function OrdensServicoPage() {
       setImprimindoOSId(ordem.id);
       const toastId = toast.loading(`Gerando PDF da O.S. ${ordem.codigo}...`);
 
-      const headerData = resolveHeaderData(ordem.flat?.local, empresaData);
-      await generateOrdemServicoPDF(ordem, headerData);
+      await generateOrdemServicoPDF(ordem, empresaData);
 
       toast.dismiss(toastId);
       toast.success(`PDF da O.S. ${ordem.codigo} gerado com sucesso!`);

@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
         ...(flatId ? { flatId } : {}),
       },
       include: {
-        flat: { include: { local: true } },
+        empresa: true,
+        flat: { include: { local: true, empresa: true } },
         locatario: { select: { id: true, nome: true, telefone: true } },
         contaPagar: {
           select: {
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest) {
         contaPagarId,
       },
       include: {
-        flat: { include: { local: true } },
+        empresa: true,
+        flat: { include: { local: true, empresa: true } },
         locatario: true,
         contaPagar: true,
       },
@@ -255,7 +257,8 @@ export async function PUT(request: NextRequest) {
       where: { id: current.id },
       data,
       include: {
-        flat: { include: { local: true } },
+        empresa: true,
+        flat: { include: { local: true, empresa: true } },
         locatario: true,
         contaPagar: true,
       },

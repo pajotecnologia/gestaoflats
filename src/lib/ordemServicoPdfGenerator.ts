@@ -317,7 +317,7 @@ export async function buildOrdemServicoPDFDoc(data: OrdemServicoPDFData): Promis
   return doc;
 }
 
-export function mapOrdemServicoToPDFData(ordem: any, headerData?: any): OrdemServicoPDFData {
+export function mapOrdemServicoToPDFData(ordem: any, extraEmpresaData?: any): OrdemServicoPDFData {
   const parseNotas = (fotosJson?: string | null): NotaMaterialAnexo[] => {
     if (!fotosJson) return [];
     try {
@@ -341,6 +341,45 @@ export function mapOrdemServicoToPDFData(ordem: any, headerData?: any): OrdemSer
       return [];
     }
   };
+
+  // Empresa ao qual o imóvel pertence (prioridade máxima para a empresa do flat ou da ordem)
+  const emp = ordem.flat?.empresa || ordem.empresa || extraEmpresaData || null;
+
+  const empresaEnderecoCompleto = emp?.endereco
+    ? [
+        emp.endereco,
+        emp.bairro ? `Bairro ${emp.bairro}` : "",
+        emp.cidade && emp.estado ? `${emp.cidade}/${emp.estado}` : emp.cidade || emp.estado || "",
+        emp.cep ? `CEP ${emp.cep}` : "",
+      ].filter(Boolean).join(", ")
+    : extraEmpresaData?.empresaEndereco || undefined;
+
+  const empresaNome = (
+    emp?.nomeFantasia ||
+    emp?.razaoSocial ||
+    extraEmpresaData?.empresaNome ||
+    extraEmpresaData?.nomeFantasia ||
+    extraEmpresaData?.razaoSocial ||
+    "Gestão Imobiliária"
+  ).trim();
+
+  const empresaCnpj = (
+    emp?.cnpj ||
+    extraEmpresaData?.empresaCnpj ||
+    extraEmpresaData?.cnpj ||
+    "00.000.000/0001-00"
+  ).trim();
+
+  const empresaTelefone =
+    emp?.telefone || extraEmpresaData?.empresaTelefone || extraEmpresaData?.telefone || undefined;
+  const empresaEmail =
+    emp?.email || extraEmpresaData?.empresaEmail || extraEmpresaData?.email || undefined;
+  const empresaLogomarcaUrl = (
+    emp?.logomarcaUrl ||
+    extraEmpresaData?.empresaLogomarcaUrl ||
+    extraEmpresaData?.logomarcaUrl ||
+    ""
+  ).trim() || undefined;
 
   return {
     codigo: ordem.codigo || "OS-0000",
@@ -366,12 +405,12 @@ export function mapOrdemServicoToPDFData(ordem: any, headerData?: any): OrdemSer
     formaPagamento: ordem.contaPagar?.formaPagamento,
     notasAnexadas: parseNotas(ordem.fotosJson),
 
-    empresaNome: headerData?.empresaNome || "Gestão Imobiliária",
-    empresaCnpj: headerData?.empresaCnpj || "00.000.000/0001-00",
-    empresaEndereco: headerData?.empresaEndereco,
-    empresaTelefone: headerData?.empresaTelefone,
-    empresaEmail: headerData?.empresaEmail,
-    empresaLogomarcaUrl: headerData?.empresaLogomarcaUrl,
+    empresaNome,
+    empresaCnpj,
+    empresaEndereco: empresaEnderecoCompleto,
+    empresaTelefone,
+    empresaEmail,
+    empresaLogomarcaUrl,
   };
 }
 
