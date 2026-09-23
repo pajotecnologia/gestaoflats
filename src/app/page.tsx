@@ -140,6 +140,7 @@ export default function LandingPage() {
           telefone: regTelefone.trim(),
           nomeAdmin: regNomeAdmin.trim(),
           email: regEmail.trim(),
+          password: regSenha,
           senha: regSenha,
         }),
       });

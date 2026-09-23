@@ -6,23 +6,21 @@ import { notifyAdminNovoCadastro } from "@/lib/adminNotifications";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      nomeEmpresa,
-      razaoSocial,
-      cnpj,
-      email,
-      telefone,
-      nomeAdmin,
-      password,
-      endereco,
-      cidade,
-      estado,
-    } = body;
+    const nomeEmpresa = (body.nomeEmpresa || body.razaoSocial || body.empresa || "").trim();
+    const razaoSocial = (body.razaoSocial || body.nomeEmpresa || "").trim();
+    const cnpj = (body.cnpj || body.cpf || body.cpfCnpj || "").trim();
+    const email = (body.email || "").trim().toLowerCase();
+    const telefone = (body.telefone || body.whatsapp || "").trim();
+    const nomeAdmin = (body.nomeAdmin || body.nome || body.adminNome || "").trim();
+    const password = body.password || body.senha || body.pass || "";
+    const endereco = (body.endereco || "").trim();
+    const cidade = (body.cidade || "").trim() || null;
+    const estado = (body.estado || "").trim() || null;
 
     // Validações obrigatórias
     if (!nomeEmpresa || !email || !password || !nomeAdmin) {
       return NextResponse.json(
-        { error: "Nome da empresa, nome do administrador, e-mail e senha são obrigatórios." },
+        { error: "Nome da empresa, seu nome completo, e-mail e senha são obrigatórios." },
         { status: 400 }
       );
     }
