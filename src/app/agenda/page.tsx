@@ -59,6 +59,23 @@ const formatTipoImovel = (tipo?: string) => {
   return tipo;
 };
 
+const formatDateBR = (val?: string | Date | null) => {
+  if (!val) return "";
+  if (typeof val === "string") {
+    const clean = val.split("T")[0];
+    const parts = clean.split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return "";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function AgendaPage() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [flats, setFlats] = useState<any[]>([]);
@@ -707,7 +724,7 @@ export default function AgendaPage() {
                                     ? "bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold"
                                     : "bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800 font-medium"
                                 }`}
-                                title={`${res.flatNumero}: ${res.locatarioNome} (${res.dataInicio} a ${res.dataFim})`}
+                                title={`${res.flatNumero}: ${res.locatarioNome} (${formatDateBR(res.dataInicio)} a ${formatDateBR(res.dataFim)})`}
                               >
                                 {res.flatNumero}: {res.locatarioNome}
                               </div>
@@ -791,8 +808,8 @@ export default function AgendaPage() {
                               }`}
                               title={
                                 reservaDoDia
-                                  ? `Reservado: ${reservaDoDia.locatarioNome} (${reservaDoDia.dataInicio} a ${reservaDoDia.dataFim})`
-                                  : `Livre no dia ${d}/${mes} - Clique para acrescentar reserva`
+                                  ? `Reservado: ${reservaDoDia.locatarioNome} (${formatDateBR(reservaDoDia.dataInicio)} a ${formatDateBR(reservaDoDia.dataFim)})`
+                                  : `Livre no dia ${String(d).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${ano} - Clique para acrescentar reserva`
                               }
                             >
                               {reservaDoDia ? (

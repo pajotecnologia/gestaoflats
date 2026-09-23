@@ -49,6 +49,23 @@ interface LocatarioData {
   contratos?: any[];
 }
 
+const formatDateBR = (val?: string | Date | null) => {
+  if (!val) return "---";
+  if (typeof val === "string") {
+    const clean = val.split("T")[0];
+    const parts = clean.split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return "---";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function LocatariosPage() {
   const [locatarios, setLocatarios] = useState<LocatarioData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -880,7 +897,7 @@ export default function LocatariosPage() {
                                   Imóvel {c.flat?.numero} • {c.flat?.local?.nome || "Localização Padrão"}
                                 </span>
                                 <span className="text-[11px] text-slate-500 mt-0.5 block">
-                                  Vigência: {new Date(c.dataInicio).toLocaleDateString()} até {new Date(c.dataFinal).toLocaleDateString()} ({c.tipoVigencia === "DIAS" ? "Temporada" : "Mensal"})
+                                  Vigência: {formatDateBR(c.dataEmissao || c.dataInicio || c.createdAt)} até {formatDateBR(c.dataFinal || c.dataFim)} ({c.tipoValidade === "DIAS" || c.tipoVigencia === "DIAS" ? "Temporada" : "Mensal"})
                                 </span>
                               </div>
                               <div className="text-right">
@@ -910,7 +927,7 @@ export default function LocatariosPage() {
                                   Reserva #{r.numeroReserva || r.id.slice(0, 6)} • Flat {r.flat?.numero}
                                 </span>
                                 <span className="text-[11px] text-slate-500 mt-0.5 block">
-                                  {new Date(r.dataEntrada).toLocaleDateString()} até {new Date(r.dataSaida).toLocaleDateString()} ({r.totalDiarias} diárias • {r.quantidadePessoas} hóspedes)
+                                  {formatDateBR(r.dataEntrada || r.dataInicio)} até {formatDateBR(r.dataSaida || r.dataFim)} ({r.totalDiarias || r.validadeDias || 1} diárias • {r.quantidadePessoas || 1} hóspedes)
                                 </span>
                               </div>
                               <div className="text-right">
@@ -937,7 +954,7 @@ export default function LocatariosPage() {
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="text-left bg-slate-100 dark:bg-zinc-950 text-slate-500">
-                                  <th className="p-2.5">Descrição</th>
+                                  <th className="p-2.5">Descrição da Receita</th>
                                   <th className="p-2.5">Vencimento</th>
                                   <th className="p-2.5">Valor</th>
                                   <th className="p-2.5">Valor Pago</th>
@@ -947,8 +964,18 @@ export default function LocatariosPage() {
                               <tbody>
                                 {dossieData.locatario?.contasReceber?.map((f: any) => (
                                   <tr key={f.id} className="border-t border-slate-200 dark:border-zinc-800">
-                                    <td className="p-2.5 font-medium">{f.descricao}</td>
-                                    <td className="p-2.5">{new Date(f.dataVencimento).toLocaleDateString()}</td>
+                                    <td className="p-2.5">
+                                      <span className="font-semibold text-slate-800 dark:text-zinc-200 block">
+                                        {f.observacao || f.descricao || (f.mesReferencia ? `Aluguel Ref: ${f.mesReferencia}` : "Aluguel / Receita")}
+                                        {f.numeroParcela ? ` (Parcela ${f.numeroParcela})` : ""}
+                                      </span>
+                                      {f.contrato?.flat && (
+                                        <span className="block text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                                          Imóvel {f.contrato.flat.numero} {f.contrato.flat.local?.nome ? `• ${f.contrato.flat.local.nome}` : ""}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="p-2.5 font-medium">{formatDateBR(f.dataVencimento)}</td>
                                     <td className="p-2.5 font-bold">{formatCurrency(f.valor)}</td>
                                     <td className="p-2.5 text-emerald-600 font-semibold">{f.valorPago ? formatCurrency(f.valorPago) : "---"}</td>
                                     <td className="p-2.5">
@@ -977,10 +1004,10 @@ export default function LocatariosPage() {
                             <div key={v.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 flex items-center justify-between text-xs">
                               <div>
                                 <span className="font-bold text-slate-900 dark:text-zinc-100 block">
-                                  Vistoria de {v.tipo || "Entrada"} • Flat {v.flat?.numero}
+                                  Vistoria de {v.tipo || v.tipoVistoria || "Entrada"} • Flat {v.flat?.numero}
                                 </span>
                                 <span className="text-[11px] text-slate-500 mt-0.5 block">
-                                  Data: {new Date(v.dataVistoria).toLocaleDateString()} • Vistoriador: {v.responsavel || "Sistema"}
+                                  Data: {formatDateBR(v.dataVistoria || v.createdAt)} • Vistoriador: {v.responsavel || v.responsavelVistoria || "Sistema"}
                                 </span>
                               </div>
                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${v.statusAssinatura === "ASSINADO" ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600" : "bg-slate-100 dark:bg-zinc-800 text-slate-600"}`}>
@@ -1007,7 +1034,7 @@ export default function LocatariosPage() {
                                   {os.titulo} • Flat {os.flat?.numero}
                                 </span>
                                 <span className="text-[11px] text-slate-500 mt-0.5 block">
-                                  Categoria: {os.categoria} • Prioridade: {os.prioridade} • Aberta em: {new Date(os.criadoEm).toLocaleDateString()}
+                                  Categoria: {os.categoria} • Prioridade: {os.prioridade} • Aberta em: {formatDateBR(os.criadoEm || os.createdAt)}
                                 </span>
                               </div>
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-600">

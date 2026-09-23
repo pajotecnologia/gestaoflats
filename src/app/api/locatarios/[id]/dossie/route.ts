@@ -13,7 +13,19 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         vistoriasChecklist: { include: { flat: true, contrato: true }, orderBy: { dataVistoria: "desc" }, take: 30 },
         documentos: { orderBy: { validade: "asc" } },
         ordensServico: { include: { flat: true }, orderBy: { criadoEm: "desc" }, take: 30 },
-        contasReceber: { orderBy: { dataVencimento: "desc" }, take: 50 },
+        contasReceber: {
+          include: {
+            contrato: {
+              include: {
+                flat: {
+                  include: { local: true },
+                },
+              },
+            },
+          },
+          orderBy: { dataVencimento: "desc" },
+          take: 50,
+        },
       },
     });
     if (!locatario) return NextResponse.json({ error: "Locatário não encontrado." }, { status: 404 });
