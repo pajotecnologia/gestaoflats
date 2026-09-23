@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSessionOrFallback } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage } from "@/lib/evolutionApi";
-import { formatMesReferencia } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   const session = await getAuthSessionOrFallback();
@@ -33,22 +32,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Conta a receber não encontrada." }, { status: 404 });
     }
 
+    const valorRecebido = parseFloat(valorPago);
+    if (!Number.isFinite(valorRecebido) || valorRecebido <= 0) {
+      return NextResponse.json({ error: "Valor pago inválido." }, { status: 400 });
+    }
+    const valorAcumulado = Number(conta.valorPago || 0) + valorRecebido;
+    const novoStatus = valorAcumulado >= conta.valor ? "PAGO" : "PARCIAL";
     const contaAtualizada = await prisma.contaReceber.update({
       where: { id: contaId },
       data: {
-        status: "PAGO",
+        status: novoStatus,
         dataPagamento: new Date(dataPagamento),
         formaPagamento,
-        valorPago: parseFloat(valorPago),
+        valorPago: valorAcumulado,
+      },
+    });
+    await prisma.financeiroEvento.create({
+      data: {
+        empresaId: session.empresaId,
+        contaReceberId: contaId,
+        tipo: novoStatus === "PAGO" ? "BAIXA" : "PARCIAL",
+        valor: valorRecebido,
+        descricao: novoStatus === "PAGO" ? "Conta a receber quitada." : "Recebimento parcial registrado.",
       },
     });
 
     let whatsAppResult = null;
     if (enviarWhatsApp && conta.locatario.telefone) {
-      const { getEffectiveEvolutionConfig } = await import("@/lib/evolutionApi");
-      const config = await getEffectiveEvolutionConfig(conta.empresaId);
+      const config = conta.empresa.configuracaoParametros;
       if (config && config.evolutionApiUrl && config.evolutionApiKey && config.evolutionInstance) {
-        const msg = `*RECIBO DE PAGAMENTO* - ${conta.empresa.nomeFantasia}\n\nOlá *${conta.locatario.nome}*,\nConfirmamos o recebimento do valor de *R$ ${parseFloat(valorPago).toFixed(2)}* via *${formaPagamento}* referente ao aluguel do *${conta.contrato?.flat.numero || "Flat"}* (Ref: ${formatMesReferencia(conta.mesReferencia)}).\n\nObrigado!`;
+        const msg = `*RECIBO DE PAGAMENTO* - ${conta.empresa.nomeFantasia}\n\nOlá *${conta.locatario.nome}*,\nConfirmamos o recebimento do valor de *R$ ${parseFloat(valorPago).toFixed(2)}* via *${formaPagamento}* referente ao aluguel do *${conta.contrato?.flat.numero || "Flat"}* (Mês: ${conta.mesReferencia}).\n\nObrigado!`;
         
         whatsAppResult = await sendWhatsAppMessage(config, conta.locatario.telefone, msg);
       }
