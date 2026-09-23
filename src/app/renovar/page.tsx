@@ -65,7 +65,8 @@ function RenovarContent() {
   const planoParam = (searchParams.get("plano") || searchParams.get("planoId") || "PROFISSIONAL").toUpperCase();
 
   const [selectedPlano, setSelectedPlano] = useState<string>(planoParam);
-  const [commercialPlans, setCommercialPlans] = useState<PlanDefinition[]>(COMMERCIAL_PLANS);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [commercialPlans, setCommercialPlans] = useState<PlanDefinition[]>([]);
   const [billingCycle, setBillingCycle] = useState<"MENSAL" | "ANUAL">("MENSAL");
   const [data, setData] = useState<PlanoPixData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,28 +83,29 @@ function RenovarContent() {
     fetch(`/api/saas/planos?planoId=${encodeURIComponent(planoIdQuery)}`)
       .then((res) => res.json())
       .then((d) => {
+        let loaded: PlanDefinition[] = [];
         if (d.clientEligiblePlans && Array.isArray(d.clientEligiblePlans) && d.clientEligiblePlans.length > 0) {
-          setCommercialPlans(d.clientEligiblePlans);
+          loaded = d.clientEligiblePlans;
         } else if (d.commercialPlans && Array.isArray(d.commercialPlans) && d.commercialPlans.length > 0) {
-          setCommercialPlans(d.commercialPlans);
+          loaded = d.commercialPlans;
         } else if (d.planos) {
-          setCommercialPlans(getCommercialPlans(d.planos));
+          loaded = getCommercialPlans(d.planos);
+        } else {
+          loaded = COMMERCIAL_PLANS;
         }
-      })
-      .catch(() => {});
-  }, [searchParams]);
+        setCommercialPlans(loaded);
 
-  // Se o plano selecionado não existir na lista carregada, ajusta para o primeiro
-  useEffect(() => {
-    if (commercialPlans.length > 0) {
-      const exists = commercialPlans.some(
-        (p) => p.slug.toUpperCase() === selectedPlano.toUpperCase() || p.id === selectedPlano
-      );
-      if (!exists) {
-        setSelectedPlano(commercialPlans[0].slug);
-      }
-    }
-  }, [commercialPlans, selectedPlano]);
+        // Garante que selectedPlano seja válido dentro dos planos carregados
+        if (!loaded.some((p) => p.slug.toUpperCase() === selectedPlano.toUpperCase() || p.id === selectedPlano)) {
+          setSelectedPlano(loaded[0]?.slug || "PROFISSIONAL");
+        }
+        setPlansLoading(false);
+      })
+      .catch(() => {
+        setCommercialPlans(COMMERCIAL_PLANS);
+        setPlansLoading(false);
+      });
+  }, [searchParams]);
 
   const fetchAuthStatus = () => {
     fetch("/api/auth/me")
@@ -150,8 +152,10 @@ function RenovarContent() {
   };
 
   useEffect(() => {
-    carregarPlanoPix(selectedPlano, billingCycle);
-  }, [selectedPlano, billingCycle, empresaIdParam]);
+    if (!plansLoading && selectedPlano) {
+      carregarPlanoPix(selectedPlano, billingCycle);
+    }
+  }, [selectedPlano, billingCycle, empresaIdParam, plansLoading]);
 
   // Polling em tempo real a cada 3 segundos para detecção automática do pagamento via Webhook do Banco Inter
   useEffect(() => {
@@ -332,131 +336,155 @@ function RenovarContent() {
 
         {/* Grid de Cards de Planos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-4">
-          {commercialPlans.map((plano) => {
-            const isSelected = selectedPlano.toUpperCase() === plano.slug.toUpperCase() || selectedPlano === plano.id;
-            const price = billingCycle === "ANUAL" ? plano.priceYearlyMonthlyEquivalent : plano.priceMonthly;
-
-            return (
+          {plansLoading ? (
+            Array.from({ length: 4 }).map((_, idx) => (
               <div
-                key={plano.id}
-                onClick={() => setSelectedPlano(plano.slug)}
-                className={`relative rounded-3xl p-6 cursor-pointer transition-all duration-200 flex flex-col justify-between border ${
-                  isSelected
-                    ? "bg-slate-900/95 border-emerald-500 shadow-2xl shadow-emerald-500/10 scale-[1.02] ring-2 ring-emerald-500/40"
-                    : "bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80"
-                }`}
+                key={idx}
+                className="rounded-3xl p-6 bg-slate-900/40 border border-slate-800 animate-pulse flex flex-col justify-between space-y-6"
               >
-                {plano.visivelPublico === false ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5" />
-                    <span>👑 Exclusivo para sua Empresa</span>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="h-5 w-28 bg-slate-800 rounded-lg" />
+                    <div className="w-5 h-5 bg-slate-800 rounded-full" />
                   </div>
-                ) : plano.popular ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
-                    Mais Escolhido
-                  </div>
-                ) : plano.badge ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 text-[10px] font-black uppercase tracking-wider shadow-md">
-                    {plano.badge}
-                  </div>
-                ) : null}
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-base font-black text-white tracking-tight">{plano.name}</h2>
-                    <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                        isSelected ? "border-emerald-500 bg-emerald-500 text-slate-950" : "border-slate-700"
-                      }`}
-                    >
-                      {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 min-h-[32px] leading-relaxed mb-4">
-                    {plano.description}
-                  </p>
-
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-white">R$ {formatPrice(price)}</span>
-                      <span className="text-xs text-slate-400">/mês</span>
-                    </div>
-                    {billingCycle === "ANUAL" && (
-                      <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
-                        Faturado R$ {formatPrice(plano.priceYearlyTotal)}/ano
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Limites Chave */}
-                  <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 mb-5 text-xs">
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>
-                        Até <strong>{plano.limits.maxProperties} imóveis</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>
-                        Até <strong>{plano.limits.maxUsers} usuário(s)</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <FileCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>
-                        <strong>{plano.limits.maxSignaturesPerMonth} assinaturas</strong>/mês
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <HardDrive className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>
-                        <strong>{plano.limits.maxStorageGB} GB</strong> de armazenamento
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Recursos Incluídos */}
-                  <div className="space-y-1.5 text-[11px] text-slate-300">
-                    <div className="flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Reservas & Agenda por diária</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Vistorias fotográficas com câmera</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Envio de PDFs no WhatsApp</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Financeiro & Bolepix Inter</span>
-                    </div>
-                    {plano.features.gestaoProprietarios && (
-                      <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
-                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                        <span>Gestão de Proprietários & Repasses</span>
-                      </div>
-                    )}
+                  <div className="h-4 w-full bg-slate-800/60 rounded" />
+                  <div className="h-8 w-36 bg-slate-800 rounded-xl" />
+                  <div className="p-3 rounded-2xl bg-slate-950/40 border border-slate-800/40 space-y-2">
+                    <div className="h-3.5 w-3/4 bg-slate-800/70 rounded" />
+                    <div className="h-3.5 w-1/2 bg-slate-800/70 rounded" />
+                    <div className="h-3.5 w-2/3 bg-slate-800/70 rounded" />
                   </div>
                 </div>
+                <div className="h-10 w-full bg-slate-800/80 rounded-xl" />
+              </div>
+            ))
+          ) : (
+            commercialPlans.map((plano) => {
+              const isSelected = selectedPlano.toUpperCase() === plano.slug.toUpperCase() || selectedPlano === plano.id;
+              const price = billingCycle === "ANUAL" ? plano.priceYearlyMonthlyEquivalent : plano.priceMonthly;
 
-                <button
-                  type="button"
-                  className={`w-full mt-6 py-2.5 rounded-xl font-bold text-xs transition ${
+              return (
+                <div
+                  key={plano.id}
+                  onClick={() => setSelectedPlano(plano.slug)}
+                  className={`relative rounded-3xl p-6 cursor-pointer transition-all duration-200 flex flex-col justify-between border ${
                     isSelected
-                      ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                      : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+                      ? "bg-slate-900/95 border-emerald-500 shadow-2xl shadow-emerald-500/10 scale-[1.02] ring-2 ring-emerald-500/40"
+                      : "bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80"
                   }`}
                 >
-                  {isSelected ? "Plano Selecionado" : "Selecionar Plano"}
-                </button>
-              </div>
-            );
-          })}
+                  {plano.visivelPublico === false ? (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>👑 Exclusivo para sua Empresa</span>
+                    </div>
+                  ) : plano.popular ? (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
+                      Mais Escolhido
+                    </div>
+                  ) : plano.badge ? (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 text-[10px] font-black uppercase tracking-wider shadow-md">
+                      {plano.badge}
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-base font-black text-white tracking-tight">{plano.name}</h2>
+                      <div
+                        className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                          isSelected ? "border-emerald-500 bg-emerald-500 text-slate-950" : "border-slate-700"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 min-h-[32px] leading-relaxed mb-4">
+                      {plano.description}
+                    </p>
+
+                    <div className="mb-4">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-white">R$ {formatPrice(price)}</span>
+                        <span className="text-xs text-slate-400">/mês</span>
+                      </div>
+                      {billingCycle === "ANUAL" && (
+                        <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
+                          Faturado R$ {formatPrice(plano.priceYearlyTotal)}/ano
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Limites Chave */}
+                    <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 mb-5 text-xs">
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>
+                          Até <strong>{plano.limits.maxProperties} imóveis</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>
+                          Até <strong>{plano.limits.maxUsers} usuário(s)</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <FileCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>
+                          <strong>{plano.limits.maxSignaturesPerMonth} assinaturas</strong>/mês
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <HardDrive className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>
+                          <strong>{plano.limits.maxStorageGB} GB</strong> de armazenamento
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Recursos Incluídos */}
+                    <div className="space-y-1.5 text-[11px] text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span>Reservas & Agenda por diária</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span>Vistorias fotográficas com câmera</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span>Envio de PDFs no WhatsApp</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span>Financeiro & Bolepix Inter</span>
+                      </div>
+                      {plano.features.gestaoProprietarios && (
+                        <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span>Gestão de Proprietários & Repasses</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`w-full mt-6 py-2.5 rounded-xl font-bold text-xs transition ${
+                      isSelected
+                        ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+                    }`}
+                  >
+                    {isSelected ? "Plano Selecionado" : "Selecionar Plano"}
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Card Enterprise */}
@@ -551,11 +579,15 @@ function RenovarContent() {
 
                 <div className="text-left sm:text-right bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 min-w-[220px]">
                   <span className="text-[11px] text-slate-400 block">Total do Pedido:</span>
-                  <span className="text-2xl font-black text-emerald-400">
-                    {formatBRL(isDataMatchingSelection && data ? data.planoSelecionado.valor : currentInstantPrice)}
-                  </span>
+                  {plansLoading ? (
+                    <div className="h-8 w-28 bg-slate-800 rounded animate-pulse my-1 ml-auto" />
+                  ) : (
+                    <span className="text-2xl font-black text-emerald-400">
+                      {formatBRL(isDataMatchingSelection && data ? data.planoSelecionado.valor : currentInstantPrice)}
+                    </span>
+                  )}
                   <span className="text-[10px] text-slate-500 block">
-                    {isDataMatchingSelection && data ? data.planoSelecionado.nome : currentInstantPlanName}
+                    {plansLoading ? "Carregando plano..." : (isDataMatchingSelection && data ? data.planoSelecionado.nome : currentInstantPlanName)}
                   </span>
                 </div>
               </div>
