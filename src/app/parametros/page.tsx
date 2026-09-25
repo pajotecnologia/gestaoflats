@@ -857,6 +857,7 @@ function ParametrosContent() {
     loadFormas();
     loadSaasConfig();
     loadEmpresasSaaS();
+    carregarPlanosSaaS();
     loadInterConfig();
     if (typeof window !== "undefined" && window.location.hash) {
       if (window.location.hash.includes("evolution")) setActiveTab("evolution");
@@ -3311,7 +3312,7 @@ function ParametrosContent() {
                                 <td className="py-3.5 px-3">
                                   <div className="flex items-center gap-1.5">
                                     <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${emp.isMestre ? "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"}`}>
-                                      {emp.isMestre ? "VITALÍCIO" : (emp.planoAtual || "MENSAL")}
+                                      {emp.isMestre ? "VITALÍCIO" : (emp.planoNome || emp.planoAtual || "MENSAL")}
                                     </span>
                                   </div>
                                   {!emp.isMestre && (
@@ -4716,20 +4717,25 @@ function ParametrosContent() {
                         .filter((slug) => slug !== "MESTRE")
                         .map((slug) => {
                           const p = saasPlanos[slug] || {};
+                          const maxProps = p.limits?.maxProperties;
+                          const propsStr = maxProps !== undefined ? (maxProps >= 9999 ? "Ilimitados" : `${maxProps} Imóveis`) : "";
                           return (
                             <option key={slug} value={slug}>
-                              {p.name || slug} {p.priceMonthly ? `(R$ ${p.priceMonthly.toFixed(2).replace(".", ",")}/mês)` : ""}
+                              {p.name || slug} {p.priceMonthly ? `(R$ ${p.priceMonthly.toFixed(2).replace(".", ",")}/mês)` : ""} {propsStr ? `• ${propsStr}` : ""}
                             </option>
                           );
                         })
                     ) : (
                       <>
-                        <option value="ESSENCIAL">Plano Essencial (R$ 79,00/mês)</option>
-                        <option value="PROFISSIONAL">Plano Profissional (R$ 149,00/mês)</option>
-                        <option value="GESTAO">Plano Gestão (R$ 249,00/mês)</option>
-                        <option value="EMPRESARIAL">Plano Empresarial (R$ 399,00/mês)</option>
-                        <option value="ENTERPRISE">Plano Enterprise (R$ 699,00/mês)</option>
-                        <option value="TRIAL">TRIAL (Teste Grátis)</option>
+                        <option value="ESSENCIAL">Plano Essencial (R$ 69,00/mês • 2 Imóveis)</option>
+                        <option value="SMART">Plano Smart (R$ 169,00/mês • 5 Imóveis)</option>
+                        <option value="PROFISSIONAL">Plano Profissional (R$ 289,00/mês • 10 Imóveis)</option>
+                        <option value="PERFORMANCE">Plano Performance (R$ 389,00/mês • 15 Imóveis)</option>
+                        <option value="PREMIUM">Plano Premium (R$ 489,00/mês • 20 Imóveis)</option>
+                        <option value="GESTAO">Plano Gestão (R$ 600,00/mês • 30 Imóveis)</option>
+                        <option value="EMPRESARIAL">Plano Empresarial (R$ 990,00/mês • 60 Imóveis)</option>
+                        <option value="ENTERPRISE">Plano Enterprise (R$ 1.690,00/mês • Ilimitado)</option>
+                        <option value="TRIAL">TRIAL (Teste Grátis • 15 dias)</option>
                       </>
                     )}
                   </select>

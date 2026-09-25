@@ -28,7 +28,7 @@ export default function UpgradeModal({
 
   const targetPlanName = nextPlan?.name || "Plano Profissional";
   const targetSlug = nextPlan?.slug || "PROFISSIONAL";
-  const targetPrice = nextPlan?.priceMonthly || 149;
+  const targetPrice = nextPlan?.priceMonthly || 289;
   const targetProperties = nextPlan?.limits.maxProperties || 10;
   const targetUsers = nextPlan?.limits.maxUsers || 3;
   const targetSignatures = nextPlan?.limits.maxSignaturesPerMonth || 20;

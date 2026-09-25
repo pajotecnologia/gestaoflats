@@ -5,7 +5,32 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 ---
 
 ## 📑 ÍNDICE DE VERSÕES
+- [v2.29.21 - Sincronização Dinâmica de Mensalidades SaaS e Ajuste de Planos](#v22921---sincronização-dinâmica-de-mensalidades-saas-e-ajuste-de-planos)
 - [v2.29.20 - Criação dos Planos Intermediários Smart, Performance e Premium](#v22920---criação-dos-planos-intermediários-smart-performance-e-premium)
+
+---
+
+### v2.29.21 - Sincronização Dinâmica de Mensalidades SaaS e Ajuste de Planos
+- **Data**: 25/09/2026
+- **Arquivos**:
+  - `src/app/api/saas/empresas/route.ts`
+  - `src/app/parametros/page.tsx`
+  - `src/components/plans/UpgradeModal.tsx`
+  - `src/app/renovar/page.tsx`
+  - `src/lib/version.ts`
+  - `package.json`
+  - `AGENTS.md`
+  - `HISTORICO_ENTREGAS_E_MELHORIAS.md`
+- **Problema Relatado**:
+  - Na tabela de Empresas Cadastradas (`/parametros?aba=saas`), as mensalidades estimadas exibidas embaixo dos badges dos planos estavam com valores fixos antigos desatualizados (ex: Plano Gestão exibindo R$ 279,00/mês e Profissional exibindo R$ 149,00/mês), e o modal de ajuste não continha todos os novos planos intermediários.
+- **Causa Raiz**:
+  - A rota `/api/saas/empresas` calculava `mensalidadeSaaS` por blocos `if/else` com constantes estáticas antigas em vez de consultar a função `getActiveSaasPlans()` e `normalizePlanSlug()`.
+- **Solução Implementada**:
+  - **Cálculo 100% Dinâmico**: A rota `/api/saas/empresas` agora resolve o plano canônico via `normalizePlanSlug` cruzado com `getActiveSaasPlans()`, exibindo o valor exato configurado no banco (`planDef.priceMonthly`).
+  - **Modal "Liberar / Plano" Enriquecido**: O seletor agora exibe o nome de cada plano, preço mensal atualizado e quota de imóveis correspondente.
+  - **Carregamento Automático**: Chamada de `carregarPlanosSaaS()` no `useEffect` de inicialização de parâmetros para manter as listas sempre síncronas.
+
+---
 - [v2.29.19 - Eliminação de Flash nos Preços e Personalização da Landing Page pelo Super Admin](#v22919---eliminação-de-flash-nos-preços-e-personalização-da-landing-page-pelo-super-admin)
 - [v2.29.18 - Forçamento Dinâmico e Sem Cache para Planos SaaS na Landing Page](#v22918---forçamento-dinâmico-e-sem-cache-para-planos-saas-na-landing-page)
 

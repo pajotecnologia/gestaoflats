@@ -232,7 +232,7 @@ function RenovarContent() {
         body: JSON.stringify({
           plano: selectedPlano,
           ciclo: billingCycle,
-          valor: data?.planoSelecionado?.valor || 149,
+          valor: data?.planoSelecionado?.valor || 0,
           formaPagamento: "PIX",
           empresaId: empresaIdParam || undefined,
         }),

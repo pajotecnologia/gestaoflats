@@ -3,6 +3,7 @@ import { getAuthSessionOrFallback, isUserSuperAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verificarStatusAcesso, getSaasConfig } from "@/lib/saasConfig";
 import { calculateDataUriBytes, formatBytes } from "@/lib/imageOptimizer";
+import { getActiveSaasPlans, normalizePlanSlug } from "@/lib/plans/planService";
 
 export async function GET() {
   try {
@@ -18,7 +19,10 @@ export async function GET() {
       );
     }
 
-    const saasConfig = await getSaasConfig();
+    const [saasConfig, activePlans] = await Promise.all([
+      getSaasConfig(),
+      getActiveSaasPlans(),
+    ]);
 
     const empresas = await prisma.empresa.findMany({
       include: {
@@ -162,20 +166,15 @@ export async function GET() {
         const totalStorageBytes = flatStorageBytes + vistoriaStorageBytes + assetsStorageBytes;
         totalStorageBytesGlobal += totalStorageBytes;
 
-        const maxStorageGB = emp.isMestre ? 999 : ((statusAcesso as any).limiteStorageGB || 5);
+        const planDef = normalizePlanSlug(emp.planoAtual, Boolean(emp.isMestre), statusAcesso.isTrial, activePlans);
+        const maxStorageGB = emp.isMestre ? 999 : (planDef?.limits?.maxStorageGB || (statusAcesso as any).limiteStorageGB || 5);
         const maxStorageBytes = maxStorageGB * 1024 * 1024 * 1024;
         const storagePercentage = Math.min(100, Math.max(1, Math.round((totalStorageBytes / maxStorageBytes) * 100)));
 
-        // Determinar valor estimado da mensalidade SaaS da empresa
+        // Determinar valor da mensalidade SaaS a partir da matriz de planos configurada
         let mensalidadeSaaS = 0;
-        if (!emp.isMestre) {
-          const plano = (emp.planoAtual || "PROFISSIONAL").toUpperCase();
-          if (plano === "ESSENCIAL") mensalidadeSaaS = 79;
-          else if (plano === "PROFISSIONAL" || plano === "MENSAL" || plano === "TRIAL") mensalidadeSaaS = 149;
-          else if (plano === "GESTAO" || plano === "SEMESTRAL") mensalidadeSaaS = 279;
-          else if (plano === "EMPRESARIAL" || plano === "ANUAL") mensalidadeSaaS = 449;
-          else if (plano === "ENTERPRISE") mensalidadeSaaS = 599;
-          else mensalidadeSaaS = 149;
+        if (!emp.isMestre && planDef) {
+          mensalidadeSaaS = planDef.priceMonthly || 0;
         }
 
         // Estatísticas Globais
@@ -210,7 +209,9 @@ export async function GET() {
           dataInicioTrial: emp.dataInicioTrial,
           dataFimTrial: emp.dataFimTrial,
           dataFimAcesso: emp.dataFimAcesso,
-          planoAtual: emp.planoAtual,
+          planoAtual: planDef?.slug || emp.planoAtual,
+          planoNome: planDef?.name || emp.planoAtual,
+          planoBadge: planDef?.badge,
           isMestre: Boolean(emp.isMestre),
           ultimoAvisoWhatsAppEm: emp.ultimoAvisoWhatsAppEm,
           usuarios: emp.usuarios,
