@@ -386,7 +386,6 @@ export default function LandingPage() {
               <span>Agendar Demonstração</span>
             </a>
           </div>
-          </div>
 
           <div className="flex flex-wrap justify-center items-center gap-5 sm:gap-8 pt-3 text-xs text-slate-400">
             <span className="flex items-center gap-1.5">

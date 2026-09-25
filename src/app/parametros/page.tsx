@@ -55,6 +55,7 @@ import {
   ChevronDown,
   ChevronUp,
   Server,
+  HelpCircle,
 } from "lucide-react";
 import { toast, ConfirmDialog } from "@/components/ui";
 
