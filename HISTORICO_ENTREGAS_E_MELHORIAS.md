@@ -5,6 +5,7 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 ---
 
 ## 📑 ÍNDICE DE VERSÕES
+- [v2.29.19 - Eliminação de Flash nos Preços e Personalização da Landing Page pelo Super Admin](#v22919---eliminação-de-flash-nos-preços-e-personalização-da-landing-page-pelo-super-admin)
 - [v2.29.18 - Forçamento Dinâmico e Sem Cache para Planos SaaS na Landing Page](#v22918---forçamento-dinâmico-e-sem-cache-para-planos-saas-na-landing-page)
 - [v2.29.17 - Sincronização Dinâmica dos Planos SaaS na Landing Page](#v22917---sincronização-dinâmica-dos-planos-saas-na-landing-page)
 - [v2.29.16 - Modelo Padrão de Contrato de Locação de Chácara para Eventos](#v22916---modelo-padrão-de-contrato-de-locação-de-chácara-para-eventos)
@@ -22,6 +23,36 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 - [v2.29.4 - Conciliação Automática no Contas a Pagar e Caixa do Dia](#v2294---conciliação-automática-no-contas-a-pagar-e-caixa-do-dia)
 - [v2.29.3 - Integração Financeira Nativa da Ordem de Serviço (O.S.)](#v2293---integração-financeira-nativa-da-ordem-de-serviço-os)
 - [v2.29.2 - Atualização Reativa de Status da Vistoria sem F5](#v2292---atualização-reativa-de-status-da-vistoria-sem-f5)
+
+---
+
+### v2.29.19 - Eliminação de Flash nos Preços e Personalização da Landing Page pelo Super Admin
+- **Data**: 25/09/2026
+- **Arquivos**:
+  - `src/lib/landingConfig.ts`
+  - `src/app/api/saas/landing-config/route.ts`
+  - `src/app/page.tsx`
+  - `src/app/parametros/page.tsx`
+  - `prisma/schema.prisma`
+  - `src/lib/version.ts`
+  - `package.json`
+  - `AGENTS.md`
+  - `HISTORICO_ENTREGAS_E_MELHORIAS.md`
+- **Problema Relatado**:
+  - A Landing Page exibia momentaneamente os valores estáticos iniciais antes de carregar os valores reais do banco de dados (flash de preços).
+  - O Super Admin necessitava de um módulo no painel administrativo para personalizar os textos, WhatsApp comercial, banners e perguntas frequentes da Landing Page sem alterar código-fonte.
+- **Causa Raiz**:
+  - Renderização síncrona dos preços estáticos antes da conclusão do `fetch('/api/saas/planos')`.
+  - Ausência de tela visual e endpoint dedicado para edição da Landing Page.
+- **Solução Implementada**:
+  - **Eliminação do Flash de Preços**: Implementação de Skeleton Shimmer (`animate-pulse`) na área de preços dos cards até que os dados reais do banco cheguem, revelando os valores com transição suave.
+  - **Módulo de Personalização da Landing Page**: Criada sub-aba *🎨 Personalização da Landing Page* em `Parâmetros ➔ Gestão SaaS`, permitindo configurar:
+    1. **Hero Section**: Badge superior, Título principal (H1), Palavra em destaque, Subtítulo, Texto do botão CTA e Link de vídeo demonstrativo.
+    2. **Contato & WhatsApp**: WhatsApp comercial, Mensagem padrão de atendimento e E-mail.
+    3. **Banner Promocional**: Toggle para ativar banner superior de aviso/promoção com link.
+    4. **Títulos de Seções**: Títulos e subtítulos de Benefícios e Planos.
+    5. **Editor de FAQ**: Adicionar, editar e remover perguntas e respostas frequentes.
+  - **Persistência no PostgreSQL**: Armazenamento na tabela `ConfiguracaoSaaS.landingConfigJson` com endpoint `/api/saas/landing-config` e atualização em tempo real.
 
 ---
 

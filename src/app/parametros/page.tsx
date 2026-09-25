@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Shell from "@/components/layout/Shell";
 import SignaturePad from "@/components/common/SignaturePad";
 import { formatCNPJ, formatPhone } from "@/lib/validation";
+import { DEFAULT_LANDING_CONFIG, LandingPageConfig, LandingFaqItem } from "@/lib/landingConfig";
 import {
   Settings,
   Mail,
@@ -212,7 +213,7 @@ function ParametrosContent() {
   const [testingSmtp, setTestingSmtp] = useState(false);
 
   // Estados do SaaS & Assinaturas
-  const [saasSubTab, setSaasSubTab] = useState<"empresas" | "planos" | "config">("empresas");
+  const [saasSubTab, setSaasSubTab] = useState<"empresas" | "planos" | "landing" | "config">("empresas");
   const [saasDiasTrial, setSaasDiasTrial] = useState(7);
   const [saasChavePix, setSaasChavePix] = useState("contato@pajotech.com.br");
   const [saasTipoPix, setSaasTipoPix] = useState("EMAIL");
@@ -227,6 +228,12 @@ function ParametrosContent() {
   const [saasEmailAdmin, setSaasEmailAdmin] = useState("pajotecnologia@gmail.com");
   const [saasMsgAviso, setSaasMsgAviso] = useState("");
   const [savingSaasConfig, setSavingSaasConfig] = useState(false);
+
+  // Personalização da Landing Page (Super Admin)
+  const [landingConfig, setLandingConfig] = useState<LandingPageConfig>(DEFAULT_LANDING_CONFIG);
+  const [loadingLandingConfig, setLoadingLandingConfig] = useState(false);
+  const [salvandoLandingConfig, setSalvandoLandingConfig] = useState(false);
+  const [hasCustomLandingConfig, setHasCustomLandingConfig] = useState(false);
 
   // Gestão Dinâmica dos Planos SaaS (Limites e Preços)
   const [saasPlanos, setSaasPlanos] = useState<Record<string, any>>({});
@@ -295,7 +302,7 @@ function ParametrosContent() {
   const carregarPlanosSaaS = async () => {
     setLoadingPlanos(true);
     try {
-      const res = await fetch("/api/saas/planos");
+      const res = await fetch(`/api/saas/planos?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       if (res.ok && data.planos) {
         setSaasPlanos(data.planos);
@@ -306,6 +313,77 @@ function ParametrosContent() {
     } finally {
       setLoadingPlanos(false);
     }
+  };
+
+  const carregarLandingConfig = async () => {
+    setLoadingLandingConfig(true);
+    try {
+      const res = await fetch(`/api/saas/landing-config?t=${Date.now()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok && data.config) {
+        setLandingConfig(data.config);
+        setHasCustomLandingConfig(Boolean(data.hasCustomConfig));
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao carregar configurações da Landing Page.");
+    } finally {
+      setLoadingLandingConfig(false);
+    }
+  };
+
+  const handleSalvarLandingConfig = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSalvandoLandingConfig(true);
+    try {
+      const res = await fetch("/api/saas/landing-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: landingConfig }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("Landing Page personalizada e atualizada com sucesso!");
+        setHasCustomLandingConfig(true);
+      } else {
+        toast.error(data.error || "Erro ao salvar personalização da Landing Page.");
+      }
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message}`);
+    } finally {
+      setSalvandoLandingConfig(false);
+    }
+  };
+
+  const handleRestaurarLandingPadrao = () => {
+    openConfirm({
+      title: "Restaurar Landing Page Padrão",
+      description: "Deseja restaurar todos os textos, links e configurações da Landing Page para os padrões originais de fábrica?",
+      confirmText: "Restaurar Padrão",
+      variant: "danger",
+      onConfirm: async () => {
+        setSalvandoLandingConfig(true);
+        try {
+          const res = await fetch("/api/saas/landing-config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "reset" }),
+          });
+          const data = await res.json();
+          if (res.ok && data.config) {
+            toast.success("Landing Page restaurada para o padrão de fábrica!");
+            setLandingConfig(data.config);
+            setHasCustomLandingConfig(false);
+          } else {
+            toast.error(data.error || "Erro ao restaurar.");
+          }
+        } catch (err: any) {
+          toast.error(`Erro: ${err.message}`);
+        } finally {
+          setSalvandoLandingConfig(false);
+        }
+      },
+    });
   };
 
   const handleOpenNewPlan = () => {
@@ -2861,6 +2939,22 @@ function ParametrosContent() {
 
                 <button
                   type="button"
+                  onClick={() => {
+                    setSaasSubTab("landing");
+                    carregarLandingConfig();
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+                    saasSubTab === "landing"
+                      ? "bg-amber-600 text-white shadow-md"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>🎨 Personalização da Landing Page</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setSaasSubTab("config")}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
                     saasSubTab === "config"
@@ -3666,7 +3760,411 @@ function ParametrosContent() {
               </div>
             )}
 
-            {/* SUB-ABA 3: CONFIGURAÇÃO GLOBAL DO SAAS */}
+            {/* SUB-ABA 3: PERSONALIZAÇÃO DA LANDING PAGE (SUPER ADMIN) */}
+            {saasSubTab === "landing" && (
+              <div className="space-y-6 text-xs">
+                {/* Cabeçalho da Aba */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h2 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                        🎨 Personalização da Landing Page (Página Inicial)
+                      </h2>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        hasCustomLandingConfig
+                          ? "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-800"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                      }`}>
+                        {hasCustomLandingConfig ? "✨ Personalizada" : "⚙️ Padrão de Fábrica"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Edite os textos, chamadas, WhatsApp comercial, banners e perguntas frequentes da sua Landing Page. As alterações refletem imediatamente para todos os visitantes.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <a
+                      href="/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 text-xs flex items-center space-x-1.5 transition"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Visualizar Landing Page</span>
+                    </a>
+
+                    {hasCustomLandingConfig && (
+                      <button
+                        type="button"
+                        onClick={handleRestaurarLandingPadrao}
+                        disabled={salvandoLandingConfig}
+                        className="py-2 px-3.5 rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-bold text-xs flex items-center space-x-1.5 transition"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Restaurar Padrão</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleSalvarLandingConfig}
+                      disabled={salvandoLandingConfig}
+                      className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs shadow-md transition flex items-center space-x-1.5"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{salvandoLandingConfig ? "Salvando..." : "Salvar Alterações"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSalvarLandingConfig} className="space-y-6">
+                  {/* Bloco 1: Hero Section & Chamada Principal */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs flex items-center space-x-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>1. Apresentação Principal (Hero Section)</span>
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Badge Superior (Pílula com Novidade/Versão)
+                        </label>
+                        <input
+                          type="text"
+                          value={landingConfig.heroBadge || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, heroBadge: e.target.value })}
+                          placeholder="🚀 Plataforma SaaS nº 1 para Gestão de Imóveis, Flats & Chácaras"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-2">
+                          <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Título Principal (Headline H1)
+                          </label>
+                          <input
+                            type="text"
+                            value={landingConfig.heroTitle || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, heroTitle: e.target.value })}
+                            placeholder="O Sistema Completo para Locação Residencial, Comercial e Temporada."
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Palavra em Destaque Gradiente
+                          </label>
+                          <input
+                            type="text"
+                            value={landingConfig.heroTitleHighlight || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, heroTitleHighlight: e.target.value })}
+                            placeholder="sem complicação"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Subtítulo Explicativo (Subheadline)
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={landingConfig.heroSubtitle || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, heroSubtitle: e.target.value })}
+                          placeholder="Controle reservas por diária, emita contratos com assinatura digital, faça vistorias com fotos pelo celular..."
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-slate-100 leading-relaxed"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Texto do Botão CTA Principal
+                          </label>
+                          <input
+                            type="text"
+                            value={landingConfig.heroCtaText || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, heroCtaText: e.target.value })}
+                            placeholder="Começar Teste Grátis (7 Dias)"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Link do Vídeo Demonstrativo (YouTube / Vimeo / MP4)
+                          </label>
+                          <input
+                            type="text"
+                            value={landingConfig.heroVideoUrl || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, heroVideoUrl: e.target.value })}
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bloco 2: Contato Comercial & Atendimento WhatsApp */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs flex items-center space-x-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <MessageSquare className="w-4 h-4 text-emerald-500" />
+                      <span>2. Contato Comercial & Atendimento WhatsApp</span>
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          WhatsApp Comercial (com DDD)
+                        </label>
+                        <input
+                          type="text"
+                          value={landingConfig.whatsappComercial || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, whatsappComercial: e.target.value })}
+                          placeholder="(87) 99654-0551"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          E-mail Comercial / Suporte
+                        </label>
+                        <input
+                          type="email"
+                          value={landingConfig.emailComercial || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, emailComercial: e.target.value })}
+                          placeholder="contato@pajotech.com.br"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Mensagem Padrão do WhatsApp
+                        </label>
+                        <input
+                          type="text"
+                          value={landingConfig.whatsappMensagemPadrao || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, whatsappMensagemPadrao: e.target.value })}
+                          placeholder="Olá! Gostaria de uma demonstração do IMOB."
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bloco 3: Banner Promocional do Topo */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs flex items-center space-x-2">
+                        <Zap className="w-4 h-4 text-purple-500" />
+                        <span>3. Banner Promocional do Topo (Aviso / Oferta)</span>
+                      </h3>
+
+                      <label className="flex items-center space-x-2 cursor-pointer font-bold text-xs">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(landingConfig.bannerAtivo)}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, bannerAtivo: e.target.checked })}
+                          className="rounded text-purple-600 w-4 h-4"
+                        />
+                        <span className={landingConfig.bannerAtivo ? "text-purple-600 dark:text-purple-400 font-bold" : "text-slate-400"}>
+                          {landingConfig.bannerAtivo ? "🟢 Banner Ativado" : "⚪ Banner Desativado"}
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Texto da Promoção / Notificação
+                        </label>
+                        <input
+                          type="text"
+                          value={landingConfig.bannerTexto || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, bannerTexto: e.target.value })}
+                          placeholder="🔥 Oferta de Lançamento: Ganhe 10% de desconto no plano anual!"
+                          disabled={!landingConfig.bannerAtivo}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-semibold disabled:opacity-50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Link de Destino
+                        </label>
+                        <input
+                          type="text"
+                          value={landingConfig.bannerLink || ""}
+                          onChange={(e) => setLandingConfig({ ...landingConfig, bannerLink: e.target.value })}
+                          placeholder="#planos ou /renovar"
+                          disabled={!landingConfig.bannerAtivo}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bloco 4: Títulos das Seções */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs flex items-center space-x-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <Layers className="w-4 h-4 text-blue-500" />
+                      <span>4. Títulos das Seções da Landing Page</span>
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">Seção de Benefícios</span>
+                        <div>
+                          <label className="block text-[10px] text-slate-500 mb-0.5">Título</label>
+                          <input
+                            type="text"
+                            value={landingConfig.beneficiosTitulo || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, beneficiosTitulo: e.target.value })}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-semibold text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-slate-500 mb-0.5">Subtítulo</label>
+                          <input
+                            type="text"
+                            value={landingConfig.beneficiosSubtitulo || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, beneficiosSubtitulo: e.target.value })}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">Seção de Planos</span>
+                        <div>
+                          <label className="block text-[10px] text-slate-500 mb-0.5">Título</label>
+                          <input
+                            type="text"
+                            value={landingConfig.planosTitulo || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, planosTitulo: e.target.value })}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 font-semibold text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-slate-500 mb-0.5">Subtítulo</label>
+                          <input
+                            type="text"
+                            value={landingConfig.planosSubtitulo || ""}
+                            onChange={(e) => setLandingConfig({ ...landingConfig, planosSubtitulo: e.target.value })}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bloco 5: Editor de Perguntas Frequentes (FAQ) */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs flex items-center space-x-2">
+                        <HelpCircle className="w-4 h-4 text-amber-500" />
+                        <span>5. Perguntas Frequentes (FAQ)</span>
+                      </h3>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentFaq = landingConfig.faqItems || DEFAULT_LANDING_CONFIG.faqItems || [];
+                          setLandingConfig({
+                            ...landingConfig,
+                            faqItems: [
+                              ...currentFaq,
+                              { pergunta: "Nova Pergunta Frequente", resposta: "Explicação detalhada da resposta aqui." }
+                            ]
+                          });
+                        }}
+                        className="py-1.5 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 font-bold text-xs flex items-center space-x-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar Pergunta</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {(landingConfig.faqItems || DEFAULT_LANDING_CONFIG.faqItems || []).map((faq, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 relative"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-700 dark:text-slate-300 text-[11px]">
+                              Pergunta #{idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentFaq = [...(landingConfig.faqItems || DEFAULT_LANDING_CONFIG.faqItems || [])];
+                                currentFaq.splice(idx, 1);
+                                setLandingConfig({ ...landingConfig, faqItems: currentFaq });
+                              }}
+                              className="text-rose-500 hover:text-rose-700 p-1"
+                              title="Remover pergunta"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div>
+                            <input
+                              type="text"
+                              value={faq.pergunta}
+                              onChange={(e) => {
+                                const currentFaq = [...(landingConfig.faqItems || DEFAULT_LANDING_CONFIG.faqItems || [])];
+                                currentFaq[idx] = { ...currentFaq[idx], pergunta: e.target.value };
+                                setLandingConfig({ ...landingConfig, faqItems: currentFaq });
+                              }}
+                              placeholder="Título da Pergunta..."
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1.5 font-bold text-slate-900 dark:text-slate-100"
+                            />
+                          </div>
+
+                          <div>
+                            <textarea
+                              rows={2}
+                              value={faq.resposta}
+                              onChange={(e) => {
+                                const currentFaq = [...(landingConfig.faqItems || DEFAULT_LANDING_CONFIG.faqItems || [])];
+                                currentFaq[idx] = { ...currentFaq[idx], resposta: e.target.value };
+                                setLandingConfig({ ...landingConfig, faqItems: currentFaq });
+                              }}
+                              placeholder="Resposta explicativa..."
+                              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg p-2 text-slate-700 dark:text-slate-300 text-xs leading-relaxed"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Barra de Ação Inferior */}
+                  <div className="flex items-center justify-end space-x-3 pt-3">
+                    <button
+                      type="submit"
+                      disabled={salvandoLandingConfig}
+                      className="py-3 px-8 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs shadow-lg transition flex items-center space-x-2 disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{salvandoLandingConfig ? "Salvando Alterações..." : "💾 Salvar Personalização da Landing Page"}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* SUB-ABA 4: CONFIGURAÇÃO GLOBAL DO SAAS */}
             {saasSubTab === "config" && (
               <form onSubmit={handleSaveSaasConfig} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6 text-xs">
                 <div className="border-b border-slate-200 dark:border-slate-800 pb-3">

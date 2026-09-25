@@ -63,6 +63,7 @@ import {
 import { SYSTEM_VERSION } from "@/lib/version";
 import { formatCNPJ, formatCPF, formatPhone } from "@/lib/validation";
 import { COMMERCIAL_PLANS, SAAS_PLANS, PlanDefinition, getCommercialPlans } from "@/lib/plans/planDefinitions";
+import { DEFAULT_LANDING_CONFIG, LandingPageConfig } from "@/lib/landingConfig";
 import ImobLogo from "@/components/brand/ImobLogo";
 
 export default function LandingPage() {
@@ -70,10 +71,14 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [commercialPlans, setCommercialPlans] = useState<PlanDefinition[]>(COMMERCIAL_PLANS);
   const [allPlansDict, setAllPlansDict] = useState<Record<string, PlanDefinition>>(SAAS_PLANS);
+  const [plansLoaded, setPlansLoaded] = useState<boolean>(false);
+  const [landingConfig, setLandingConfig] = useState<LandingPageConfig>(DEFAULT_LANDING_CONFIG);
 
-  // Carrega em tempo real as configurações e preços dos planos salvos pelo Super Admin
+  // Carrega em tempo real as configurações de planos e personalização da Landing Page
   useEffect(() => {
     let isMounted = true;
+    
+    // 1. Carrega Planos SaaS
     fetch(`/api/saas/planos?t=${Date.now()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
@@ -89,12 +94,35 @@ export default function LandingPage() {
       })
       .catch((err) => {
         console.error("Erro ao sincronizar planos SaaS na Landing Page:", err);
+      })
+      .finally(() => {
+        if (isMounted) setPlansLoaded(true);
+      });
+
+    // 2. Carrega Personalização da Landing Page
+    fetch(`/api/saas/landing-config?t=${Date.now()}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.config) {
+          setLandingConfig(data.config);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar personalização da Landing Page:", err);
       });
 
     return () => {
       isMounted = false;
     };
   }, []);
+
+  const getWhatsAppUrl = (msg?: string) => {
+    const phone = (landingConfig.whatsappComercial || "5587996540551").replace(/\D/g, "");
+    const formattedPhone = phone.startsWith("55") ? phone : `55${phone}`;
+    const text = encodeURIComponent(msg || landingConfig.whatsappMensagemPadrao || "Olá! Gostaria de saber mais sobre o sistema IMOB.");
+    return `https://wa.me/${formattedPhone}?text=${text}`;
+  };
 
   const formatPrice = (val: number) => {
     if (typeof val !== "number" || isNaN(val)) return "0,00";
@@ -232,10 +260,22 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
+      {/* Banner Promocional do Topo (Configurável pelo Super Admin) */}
+      {landingConfig.bannerAtivo && landingConfig.bannerTexto && (
+        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white text-xs font-bold py-2.5 px-4 text-center sticky top-0 z-50 flex items-center justify-center gap-2 shadow-md">
+          <span>{landingConfig.bannerTexto}</span>
+          {landingConfig.bannerLink && (
+            <a href={landingConfig.bannerLink} className="underline text-indigo-100 hover:text-white font-black ml-1">
+              Saiba mais →
+            </a>
+          )}
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 1. HEADER / NAVBAR                                                        */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-[#070b14]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#070b14]/90 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           {/* Logo Oficial IMOB */}
           <Link href="/" className="hover:opacity-95 transition">
@@ -305,17 +345,22 @@ export default function LandingPage() {
           {/* Badge Topo */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-950/90 via-blue-950/80 to-slate-900 border border-indigo-500/40 text-indigo-300 text-xs font-extrabold backdrop-blur-md shadow-lg shadow-indigo-500/15">
             <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-            <span>Versão {SYSTEM_VERSION} • Gestão Completa de Imóveis, Temporada & Diárias</span>
+            <span>{landingConfig.heroBadge || `Versão ${SYSTEM_VERSION} • Gestão Completa de Imóveis, Temporada & Diárias`}</span>
           </div>
 
           {/* Headline Principal */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight max-w-5xl mx-auto leading-[1.12]">
-            O Sistema Completo para Locação Residencial, Comercial e Temporada.
+            {landingConfig.heroTitle || "O Sistema Completo para Locação Residencial, Comercial e Temporada."}
+            {landingConfig.heroTitleHighlight && (
+              <span className="bg-gradient-to-r from-indigo-400 via-blue-400 to-emerald-400 bg-clip-text text-transparent block sm:inline ml-2">
+                {landingConfig.heroTitleHighlight}
+              </span>
+            )}
           </h1>
 
           {/* Subheadline */}
           <p className="text-sm sm:text-lg text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
-            Controle reservas por diária, emita contratos com assinatura digital, faça vistorias com fotos pelo celular, gerencie ordens de serviço e emita boletos com Pix pelo Banco Inter em uma única plataforma.
+            {landingConfig.heroSubtitle || "Controle reservas por diária, emita contratos com assinatura digital, faça vistorias com fotos pelo celular, gerencie ordens de serviço e emita boletos com Pix pelo Banco Inter em uma única plataforma."}
           </p>
 
           {/* CTAs Principais */}
@@ -327,12 +372,12 @@ export default function LandingPage() {
               }}
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-blue-600 to-indigo-500 hover:from-indigo-400 hover:to-blue-500 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-500/30 transition hover:scale-105"
             >
-              <span>Começar Teste Grátis (7 Dias)</span>
+              <span>{landingConfig.heroCtaText || "Começar Teste Grátis (7 Dias)"}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <a
-              href="https://wa.me/5587996540551?text=Ol%C3%A1!%20Gostaria%20de%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20sistema%20IMOB%20da%20PAJO%20Tecnologia."
+              href={getWhatsAppUrl("Olá! Gostaria de agendar uma demonstração do sistema IMOB da PAJO Tecnologia.")}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-bold text-sm flex items-center justify-center gap-2 transition hover:border-slate-600"
@@ -340,6 +385,7 @@ export default function LandingPage() {
               <MessageSquare className="w-4 h-4 text-emerald-400" />
               <span>Agendar Demonstração</span>
             </a>
+          </div>
           </div>
 
           <div className="flex flex-wrap justify-center items-center gap-5 sm:gap-8 pt-3 text-xs text-slate-400">
@@ -935,15 +981,24 @@ export default function LandingPage() {
                       {plano.description}
                     </p>
 
-                    <div className="my-5">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-white">R$ {formatPrice(price)}</span>
-                        <span className="text-xs text-slate-400">/mês</span>
-                      </div>
-                      {billingCycle === "ANUAL" && (
-                        <span className="text-[10px] text-indigo-400 font-semibold block mt-0.5">
-                          R$ {formatPrice(plano.priceYearlyTotal)} cobrado anualmente
-                        </span>
+                    <div className="my-5 min-h-[56px] flex flex-col justify-center">
+                      {!plansLoaded ? (
+                        <div className="space-y-1.5 animate-pulse py-1">
+                          <div className="h-8 w-32 bg-slate-800 rounded-lg"></div>
+                          <div className="h-3 w-24 bg-slate-800/60 rounded"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-baseline gap-1 animate-in fade-in duration-200">
+                            <span className="text-3xl font-black text-white">R$ {formatPrice(price)}</span>
+                            <span className="text-xs text-slate-400">/mês</span>
+                          </div>
+                          {billingCycle === "ANUAL" && (
+                            <span className="text-[10px] text-indigo-400 font-semibold block mt-0.5 animate-in fade-in duration-200">
+                              R$ {formatPrice(plano.priceYearlyTotal)} cobrado anualmente
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -1095,9 +1150,9 @@ export default function LandingPage() {
             </div>
 
             <a
-              href={`https://wa.me/5587996540551?text=${encodeURIComponent(
+              href={getWhatsAppUrl(
                 `Olá! Gostaria de uma proposta personalizada do Plano Enterprise (${allPlansDict.ENTERPRISE?.name || "Enterprise"}) do IMOB.`
-              )}`}
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 rounded-2xl bg-white text-slate-950 font-black text-xs hover:bg-slate-200 transition shadow-lg shrink-0"
@@ -1123,7 +1178,10 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-3">
-            {faqItems.map((item, idx) => {
+            {(landingConfig.faqItems && landingConfig.faqItems.length > 0
+              ? landingConfig.faqItems.map((f) => ({ q: f.pergunta, a: f.resposta }))
+              : faqItems
+            ).map((item, idx) => {
               const isOpen = openFaq === idx;
               return (
                 <div
