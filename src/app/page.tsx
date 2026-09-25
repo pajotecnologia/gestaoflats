@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -62,12 +62,39 @@ import {
 } from "lucide-react";
 import { SYSTEM_VERSION } from "@/lib/version";
 import { formatCNPJ, formatCPF, formatPhone } from "@/lib/validation";
-import { COMMERCIAL_PLANS } from "@/lib/plans/planDefinitions";
+import { COMMERCIAL_PLANS, SAAS_PLANS, PlanDefinition, getCommercialPlans } from "@/lib/plans/planDefinitions";
 import ImobLogo from "@/components/brand/ImobLogo";
 
 export default function LandingPage() {
   const [billingCycle, setBillingCycle] = useState<"MENSAL" | "ANUAL">("MENSAL");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [commercialPlans, setCommercialPlans] = useState<PlanDefinition[]>(COMMERCIAL_PLANS);
+  const [allPlansDict, setAllPlansDict] = useState<Record<string, PlanDefinition>>(SAAS_PLANS);
+
+  // Carrega em tempo real as configurações e preços dos planos salvos pelo Super Admin
+  useEffect(() => {
+    let isMounted = true;
+    fetch(`/api/saas/planos?t=${Date.now()}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.commercialPlans && Array.isArray(data.commercialPlans) && data.commercialPlans.length > 0) {
+          setCommercialPlans(data.commercialPlans);
+        } else if (data.planos) {
+          setCommercialPlans(getCommercialPlans(data.planos));
+        }
+        if (data.planos) {
+          setAllPlansDict(data.planos);
+        }
+      })
+      .catch((err) => {
+        console.error("Erro ao sincronizar planos SaaS na Landing Page:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const formatPrice = (val: number) => {
     if (typeof val !== "number" || isNaN(val)) return "0,00";
@@ -871,23 +898,34 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Cards dos 4 Planos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-            {COMMERCIAL_PLANS.map((plano) => {
+          {/* Cards dos Planos Dinâmicos */}
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 ${
+              commercialPlans.length === 1
+                ? "max-w-md mx-auto"
+                : commercialPlans.length === 2
+                ? "lg:grid-cols-2 max-w-4xl mx-auto"
+                : commercialPlans.length === 3
+                ? "lg:grid-cols-3 max-w-6xl mx-auto"
+                : "lg:grid-cols-4"
+            } gap-6 text-left`}
+          >
+            {commercialPlans.map((plano) => {
               const price = billingCycle === "ANUAL" ? plano.priceYearlyMonthlyEquivalent : plano.priceMonthly;
+              const isPopular = Boolean(plano.popular || plano.badge);
 
               return (
                 <div
-                  key={plano.id}
-                  className={`rounded-3xl p-6 flex flex-col justify-between border relative ${
-                    plano.popular
-                      ? "bg-slate-900/95 border-indigo-500 shadow-2xl shadow-indigo-500/20 ring-2 ring-indigo-500/40"
+                  key={plano.id || plano.slug}
+                  className={`rounded-3xl p-6 flex flex-col justify-between border relative transition-all duration-300 ${
+                    isPopular
+                      ? "bg-slate-900/95 border-indigo-500 shadow-2xl shadow-indigo-500/20 ring-2 ring-indigo-500/40 hover:border-indigo-400"
                       : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
                   }`}
                 >
-                  {plano.popular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
-                      Mais Escolhido
+                  {isPopular && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md whitespace-nowrap">
+                      {plano.badge || "Mais Escolhido"}
                     </div>
                   )}
 
@@ -912,19 +950,51 @@ export default function LandingPage() {
                     <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs mb-5">
                       <div className="flex items-center gap-2 text-slate-200">
                         <Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span>Até <strong>{plano.limits.maxProperties} imóveis</strong></span>
+                        <span>
+                          {plano.limits?.maxProperties >= 9999 ? (
+                            <strong>Imóveis Ilimitados</strong>
+                          ) : (
+                            <>
+                              Até <strong>{plano.limits?.maxProperties || 10} imóveis</strong>
+                            </>
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-200">
                         <Users className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span>Até <strong>{plano.limits.maxUsers} usuário(s)</strong></span>
+                        <span>
+                          {plano.limits?.maxUsers >= 999 ? (
+                            <strong>Usuários Ilimitados</strong>
+                          ) : (
+                            <>
+                              Até <strong>{plano.limits?.maxUsers || 1} usuário(s)</strong>
+                            </>
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-200">
                         <FileCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span><strong>{plano.limits.maxSignaturesPerMonth} assinaturas</strong>/mês</span>
+                        <span>
+                          {plano.limits?.maxSignaturesPerMonth >= 9999 ? (
+                            <strong>Assinaturas Ilimitadas</strong>
+                          ) : (
+                            <>
+                              <strong>{plano.limits?.maxSignaturesPerMonth || 20} assinaturas</strong>/mês
+                            </>
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-200">
                         <HardDrive className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span><strong>{plano.limits.maxStorageGB} GB</strong> storage</span>
+                        <span>
+                          {plano.limits?.maxStorageGB >= 9999 ? (
+                            <strong>Storage Ilimitado</strong>
+                          ) : (
+                            <>
+                              <strong>{plano.limits?.maxStorageGB || 5} GB</strong> storage
+                            </>
+                          )}
+                        </span>
                       </div>
                     </div>
 
@@ -949,28 +1019,62 @@ export default function LandingPage() {
                         <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         <span>Financeiro & Bolepix Inter</span>
                       </div>
-                      {plano.features.gestaoProprietarios && (
+                      {plano.features?.gestaoProprietarios && (
                         <div className="flex items-center gap-2 text-indigo-300 font-semibold">
                           <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                           <span>Gestão de Proprietários</span>
                         </div>
                       )}
+                      {plano.features?.repassesAutomaticos && (
+                        <div className="flex items-center gap-2 text-indigo-300 font-semibold">
+                          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span>Repasses Automáticos</span>
+                        </div>
+                      )}
+                      {plano.features?.permissoesAvancadas && (
+                        <div className="flex items-center gap-2 text-indigo-300 font-semibold">
+                          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span>Permissões Avançadas</span>
+                        </div>
+                      )}
+                      {plano.features?.suporteNivel === "GERENTE_CONTA" && (
+                        <div className="flex items-center gap-2 text-indigo-300 font-semibold">
+                          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span>Gerente de Contas</span>
+                        </div>
+                      )}
+                      {plano.features?.suporteNivel === "SLA_DEDICADO" && (
+                        <div className="flex items-center gap-2 text-indigo-300 font-semibold">
+                          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span>SLA Dedicado 24/7</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setAuthMode("register");
-                      setShowAuthModal(true);
-                    }}
-                    className={`w-full mt-6 py-3 rounded-xl font-bold text-xs transition ${
-                      plano.popular
-                        ? "bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white shadow-lg shadow-indigo-500/25"
-                        : "bg-slate-800 hover:bg-slate-700 text-white"
-                    }`}
-                  >
-                    Começar Teste Grátis
-                  </button>
+                  <div className="space-y-2 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode("register");
+                        setShowAuthModal(true);
+                      }}
+                      className={`w-full py-3 rounded-xl font-bold text-xs transition cursor-pointer ${
+                        isPopular
+                          ? "bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 text-white shadow-lg shadow-indigo-500/25 hover:scale-[1.02]"
+                          : "bg-slate-800 hover:bg-slate-700 text-white"
+                      }`}
+                    >
+                      Começar Teste Grátis
+                    </button>
+
+                    <Link
+                      href={`/renovar?plano=${encodeURIComponent(plano.slug || plano.id)}&ciclo=${billingCycle}`}
+                      className="block w-full py-1 text-center text-[11px] font-semibold text-slate-400 hover:text-indigo-300 transition"
+                    >
+                      Assinar Diretamente →
+                    </Link>
+                  </div>
                 </div>
               );
             })}
@@ -982,14 +1086,18 @@ export default function LandingPage() {
               <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black border border-blue-500/20 uppercase tracking-wider">
                 Operações de Grande Porte
               </span>
-              <h3 className="text-xl font-black text-white mt-1">Plano Enterprise (60+ Imóveis)</h3>
+              <h3 className="text-xl font-black text-white mt-1">
+                {allPlansDict.ENTERPRISE?.name || "Plano Enterprise (60+ Imóveis)"}
+              </h3>
               <p className="text-xs text-slate-400 max-w-xl mt-1">
-                A partir de R$ 599/mês. Limites personalizados de imóveis, múltiplos condomínios, SLA dedicado e gerente de contas.
+                A partir de R$ {formatPrice(allPlansDict.ENTERPRISE?.priceMonthly || 599)}/mês. Limites personalizados de imóveis, múltiplos condomínios, SLA dedicado e gerente de contas.
               </p>
             </div>
 
             <a
-              href="https://wa.me/5587996540551?text=Ol%C3%A1!%20Gostaria%20de%20uma%20proposta%20personalizada%20do%20Plano%20Enterprise%20do%20IMOB."
+              href={`https://wa.me/5587996540551?text=${encodeURIComponent(
+                `Olá! Gostaria de uma proposta personalizada do Plano Enterprise (${allPlansDict.ENTERPRISE?.name || "Enterprise"}) do IMOB.`
+              )}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 rounded-2xl bg-white text-slate-950 font-black text-xs hover:bg-slate-200 transition shadow-lg shrink-0"

@@ -235,6 +235,8 @@ Use este roteiro para criar vídeos didáticos, tutoriais de uso e materiais de 
 O registro cronológico completo de todas as versões, causas raízes, refatorações técnicas e soluções implementadas encontra-se documentado detalhadamente no arquivo [HISTORICO_ENTREGAS_E_MELHORIAS.md](./HISTORICO_ENTREGAS_E_MELHORIAS.md).
 
 ### Resumo das Versões Recentes:
+- **v2.29.18**: Forçamento dinâmico e sem cache (`force-dynamic` / `no-store`) para sincronização em tempo real dos planos SaaS na Landing Page e cálculo de precificação proporcional a partir da âncora do Plano Gestão (R$ 600,00).
+- **v2.29.17**: Sincronização dinâmica e automática dos planos SaaS, preços, limites e ciclo anual na Landing Page diretamente a partir do banco de dados configurado pelo Super Admin.
 - **v2.29.16**: Criação do modelo padrão de Contrato de Locação de Chácara para Eventos e Temporada com variáveis dinâmicas e atalho de fábrica no editor visual A4.
 - **v2.29.15**: Emissão de cobrança SaaS no Banco Inter sob demanda estrita via clique no botão de pagamento, verificação de conexão mTLS ativa e preview instantâneo sem criação de cobranças indesejadas.
 - **v2.29.14**: Eliminação de flash/sobreposição de preços no checkout (`/renovar`) com Skeleton Shimmer inicial até a confirmação dos preços reais do banco de dados.

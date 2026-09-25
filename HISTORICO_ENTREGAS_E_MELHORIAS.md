@@ -5,6 +5,8 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 ---
 
 ## 📑 ÍNDICE DE VERSÕES
+- [v2.29.18 - Forçamento Dinâmico e Sem Cache para Planos SaaS na Landing Page](#v22918---forçamento-dinâmico-e-sem-cache-para-planos-saas-na-landing-page)
+- [v2.29.17 - Sincronização Dinâmica dos Planos SaaS na Landing Page](#v22917---sincronização-dinâmica-dos-planos-saas-na-landing-page)
 - [v2.29.16 - Modelo Padrão de Contrato de Locação de Chácara para Eventos](#v22916---modelo-padrão-de-contrato-de-locação-de-chácara-para-eventos)
 - [v2.29.15 - Emissão de Cobrança SaaS no Banco Inter sob Demanda via Botão](#v22915---emissão-de-cobrança-saas-no-banco-inter-sob-demanda-via-botão)
 - [v2.29.14 - Eliminação de Flash de Preços no Checkout com Skeleton Loading](#v22914---eliminação-de-flash-de-preços-no-checkout-com-skeleton-loading)
@@ -20,6 +22,47 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 - [v2.29.4 - Conciliação Automática no Contas a Pagar e Caixa do Dia](#v2294---conciliação-automática-no-contas-a-pagar-e-caixa-do-dia)
 - [v2.29.3 - Integração Financeira Nativa da Ordem de Serviço (O.S.)](#v2293---integração-financeira-nativa-da-ordem-de-serviço-os)
 - [v2.29.2 - Atualização Reativa de Status da Vistoria sem F5](#v2292---atualização-reativa-de-status-da-vistoria-sem-f5)
+
+---
+
+### v2.29.18 - Forçamento Dinâmico e Sem Cache para Planos SaaS na Landing Page
+- **Data**: 25/09/2026
+- **Arquivos**:
+  - `src/app/api/saas/planos/route.ts`
+  - `src/app/page.tsx`
+  - `src/lib/version.ts`
+  - `package.json`
+  - `AGENTS.md`
+  - `HISTORICO_ENTREGAS_E_MELHORIAS.md`
+- **Problema Relatado**:
+  - A Landing Page eventualmente exibia versões em cache estático dos planos após alterações salvas pelo Super Admin no banco de dados.
+- **Causa Raiz**:
+  - Ausência de flags de renderização dinâmica (`force-dynamic` e `revalidate = 0`) na rota de API `/api/saas/planos`, além da falta de `cache: "no-store"` e query param de timestamp no `fetch` do cliente.
+- **Solução Implementada**:
+  - Configuração explícita de `export const dynamic = "force-dynamic"` e `export const revalidate = 0` na rota de planos SaaS.
+  - Implementação de `fetch("/api/saas/planos?t=" + Date.now(), { cache: "no-store" })` na Landing Page.
+  - Definição da matriz de precificação proporcional SaaS com base na âncora do Plano Gestão (R$ 600,00/mês).
+
+---
+
+### v2.29.17 - Sincronização Dinâmica dos Planos SaaS na Landing Page
+- **Data**: 23/09/2026
+- **Arquivos**:
+  - `src/app/page.tsx`
+  - `src/lib/version.ts`
+  - `package.json`
+  - `AGENTS.md`
+  - `HISTORICO_ENTREGAS_E_MELHORIAS.md`
+- **Problema Relatado**:
+  - Os planos e valores cadastrados/customizados pelo Super Admin no painel (`/parametros?aba=saas`) não refletiam na Landing Page (`/`), gerando divergência entre os valores públicos da página inicial e os valores do checkout (`/renovar`).
+- **Causa Raiz**:
+  - A Landing Page (`src/app/page.tsx`) utilizava uma constante estática `COMMERCIAL_PLANS` importada diretamente do código-fonte em vez de consumir a rota de planos dinâmicos `/api/saas/planos`.
+- **Solução Implementada**:
+  - Inserção de estado reativo e `useEffect` em `src/app/page.tsx` para sincronizar automaticamente a lista de planos comerciais públicos e configurações gerais (`commercialPlans` e `planos`) do banco de dados.
+  - Atualização do grid responsivo de planos para se adaptar dinamicamente à quantidade de planos públicos cadastrados (1, 2, 3, 4 ou mais planos).
+  - Exibição de preços mensais e anuais calculados com precisão, badges ("Mais Escolhido"), limites de imóveis, usuários, assinaturas e storage, e recursos dinâmicos.
+  - Sincronização do valor de partida do Plano Enterprise com o banco de dados.
+  - Links diretos em cada card para contratação imediata (`/renovar?plano=...`) ou abertura do formulário de cadastro/teste grátis de 7 dias.
 
 ---
 
