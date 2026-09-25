@@ -88,7 +88,10 @@ export function normalizePlanSlug(
   const raw = (planoString || "").toUpperCase().trim();
   if (plans[raw]) return plans[raw];
   if (raw === "ESSENCIAL") return plans.ESSENCIAL || SAAS_PLANS.ESSENCIAL;
+  if (raw === "SMART") return plans.SMART || SAAS_PLANS.SMART;
   if (raw === "PROFISSIONAL" || raw === "MENSAL" || raw === "TRIMESTRAL") return plans.PROFISSIONAL || SAAS_PLANS.PROFISSIONAL;
+  if (raw === "PERFORMANCE") return plans.PERFORMANCE || SAAS_PLANS.PERFORMANCE;
+  if (raw === "PREMIUM") return plans.PREMIUM || SAAS_PLANS.PREMIUM;
   if (raw === "GESTAO" || raw === "SEMESTRAL") return plans.GESTAO || SAAS_PLANS.GESTAO;
   if (raw === "EMPRESARIAL" || raw === "ANUAL") return plans.EMPRESARIAL || SAAS_PLANS.EMPRESARIAL;
   if (raw === "ENTERPRISE") return plans.ENTERPRISE || SAAS_PLANS.ENTERPRISE;

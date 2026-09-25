@@ -5,8 +5,45 @@ Este documento registra o histórico cronológico detalhado de todas as implemen
 ---
 
 ## 📑 ÍNDICE DE VERSÕES
+- [v2.29.20 - Criação dos Planos Intermediários Smart, Performance e Premium](#v22920---criação-dos-planos-intermediários-smart-performance-e-premium)
 - [v2.29.19 - Eliminação de Flash nos Preços e Personalização da Landing Page pelo Super Admin](#v22919---eliminação-de-flash-nos-preços-e-personalização-da-landing-page-pelo-super-admin)
 - [v2.29.18 - Forçamento Dinâmico e Sem Cache para Planos SaaS na Landing Page](#v22918---forçamento-dinâmico-e-sem-cache-para-planos-saas-na-landing-page)
+
+---
+
+### v2.29.20 - Criação dos Planos Intermediários Smart, Performance e Premium
+- **Data**: 25/09/2026
+- **Arquivos**:
+  - `src/lib/plans/planDefinitions.ts`
+  - `src/lib/plans/planService.ts`
+  - `src/lib/version.ts`
+  - `package.json`
+  - `AGENTS.md`
+  - `HISTORICO_ENTREGAS_E_MELHORIAS.md`
+- **Problema Relatado / Solicitação**:
+  - Necessidade de criar mais planos intermediários comerciais para preencher os saltos de capacidade:
+    1. Entre o Plano **Essencial** (2 imóveis) e o Plano **Profissional** (10 imóveis).
+    2. Entre o Plano **Profissional** (10 imóveis) e o Plano **Gestão** (30 imóveis - R$ 600,00).
+- **Causa Raiz & Oportunidade de Negócio**:
+  - Clientes que possuíam de 3 a 5 imóveis precisavam saltar direto de R$ 69/mês para R$ 289/mês (Profissional).
+  - Clientes que possuíam de 11 a 20 imóveis precisavam saltar direto de R$ 289/mês para R$ 600/mês (Gestão).
+- **Solução Implementada**:
+  - **Novo Plano Smart (Entre Essencial e Profissional)**:
+    - **Capacidade**: Até 5 Imóveis, 2 Usuários, 15 Assinaturas/mês, 250 Mensagens WhatsApp/mês, 3 GB Storage.
+    - **Preço**: R$ 169,00/mês (ou R$ 152,00/mês no ciclo Anual com 10% de desconto).
+  - **Novo Plano Performance (Entre Profissional e Gestão)**:
+    - **Capacidade**: Até 15 Imóveis, 4 Usuários, 40 Assinaturas/mês, 750 Mensagens WhatsApp/mês, 8 GB Storage.
+    - **Preço**: R$ 389,00/mês (ou R$ 350,00/mês no ciclo Anual com 10% de desconto).
+  - **Novo Plano Premium (Entre Performance e Gestão)**:
+    - **Capacidade**: Até 20 Imóveis, 4 Usuários, 50 Assinaturas/mês, 1.000 Mensagens WhatsApp/mês, 10 GB Storage.
+    - **Preço**: R$ 489,00/mês (ou R$ 440,00/mês no ciclo Anual com 10% de desconto).
+  - **Escada de Upgrades Dinâmica**:
+    - Atualização da função `getNextUpgradePlan` para a progressão contínua:
+      `ESSENCIAL (2)` ➔ `SMART (5)` ➔ `PROFISSIONAL (10)` ➔ `PERFORMANCE (15)` ➔ `PREMIUM (20)` ➔ `GESTAO (30)` ➔ `EMPRESARIAL (60)` ➔ `ENTERPRISE (Ilimitado)`.
+  - **Integração Total**:
+    - Reconhecimento automático dos novos planos na Landing Page, checkout de renovação (`/renovar`), matriz de gestão SaaS em Parâmetros e validações estritas de quota no backend (`checkLimit`).
+
+---
 - [v2.29.17 - Sincronização Dinâmica dos Planos SaaS na Landing Page](#v22917---sincronização-dinâmica-dos-planos-saas-na-landing-page)
 - [v2.29.16 - Modelo Padrão de Contrato de Locação de Chácara para Eventos](#v22916---modelo-padrão-de-contrato-de-locação-de-chácara-para-eventos)
 - [v2.29.15 - Emissão de Cobrança SaaS no Banco Inter sob Demanda via Botão](#v22915---emissão-de-cobrança-saas-no-banco-inter-sob-demanda-via-botão)

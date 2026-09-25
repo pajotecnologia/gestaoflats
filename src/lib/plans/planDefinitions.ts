@@ -63,15 +63,15 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
     name: "Plano Essencial",
     description: "Ideal para pequenos proprietários que querem organizar e profissionalizar suas locações.",
     popular: false,
-    priceMonthly: 79.0,
-    priceYearlyMonthlyEquivalent: 67.0,
-    priceYearlyTotal: 799.0,
+    priceMonthly: 69.0,
+    priceYearlyMonthlyEquivalent: 62.0,
+    priceYearlyTotal: 745.0,
     limits: {
-      maxProperties: 3,
+      maxProperties: 2,
       maxUsers: 1,
       maxSignaturesPerMonth: 5,
       maxStorageGB: 2,
-      maxWhatsAppMessagesPerMonth: 150,
+      maxWhatsAppMessagesPerMonth: 50,
       maxOwners: 1,
     },
     features: {
@@ -94,7 +94,47 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
       permissoesAvancadas: false,
       suporteNivel: "PADRAO",
     },
-    idealPara: "Proprietários individuais com até 3 imóveis ou flats.",
+    idealPara: "Proprietários individuais com até 2 imóveis ou chácaras.",
+  },
+
+  SMART: {
+    id: "plan-smart",
+    slug: "SMART",
+    name: "Plano Smart",
+    description: "Para quem está expandindo de 1 imóvel para uma pequena carteira organizada.",
+    popular: false,
+    priceMonthly: 169.0,
+    priceYearlyMonthlyEquivalent: 152.0,
+    priceYearlyTotal: 1825.0,
+    limits: {
+      maxProperties: 5,
+      maxUsers: 2,
+      maxSignaturesPerMonth: 10,
+      maxStorageGB: 5,
+      maxWhatsAppMessagesPerMonth: 250,
+      maxOwners: 2,
+    },
+    features: {
+      reservasDiarias: true,
+      gestaoLocatarios: true,
+      editorContratos: true,
+      assinaturaDigital: true,
+      auditoriaBlockchain: true,
+      vistoriasComFotos: true,
+      cameraNativaWebcam: true,
+      financeiroBasico: true,
+      boletosInterBolepix: true,
+      recibosAutomaticos: true,
+      whatsappEvolutionApi: true,
+      alertasTempoReal: true,
+      dashboardNivel: "COMPLETO",
+      relatoriosNivel: "BASICOS",
+      gestaoProprietarios: true,
+      repassesAutomaticos: false,
+      permissoesAvancadas: false,
+      suporteNivel: "PADRAO",
+    },
+    idealPara: "Locadores e anfitriões com até 5 imóveis ou flats.",
   },
 
   PROFISSIONAL: {
@@ -104,9 +144,9 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
     badge: "MAIS ESCOLHIDO",
     description: "O plano mais equilibrado e completo para investidores e locadores profissionais.",
     popular: true,
-    priceMonthly: 149.0,
-    priceYearlyMonthlyEquivalent: 125.0,
-    priceYearlyTotal: 1490.0,
+    priceMonthly: 289.0,
+    priceYearlyMonthlyEquivalent: 260.0,
+    priceYearlyTotal: 3120.0,
     limits: {
       maxProperties: 10,
       maxUsers: 3,
@@ -138,15 +178,95 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
     idealPara: "Gestores e investidores imobiliários com até 10 imóveis.",
   },
 
+  PERFORMANCE: {
+    id: "plan-performance",
+    slug: "PERFORMANCE",
+    name: "Plano Performance",
+    description: "Perfeito para locadores que superaram 10 imóveis e buscam alta produtividade.",
+    popular: false,
+    priceMonthly: 389.0,
+    priceYearlyMonthlyEquivalent: 350.0,
+    priceYearlyTotal: 4200.0,
+    limits: {
+      maxProperties: 15,
+      maxUsers: 4,
+      maxSignaturesPerMonth: 30,
+      maxStorageGB: 15,
+      maxWhatsAppMessagesPerMonth: 750,
+      maxOwners: 10,
+    },
+    features: {
+      reservasDiarias: true,
+      gestaoLocatarios: true,
+      editorContratos: true,
+      assinaturaDigital: true,
+      auditoriaBlockchain: true,
+      vistoriasComFotos: true,
+      cameraNativaWebcam: true,
+      financeiroBasico: true,
+      boletosInterBolepix: true,
+      recibosAutomaticos: true,
+      whatsappEvolutionApi: true,
+      alertasTempoReal: true,
+      dashboardNivel: "COMPLETO",
+      relatoriosNivel: "COMPLETOS",
+      gestaoProprietarios: true,
+      repassesAutomaticos: true,
+      permissoesAvancadas: true,
+      suporteNivel: "PRIORITARIO",
+    },
+    idealPara: "Administradores de locação com até 15 imóveis.",
+  },
+
+  PREMIUM: {
+    id: "plan-premium",
+    slug: "PREMIUM",
+    name: "Plano Premium",
+    description: "Capacidade intermediária robusta para empresas e pousadas com até 20 imóveis.",
+    popular: false,
+    priceMonthly: 489.0,
+    priceYearlyMonthlyEquivalent: 440.0,
+    priceYearlyTotal: 5280.0,
+    limits: {
+      maxProperties: 20,
+      maxUsers: 4,
+      maxSignaturesPerMonth: 40,
+      maxStorageGB: 20,
+      maxWhatsAppMessagesPerMonth: 1000,
+      maxOwners: 15,
+    },
+    features: {
+      reservasDiarias: true,
+      gestaoLocatarios: true,
+      editorContratos: true,
+      assinaturaDigital: true,
+      auditoriaBlockchain: true,
+      vistoriasComFotos: true,
+      cameraNativaWebcam: true,
+      financeiroBasico: true,
+      boletosInterBolepix: true,
+      recibosAutomaticos: true,
+      whatsappEvolutionApi: true,
+      alertasTempoReal: true,
+      dashboardNivel: "AVANCADO",
+      relatoriosNivel: "AVANCADOS",
+      gestaoProprietarios: true,
+      repassesAutomaticos: true,
+      permissoesAvancadas: true,
+      suporteNivel: "PRIORITARIO",
+    },
+    idealPara: "Empresas de locação e condomínios com até 20 imóveis.",
+  },
+
   GESTAO: {
     id: "plan-gestao",
     slug: "GESTAO",
     name: "Plano Gestão",
     description: "Perfeito para administradores de imóveis, condomínios e operações em franca expansão.",
     popular: false,
-    priceMonthly: 279.0,
-    priceYearlyMonthlyEquivalent: 235.0,
-    priceYearlyTotal: 2790.0,
+    priceMonthly: 600.0,
+    priceYearlyMonthlyEquivalent: 540.0,
+    priceYearlyTotal: 6480.0,
     limits: {
       maxProperties: 30,
       maxUsers: 5,
@@ -184,9 +304,9 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
     name: "Plano Empresarial",
     description: "Capacidade máxima, alto volume operacional e suporte dedicado para imobiliárias e empresas de locação.",
     popular: false,
-    priceMonthly: 449.0,
-    priceYearlyMonthlyEquivalent: 375.0,
-    priceYearlyTotal: 4490.0,
+    priceMonthly: 990.0,
+    priceYearlyMonthlyEquivalent: 891.0,
+    priceYearlyTotal: 10692.0,
     limits: {
       maxProperties: 60,
       maxUsers: 10,
@@ -224,9 +344,9 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
     name: "Plano Enterprise",
     description: "Soluções personalizadas, limites customizados e atendimento VIP para grandes redes e administradoras.",
     popular: false,
-    priceMonthly: 599.0,
-    priceYearlyMonthlyEquivalent: 499.0,
-    priceYearlyTotal: 5990.0,
+    priceMonthly: 1690.0,
+    priceYearlyMonthlyEquivalent: 1521.0,
+    priceYearlyTotal: 18252.0,
     limits: {
       maxProperties: 9999,
       maxUsers: 999,
@@ -342,11 +462,14 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
 };
 
 /**
- * Retorna a lista dos 4 planos comerciais padrão para a Landing Page e página de Preços
+ * Retorna a lista dos planos comerciais padrão para a Landing Page e página de Preços
  */
 export const COMMERCIAL_PLANS = [
   SAAS_PLANS.ESSENCIAL,
+  SAAS_PLANS.SMART,
   SAAS_PLANS.PROFISSIONAL,
+  SAAS_PLANS.PERFORMANCE,
+  SAAS_PLANS.PREMIUM,
   SAAS_PLANS.GESTAO,
   SAAS_PLANS.EMPRESARIAL,
 ];
@@ -367,7 +490,10 @@ export function getCommercialPlans(customPlans?: Record<string, PlanDefinition>)
 
   return list.length > 0 ? list : [
     SAAS_PLANS.ESSENCIAL,
+    SAAS_PLANS.SMART,
     SAAS_PLANS.PROFISSIONAL,
+    SAAS_PLANS.PERFORMANCE,
+    SAAS_PLANS.PREMIUM,
     SAAS_PLANS.GESTAO,
     SAAS_PLANS.EMPRESARIAL,
   ];
@@ -412,8 +538,11 @@ export function getPlansForCompany(
  */
 export function getNextUpgradePlan(currentSlug: string): PlanDefinition | null {
   const normalized = currentSlug?.toUpperCase();
-  if (normalized === "ESSENCIAL") return SAAS_PLANS.PROFISSIONAL;
-  if (normalized === "PROFISSIONAL") return SAAS_PLANS.GESTAO;
+  if (normalized === "ESSENCIAL") return SAAS_PLANS.SMART || SAAS_PLANS.PROFISSIONAL;
+  if (normalized === "SMART") return SAAS_PLANS.PROFISSIONAL;
+  if (normalized === "PROFISSIONAL") return SAAS_PLANS.PERFORMANCE || SAAS_PLANS.GESTAO;
+  if (normalized === "PERFORMANCE") return SAAS_PLANS.PREMIUM || SAAS_PLANS.GESTAO;
+  if (normalized === "PREMIUM") return SAAS_PLANS.GESTAO;
   if (normalized === "GESTAO") return SAAS_PLANS.EMPRESARIAL;
   if (normalized === "EMPRESARIAL") return SAAS_PLANS.ENTERPRISE;
   return SAAS_PLANS.PROFISSIONAL; // Padrão se for Trial

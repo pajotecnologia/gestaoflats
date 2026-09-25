@@ -235,6 +235,7 @@ Use este roteiro para criar vídeos didáticos, tutoriais de uso e materiais de 
 O registro cronológico completo de todas as versões, causas raízes, refatorações técnicas e soluções implementadas encontra-se documentado detalhadamente no arquivo [HISTORICO_ENTREGAS_E_MELHORIAS.md](./HISTORICO_ENTREGAS_E_MELHORIAS.md).
 
 ### Resumo das Versões Recentes:
+- **v2.29.20**: Criação dos planos intermediários Smart (5 imóveis), Performance (15 imóveis) e Premium (20 imóveis), integrados à Landing Page, checkout, limites do backend e matriz de gestão SaaS.
 - **v2.29.19**: Eliminação do flash de preços com skeleton shimmer nos cards da Landing Page e criação do módulo completo de personalização da Landing Page pelo Super Admin.
 - **v2.29.18**: Forçamento dinâmico e sem cache (`force-dynamic` / `no-store`) para sincronização em tempo real dos planos SaaS na Landing Page e cálculo de precificação proporcional a partir da âncora do Plano Gestão (R$ 600,00).
 - **v2.29.17**: Sincronização dinâmica e automática dos planos SaaS, preços, limites e ciclo anual na Landing Page diretamente a partir do banco de dados configurado pelo Super Admin.
